@@ -98,8 +98,12 @@ library AuraStorage {
         // ---- Phase 9: CDP mode
         bool mintableDebtToken; // If true: borrow mints aUSD, repay/liquidate burns aUSD
 
+        // ---- Phase 10: Delegate / Operator pattern
+        // user => operator => approved; allows routers to act on behalf of users
+        mapping(address => mapping(address => bool)) delegates;
+
         // ---- Storage gap for future upgrades (each new variable consumes one slot)
-        uint256[47] __gap;
+        uint256[46] __gap;
     }
 
     // ------------------------------------------------------------------ accessor

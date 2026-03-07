@@ -10,6 +10,7 @@ import { IMarketRegistry }        from "./interfaces/IMarketRegistry.sol";
 import { IERC3156FlashBorrower }  from "./interfaces/IERC3156FlashBorrower.sol";
 import { IERC3156FlashLender }    from "./interfaces/IERC3156FlashLender.sol";
 import { IAuraUSD }               from "./interfaces/IAuraUSD.sol";
+import { Multicall }              from "./Multicall.sol";
 
 /**
  * @title AuraEngine
@@ -20,7 +21,7 @@ import { IAuraUSD }               from "./interfaces/IAuraUSD.sol";
  *      Each market has its own collateral vault, oracle, and risk params (held in AuraMarketRegistry).
  *      Debt is a single token across all markets; health factor is aggregated cross-collateral.
  */
-contract AuraEngine {
+contract AuraEngine is Multicall {
     // ------------------------------- Custom errors
     error Aura__Paused();
     error Aura__EmergencyShutdown();
@@ -84,6 +85,10 @@ contract AuraEngine {
     event FlashLoanReservesWithdrawn(address indexed to, uint256 amount);
     // ---- Phase 9: CDP
     event MintableDebtTokenSet(bool enabled);
+    // ---- Phase 10: DX & Composability
+    event DelegateSet(address indexed user, address indexed delegate, bool approved);
+    event DepositAndBorrowed(address indexed user, uint256 indexed marketId, uint256 shares, uint256 borrowed);
+    event RepaidAndWithdrawn(address indexed user, uint256 indexed marketId, uint256 repaid, uint256 shares);
 
     /// @notice EIP-1967 UUPS upgrade interface version
     string public constant UPGRADE_INTERFACE_VERSION = "5.0.0";
@@ -283,6 +288,30 @@ contract AuraEngine {
         emit KeeperSet(keeper, status);
     }
 
+    // ---- Phase 10: Delegate / Operator management
+    /**
+     * @notice Approve or revoke `delegate` to act on behalf of msg.sender.
+     *         Delegates can call borrow, repay, withdrawCollateral, depositAndBorrow,
+     *         and repayAndWithdraw on behalf of the authorising user.
+     * @param delegate Address to authorise (e.g. AuraRouter).
+     * @param approved True = grant access; false = revoke.
+     */
+    function setDelegate(address delegate, bool approved) external {
+        AuraStorage.getStorage().delegates[msg.sender][delegate] = approved;
+        emit DelegateSet(msg.sender, delegate, approved);
+    }
+
+    /// @notice Returns true if `delegate` is authorised to act for `user`.
+    function isDelegate(address user, address delegate) external view returns (bool) {
+        return AuraStorage.getStorage().delegates[user][delegate];
+    }
+
+    /// @dev Auth helper — passes if msg.sender is the user or an approved delegate.
+    function _authorizedFor(address user) internal view {
+        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        if (msg.sender != user && !$.delegates[user][msg.sender]) revert Aura__Unauthorized();
+    }
+
     // ---- Phase 9: CDP mode
     /**
      * @notice Enable or disable CDP mint/burn mode for the debt token.
@@ -374,178 +403,135 @@ contract AuraEngine {
     // ------------------------------- Core: Deposit / Withdraw
     /**
      * @notice Deposit ERC-4626 vault shares as collateral into a specific market.
-     * @param user     Beneficiary of the position
-     * @param marketId Target market (must be active and not frozen)
-     * @param shares   Amount of vault shares to deposit
+     *         Shares are pulled from the caller (msg.sender), not from `user`.
+     *         No authorization check — anyone can deposit on behalf of a user.
+     * @param user     Beneficiary of the position.
+     * @param marketId Target market (must be active and not frozen).
+     * @param shares   Amount of vault shares to deposit.
      */
     function depositCollateral(
         address user,
         uint256 marketId,
         uint256 shares
     ) external whenNotPaused whenNotShutdown noSameBlock(user, marketId) nonReentrant {
-        if (shares == 0) revert Aura__ZeroAmount();
         AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
         IMarketRegistry.MarketConfig memory cfg = _requireActiveMarket($.marketRegistry, marketId);
         _accrueInterest($, marketId);
-
-        // Supply cap check
-        AuraStorage.MarketState storage ms = $.marketStates[marketId];
-        if (cfg.supplyCap != 0 && ms.totalCollateralShares + shares > cfg.supplyCap)
-            revert Aura__SupplyCapExceeded();
-
-        // Isolation mode check
-        _checkIsolationOnDeposit($, user, marketId, cfg.isIsolated);
-
-        // Pull shares from caller
-        bool ok = IERC4626(cfg.vault).transferFrom(msg.sender, address(this), shares);
-        if (!ok) revert Aura__InvalidParams();
-
-        // Update state
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
-        if (!$.userInMarket[user][marketId]) {
-            $.userInMarket[user][marketId] = true;
-            $.userMarketIds[user].push(marketId);
-        }
-        pos.collateralShares += shares;
-        ms.totalCollateralShares += shares;
-
-        // Initialise per-market state on first deposit
-        if (ms.globalDebtScale == 0) {
-            ms.globalDebtScale = AuraStorage.RAY;
-            try IERC4626(cfg.vault).convertToAssets(AuraStorage.WAD) returns (uint256 p) {
-                ms.lastHarvestPricePerShare = p;
-            } catch {
-                ms.lastHarvestPricePerShare = AuraStorage.WAD;
-            }
-            ms.lastHarvestTimestamp = block.timestamp;
-        }
-
-        emit CollateralDeposited(user, marketId, shares);
+        _depositCollateralCore($, cfg, user, marketId, shares);
     }
 
     /**
      * @notice Withdraw collateral shares from a market. Reverts if cross-collateral HF < 1.
-     * @param user     Position owner (must equal msg.sender)
-     * @param marketId Source market
-     * @param shares   Amount of shares to withdraw
+     *         Caller must be the position owner or an approved delegate.
+     *         Shares are sent to `user` (position owner), not the caller.
+     * @param user     Position owner.
+     * @param marketId Source market.
+     * @param shares   Amount of shares to withdraw.
      */
     function withdrawCollateral(
         address user,
         uint256 marketId,
         uint256 shares
     ) external whenNotPaused noSameBlock(user, marketId) nonReentrant {
-        if (msg.sender != user) revert Aura__Unauthorized();
-        if (shares == 0) revert Aura__ZeroAmount();
+        _authorizedFor(user);
         AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
         IMarketRegistry.MarketConfig memory cfg = _getMarketCfg($.marketRegistry, marketId);
         _accrueInterest($, marketId);
-
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
-        if (pos.collateralShares < shares) revert Aura__InsufficientCollateral();
-
-        _settlePosition($, user, marketId);
-        pos.collateralShares -= shares;
-        $.marketStates[marketId].totalCollateralShares -= shares;
-
-        // Clean up market tracking if position fully closed
-        _tryExitMarket($, user, marketId);
-
-        _requireHealthy($, user);
-
-        bool ok = IERC4626(cfg.vault).transfer(msg.sender, shares);
-        if (!ok) revert Aura__InvalidParams();
-        emit CollateralWithdrawn(user, marketId, shares);
+        _withdrawCollateralCore($, cfg, user, marketId, shares);
     }
 
     // ------------------------------- Core: Borrow / Repay
     /**
      * @notice Borrow debt token against collateral in a specific market.
-     * @param user     Position owner (must equal msg.sender)
-     * @param marketId Source market (determines per-market LTV check)
-     * @param amount   Amount of debt token to borrow
+     *         Caller must be the position owner or an approved delegate.
+     *         Borrowed tokens are sent to `user` (position owner), not the caller.
+     * @param user     Position owner.
+     * @param marketId Source market (determines per-market LTV check).
+     * @param amount   Amount of debt token to borrow.
      */
     function borrow(
         address user,
         uint256 marketId,
         uint256 amount
     ) external whenNotPaused whenNotShutdown noSameBlock(user, marketId) nonReentrant {
-        if (msg.sender != user) revert Aura__Unauthorized();
-        if (amount == 0) revert Aura__ZeroAmount();
+        _authorizedFor(user);
         AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
         IMarketRegistry.MarketConfig memory cfg = _requireActiveMarket($.marketRegistry, marketId);
         _accrueInterest($, marketId);
-
-        _settlePosition($, user, marketId);
-
-        AuraStorage.MarketState   storage ms  = $.marketStates[marketId];
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
-
-        // Isolation borrow cap
-        if (cfg.isIsolated && cfg.isolatedBorrowCap != 0) {
-            uint256 currentIsolatedDebt = (ms.totalPrincipalDebt * _effectiveScale(ms)) / AuraStorage.RAY;
-            if (currentIsolatedDebt + amount > cfg.isolatedBorrowCap)
-                revert Aura__BorrowCapExceeded();
-        }
-
-        // ---- 5.2 Origination Fee
-        uint256 originationFee;
-        if (cfg.originationFeeBps > 0) {
-            originationFee = (amount * cfg.originationFeeBps) / 10_000;
-        }
-        uint256 totalDebtAdded = amount + originationFee;
-
-        // Re-check borrow cap against full debt increase
-        if (cfg.borrowCap != 0 && ms.totalPrincipalDebt + totalDebtAdded > cfg.borrowCap)
-            revert Aura__BorrowCapExceeded();
-
-        pos.principalDebt    += totalDebtAdded;
-        pos.scaleAtLastUpdate = _effectiveScale(ms);
-        ms.totalPrincipalDebt += totalDebtAdded;
-
-        if (originationFee > 0) {
-            ms.totalReserves += originationFee;
-            emit OriginationFeeCharged(user, marketId, originationFee);
-        }
-
-        // ---- Phase 9: per-market debt ceiling (CDP mode only)
-        // Note: ms.totalPrincipalDebt already includes totalDebtAdded (updated above).
-        if ($.mintableDebtToken && cfg.debtCeiling != 0 &&
-                ms.totalPrincipalDebt > cfg.debtCeiling)
-            revert Aura__DebtCeilingExceeded();
-
-        _requireLtv($, user, marketId, cfg);
-        _lendDebtToken($, user, amount);
-        emit Borrowed(user, marketId, amount);
+        _borrowCore($, cfg, user, marketId, amount);
     }
 
     /**
      * @notice Repay debt in a specific market.
-     * @param user     Position owner (must equal msg.sender)
-     * @param marketId Target market
-     * @param amount   Amount of debt token to repay
+     *         Caller must be the position owner or an approved delegate.
+     *         Debt tokens are recovered from `user` (position owner), not the caller.
+     * @param user     Position owner.
+     * @param marketId Target market.
+     * @param amount   Amount of debt token to repay.
      */
     function repay(
         address user,
         uint256 marketId,
         uint256 amount
     ) external whenNotPaused noSameBlock(user, marketId) nonReentrant {
-        if (msg.sender != user) revert Aura__Unauthorized();
-        if (amount == 0) revert Aura__ZeroAmount();
+        _authorizedFor(user);
         AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
         _getMarketCfg($.marketRegistry, marketId); // ensures market exists
         _accrueInterest($, marketId);
+        _repayCore($, user, marketId, amount);
+    }
 
-        _settlePosition($, user, marketId);
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
-        uint256 debt = pos.principalDebt;
-        if (amount > debt) amount = debt;
-        unchecked {
-            pos.principalDebt                        -= amount;
-            $.marketStates[marketId].totalPrincipalDebt -= amount;
-        }
-        _tryExitMarket($, user, marketId);
-        _recoverDebtToken($, msg.sender, amount);
-        emit Repaid(user, marketId, amount);
+    // ------------------------------- Core: Compound convenience functions (Phase 10)
+
+    /**
+     * @notice Deposit collateral and borrow in one transaction with a single same-block check.
+     *         Vault shares are pulled from the caller (msg.sender); borrowed tokens go to `user`.
+     *         Caller must be the position owner or an approved delegate.
+     * @param user         Position owner.
+     * @param marketId     Target market.
+     * @param shares       Vault shares to deposit.
+     * @param borrowAmount Amount of debt token to borrow.
+     */
+    function depositAndBorrow(
+        address user,
+        uint256 marketId,
+        uint256 shares,
+        uint256 borrowAmount
+    ) external whenNotPaused whenNotShutdown noSameBlock(user, marketId) nonReentrant {
+        _authorizedFor(user);
+        if (shares == 0 || borrowAmount == 0) revert Aura__ZeroAmount();
+        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        IMarketRegistry.MarketConfig memory cfg = _requireActiveMarket($.marketRegistry, marketId);
+        _accrueInterest($, marketId);
+        _depositCollateralCore($, cfg, user, marketId, shares);
+        _borrowCore($, cfg, user, marketId, borrowAmount);
+        emit DepositAndBorrowed(user, marketId, shares, borrowAmount);
+    }
+
+    /**
+     * @notice Repay debt and withdraw collateral in one transaction with a single same-block check.
+     *         Debt tokens are recovered from `user`; withdrawn vault shares go to `user`.
+     *         Caller must be the position owner or an approved delegate.
+     *         Pass 0 for either amount to skip that half of the operation.
+     * @param user           Position owner.
+     * @param marketId       Target market.
+     * @param repayAmount    Amount of debt token to repay (0 = skip).
+     * @param withdrawShares Vault shares to withdraw (0 = skip).
+     */
+    function repayAndWithdraw(
+        address user,
+        uint256 marketId,
+        uint256 repayAmount,
+        uint256 withdrawShares
+    ) external whenNotPaused noSameBlock(user, marketId) nonReentrant {
+        _authorizedFor(user);
+        if (repayAmount == 0 && withdrawShares == 0) revert Aura__ZeroAmount();
+        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        IMarketRegistry.MarketConfig memory cfg = _getMarketCfg($.marketRegistry, marketId);
+        _accrueInterest($, marketId);
+        if (repayAmount > 0)    _repayCore($, user, marketId, repayAmount);
+        if (withdrawShares > 0) _withdrawCollateralCore($, cfg, user, marketId, withdrawShares);
+        emit RepaidAndWithdrawn(user, marketId, repayAmount, withdrawShares);
     }
 
     // ------------------------------- Yield Siphon
@@ -901,6 +887,148 @@ contract AuraEngine {
         unchecked { $.flashLoanReserves -= amount; }
         _transferOut($.debtToken, to, amount);
         emit FlashLoanReservesWithdrawn(to, amount);
+    }
+
+    // ------------------------------- Internal: core operation helpers (Phase 10)
+
+    /**
+     * @dev Deposit core logic — shared by depositCollateral and depositAndBorrow.
+     *      Vault shares are pulled from msg.sender.
+     */
+    function _depositCollateralCore(
+        AuraStorage.EngineStorage storage $,
+        IMarketRegistry.MarketConfig memory cfg,
+        address user,
+        uint256 marketId,
+        uint256 shares
+    ) internal {
+        if (shares == 0) revert Aura__ZeroAmount();
+
+        AuraStorage.MarketState storage ms = $.marketStates[marketId];
+        if (cfg.supplyCap != 0 && ms.totalCollateralShares + shares > cfg.supplyCap)
+            revert Aura__SupplyCapExceeded();
+
+        _checkIsolationOnDeposit($, user, marketId, cfg.isIsolated);
+
+        bool ok = IERC4626(cfg.vault).transferFrom(msg.sender, address(this), shares);
+        if (!ok) revert Aura__InvalidParams();
+
+        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
+        if (!$.userInMarket[user][marketId]) {
+            $.userInMarket[user][marketId] = true;
+            $.userMarketIds[user].push(marketId);
+        }
+        pos.collateralShares     += shares;
+        ms.totalCollateralShares += shares;
+
+        if (ms.globalDebtScale == 0) {
+            ms.globalDebtScale = AuraStorage.RAY;
+            try IERC4626(cfg.vault).convertToAssets(AuraStorage.WAD) returns (uint256 p) {
+                ms.lastHarvestPricePerShare = p;
+            } catch {
+                ms.lastHarvestPricePerShare = AuraStorage.WAD;
+            }
+            ms.lastHarvestTimestamp = block.timestamp;
+        }
+        emit CollateralDeposited(user, marketId, shares);
+    }
+
+    /**
+     * @dev Borrow core logic — shared by borrow and depositAndBorrow.
+     *      Borrowed tokens are sent to `user`.
+     */
+    function _borrowCore(
+        AuraStorage.EngineStorage storage $,
+        IMarketRegistry.MarketConfig memory cfg,
+        address user,
+        uint256 marketId,
+        uint256 amount
+    ) internal {
+        if (amount == 0) revert Aura__ZeroAmount();
+        _settlePosition($, user, marketId);
+
+        AuraStorage.MarketState    storage ms  = $.marketStates[marketId];
+        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
+
+        if (cfg.isIsolated && cfg.isolatedBorrowCap != 0) {
+            uint256 currentIsolatedDebt = (ms.totalPrincipalDebt * _effectiveScale(ms)) / AuraStorage.RAY;
+            if (currentIsolatedDebt + amount > cfg.isolatedBorrowCap)
+                revert Aura__BorrowCapExceeded();
+        }
+
+        uint256 originationFee;
+        if (cfg.originationFeeBps > 0) {
+            originationFee = (amount * cfg.originationFeeBps) / 10_000;
+        }
+        uint256 totalDebtAdded = amount + originationFee;
+
+        if (cfg.borrowCap != 0 && ms.totalPrincipalDebt + totalDebtAdded > cfg.borrowCap)
+            revert Aura__BorrowCapExceeded();
+
+        pos.principalDebt     += totalDebtAdded;
+        pos.scaleAtLastUpdate  = _effectiveScale(ms);
+        ms.totalPrincipalDebt += totalDebtAdded;
+
+        if (originationFee > 0) {
+            ms.totalReserves += originationFee;
+            emit OriginationFeeCharged(user, marketId, originationFee);
+        }
+
+        if ($.mintableDebtToken && cfg.debtCeiling != 0 &&
+                ms.totalPrincipalDebt > cfg.debtCeiling)
+            revert Aura__DebtCeilingExceeded();
+
+        _requireLtv($, user, marketId, cfg);
+        _lendDebtToken($, user, amount);
+        emit Borrowed(user, marketId, amount);
+    }
+
+    /**
+     * @dev Repay core logic — shared by repay and repayAndWithdraw.
+     *      Debt tokens are recovered from `user` (requires user's approval to engine in CDP mode).
+     */
+    function _repayCore(
+        AuraStorage.EngineStorage storage $,
+        address user,
+        uint256 marketId,
+        uint256 amount
+    ) internal {
+        if (amount == 0) revert Aura__ZeroAmount();
+        _settlePosition($, user, marketId);
+        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
+        uint256 debt = pos.principalDebt;
+        if (amount > debt) amount = debt;
+        unchecked {
+            pos.principalDebt                           -= amount;
+            $.marketStates[marketId].totalPrincipalDebt -= amount;
+        }
+        _tryExitMarket($, user, marketId);
+        _recoverDebtToken($, user, amount);
+        emit Repaid(user, marketId, amount);
+    }
+
+    /**
+     * @dev Withdraw collateral core logic — shared by withdrawCollateral and repayAndWithdraw.
+     *      Vault shares are transferred to `user` (position owner).
+     */
+    function _withdrawCollateralCore(
+        AuraStorage.EngineStorage storage $,
+        IMarketRegistry.MarketConfig memory cfg,
+        address user,
+        uint256 marketId,
+        uint256 shares
+    ) internal {
+        if (shares == 0) revert Aura__ZeroAmount();
+        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
+        if (pos.collateralShares < shares) revert Aura__InsufficientCollateral();
+        _settlePosition($, user, marketId);
+        pos.collateralShares                          -= shares;
+        $.marketStates[marketId].totalCollateralShares -= shares;
+        _tryExitMarket($, user, marketId);
+        _requireHealthy($, user);
+        bool ok = IERC4626(cfg.vault).transfer(user, shares);
+        if (!ok) revert Aura__InvalidParams();
+        emit CollateralWithdrawn(user, marketId, shares);
     }
 
     // ------------------------------- Internal: market helpers

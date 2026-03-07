@@ -30,6 +30,25 @@ interface IAuraUSD {
     /// @notice Set the global debt ceiling (max totalSupply). 0 = unlimited. Only admin.
     function setGlobalDebtCeiling(uint256 ceiling) external;
 
+    // ------------------------------- EIP-2612 Permit
+
+    /// @notice EIP-2612 gasless approval via signed message.
+    function permit(
+        address owner,
+        address spender,
+        uint256 value,
+        uint256 deadline,
+        uint8   v,
+        bytes32 r,
+        bytes32 s
+    ) external;
+
+    /// @notice Current permit nonce for `owner`.
+    function nonces(address owner) external view returns (uint256);
+
+    /// @notice EIP-712 domain separator.
+    function DOMAIN_SEPARATOR() external view returns (bytes32);
+
     // ------------------------------- View
 
     function totalSupply()       external view returns (uint256);
@@ -37,4 +56,5 @@ interface IAuraUSD {
     function minters(address)    external view returns (bool);
     function admin()             external view returns (address);
     function balanceOf(address)  external view returns (uint256);
+    function allowance(address owner, address spender) external view returns (uint256);
 }
