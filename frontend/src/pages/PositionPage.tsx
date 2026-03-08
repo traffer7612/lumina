@@ -4,10 +4,10 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { usePosition } from '../hooks/usePosition';
 import { useMarkets } from '../hooks/useMarkets';
 import { useAdmin } from '../hooks/useAdmin';
-import { formatWad, formatHf, parseHf, hfColor, hfBarColor, hfBarPct } from '../lib/utils';
+import { formatWad, formatHf, parseHf, hfColor, hfBarColor, hfBarPct, formatAddress } from '../lib/utils';
 import ActionModal, { type ActionType } from '../components/position/ActionModal';
 import MintSharesModal from '../components/position/MintSharesModal';
-import { Wallet, RefreshCw, PlusCircle, MinusCircle, ArrowUpCircle, ArrowDownCircle, Coins } from 'lucide-react';
+import { Wallet, RefreshCw, PlusCircle, MinusCircle, ArrowUpCircle, ArrowDownCircle, Coins, ChevronDown } from 'lucide-react';
 
 type ModalState = { open: true; action: ActionType; marketId: number } | { open: false };
 type MintState  = { open: true; marketId: number; vaultAddress: `0x${string}` } | { open: false };
@@ -19,6 +19,8 @@ export default function PositionPage() {
   const { debtToken } = useAdmin();
   const [modal, setModal] = useState<ModalState>({ open: false });
   const [mintModal, setMintModal] = useState<MintState>({ open: false });
+  const [selectedMarketId, setSelectedMarketId] = useState<number | null>(null);
+  const [selectorOpen, setSelectorOpen] = useState(false);
 
   const hf    = parseHf(healthFactor);
   const hfPct = hfBarPct(hf);
@@ -58,6 +60,74 @@ export default function PositionPage() {
         </button>
       </div>
 
+      {/* Market Selector */}
+      {markets.length > 1 && (
+        <div className="relative mb-6">
+          <button
+            onClick={() => setSelectorOpen(!selectorOpen)}
+            className="card px-5 py-3 flex items-center justify-between w-full hover:border-aura-border-2 transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-aura-muted">Market:</span>
+              {selectedMarketId === null ? (
+                <span className="font-medium">All Markets</span>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded bg-aura-gold/15 flex items-center justify-center text-aura-gold text-xs font-bold">
+                    {selectedMarketId}
+                  </div>
+                  <span className="font-medium">
+                    {markets.find(m => m.id === selectedMarketId)?.vaultSymbol ?? `Market #${selectedMarketId}`}
+                  </span>
+                  <span className="text-xs text-aura-muted font-mono">
+                    {formatAddress(markets.find(m => m.id === selectedMarketId)?.config.vault ?? '')}
+                  </span>
+                </div>
+              )}
+            </div>
+            <ChevronDown size={16} className={`text-aura-muted transition-transform ${selectorOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {selectorOpen && (
+            <div className="absolute z-20 top-full left-0 right-0 mt-1 card border border-aura-border shadow-xl max-h-64 overflow-y-auto">
+              <button
+                onClick={() => { setSelectedMarketId(null); setSelectorOpen(false); }}
+                className={`w-full px-5 py-3 text-left text-sm hover:bg-white/[0.03] transition-colors ${
+                  selectedMarketId === null ? 'text-aura-gold' : ''
+                }`}
+              >
+                All Markets
+              </button>
+              {markets.map(m => {
+                const hasPos = positions.some(p => p.marketId === m.id);
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => { setSelectedMarketId(m.id); setSelectorOpen(false); }}
+                    className={`w-full px-5 py-3 flex items-center justify-between hover:bg-white/[0.03] transition-colors ${
+                      selectedMarketId === m.id ? 'text-aura-gold' : ''
+                    }`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded bg-aura-gold/15 flex items-center justify-center text-aura-gold text-xs font-bold">
+                        {m.id}
+                      </div>
+                      <span className="text-sm font-medium">{m.vaultSymbol ?? `Market #${m.id}`}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {hasPos && <span className="text-[10px] bg-aura-gold/20 text-aura-gold px-1.5 py-0.5 rounded">Has position</span>}
+                      {m.config.isActive
+                        ? <span className="badge-active text-[10px]">Active</span>
+                        : <span className="badge-inactive text-[10px]">Inactive</span>}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Global Health Factor */}
       <div className="card p-5 mb-6">
         <div className="flex items-center justify-between mb-3">
@@ -80,11 +150,34 @@ export default function PositionPage() {
         </div>
       </div>
 
-      {/* No positions */}
-      {positions.length === 0 && (
+      {/* Selected market with no position — show open position prompt */}
+      {selectedMarketId !== null && !positions.some(p => p.marketId === selectedMarketId) && (() => {
+        const m = markets.find(mk => mk.id === selectedMarketId);
+        if (!m) return null;
+        return (
+          <div className="card p-8 text-center mb-4">
+            <div className="w-12 h-12 rounded-xl bg-aura-gold/15 flex items-center justify-center text-aura-gold text-lg font-bold mx-auto mb-3">
+              {m.id}
+            </div>
+            <h3 className="font-semibold text-lg">{m.vaultSymbol ?? `Market #${m.id}`}</h3>
+            <p className="text-aura-muted text-sm mt-1">No position in this market yet. Deposit collateral to open one.</p>
+            <div className="flex justify-center gap-3 mt-5">
+              <button onClick={() => openMint(m.id, m.config.vault)} className="btn-secondary text-sm flex items-center gap-2">
+                <Coins size={14} /> Get Shares
+              </button>
+              <button onClick={() => openModal('deposit', m.id)} className="btn-primary text-sm flex items-center gap-2">
+                <PlusCircle size={14} /> Deposit
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* No positions at all */}
+      {positions.length === 0 && selectedMarketId === null && (
         <div className="card p-10 text-center">
           <p className="text-aura-muted">No active positions found.</p>
-          <p className="text-xs text-aura-muted mt-1">Deposit collateral to open a position in a market.</p>
+          <p className="text-xs text-aura-muted mt-1">Select a market above or deposit collateral to open a position.</p>
           <div className="flex justify-center gap-3 mt-5 flex-wrap">
             {markets.slice(0, 3).map(m => (
               <div key={m.id} className="flex gap-2">
@@ -109,9 +202,14 @@ export default function PositionPage() {
       )}
 
       {/* Position cards */}
-      {positions.length > 0 && (
+      {(() => {
+        const filtered = selectedMarketId === null
+          ? positions
+          : positions.filter(p => p.marketId === selectedMarketId);
+        if (filtered.length === 0) return null;
+        return (
         <div className="space-y-4">
-          {positions.map(pos => {
+          {filtered.map(pos => {
             const market = markets.find(m => m.id === pos.marketId);
             const ltvBps = market?.config.ltvBps;
             const ltv = ltvBps ? Number(ltvBps) / 100 : null;
@@ -218,7 +316,8 @@ export default function PositionPage() {
             );
           })}
         </div>
-      )}
+        );
+      })()}
 
       {/* Action modal */}
       {modal.open && (

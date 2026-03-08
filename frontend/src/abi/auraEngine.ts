@@ -64,8 +64,46 @@ export const auraEngineAbi = [
 
 // ─── AuraMarketRegistry ABI ───────────────────────────────────────────────────
 export const auraRegistryAbi = [
+  // Read
   { inputs: [], name: 'marketCount', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
   { inputs: [{ name: 'marketId', type: 'uint256' }], name: 'getMarket', outputs: [{ name: '', type: 'tuple', components: MARKET_CONFIG_COMPONENTS }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'admin', outputs: [{ name: '', type: 'address' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'marketId', type: 'uint256' }], name: 'marketExists', outputs: [{ name: '', type: 'bool' }], stateMutability: 'view', type: 'function' },
+  // Write: market creation
+  { inputs: [
+    { name: 'vault', type: 'address' }, { name: 'oracle', type: 'address' },
+    { name: 'ltvBps', type: 'uint16' }, { name: 'liquidationThresholdBps', type: 'uint16' },
+    { name: 'liquidationPenaltyBps', type: 'uint16' },
+    { name: 'supplyCap', type: 'uint256' }, { name: 'borrowCap', type: 'uint256' },
+    { name: 'isIsolated', type: 'bool' }, { name: 'isolatedBorrowCap', type: 'uint256' },
+  ], name: 'addMarket', outputs: [{ name: 'marketId', type: 'uint256' }], stateMutability: 'nonpayable', type: 'function' },
+  // Write: market management
+  { inputs: [
+    { name: 'marketId', type: 'uint256' }, { name: 'ltvBps', type: 'uint16' },
+    { name: 'liquidationThresholdBps', type: 'uint16' }, { name: 'liquidationPenaltyBps', type: 'uint16' },
+  ], name: 'updateMarketRiskParams', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [
+    { name: 'marketId', type: 'uint256' }, { name: 'supplyCap', type: 'uint256' }, { name: 'borrowCap', type: 'uint256' },
+  ], name: 'updateMarketCaps', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [
+    { name: 'marketId', type: 'uint256' }, { name: 'baseRate', type: 'uint256' },
+    { name: 'slope1', type: 'uint256' }, { name: 'slope2', type: 'uint256' },
+    { name: 'kink', type: 'uint256' }, { name: 'reserveFactorBps', type: 'uint16' },
+  ], name: 'updateMarketIrmParams', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [
+    { name: 'marketId', type: 'uint256' }, { name: 'yieldFeeBps', type: 'uint16' }, { name: 'originationFeeBps', type: 'uint16' },
+  ], name: 'updateMarketFeeParams', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [
+    { name: 'marketId', type: 'uint256' }, { name: 'debtCeiling', type: 'uint256' },
+  ], name: 'updateMarketDebtCeiling', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [{ name: 'marketId', type: 'uint256' }, { name: 'frozen', type: 'bool' }], name: 'freezeMarket', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [{ name: 'marketId', type: 'uint256' }], name: 'deactivateMarket', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [{ name: 'marketId', type: 'uint256' }], name: 'activateMarket', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [
+    { name: 'marketId', type: 'uint256' }, { name: 'closeFactorBps', type: 'uint16' },
+    { name: 'fullLiquidationThresholdBps', type: 'uint16' }, { name: 'protocolLiquidationFeeBps', type: 'uint16' },
+    { name: 'dutchAuctionEnabled', type: 'bool' }, { name: 'auctionDuration', type: 'uint256' },
+  ], name: 'updateMarketLiquidationParams', outputs: [], stateMutability: 'nonpayable', type: 'function' },
 ] as const;
 
 // ─── Minimal ERC-20 ABI ───────────────────────────────────────────────────────
