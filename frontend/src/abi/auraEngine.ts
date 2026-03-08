@@ -88,6 +88,26 @@ export const erc4626Abi = [
   { inputs: [{ name: 'shares', type: 'uint256' }, { name: 'receiver', type: 'address' }, { name: 'owner', type: 'address' }], name: 'redeem', outputs: [{ name: 'assets', type: 'uint256' }], stateMutability: 'nonpayable', type: 'function' },
 ] as const;
 
+// ─── VeAura ABI ───────────────────────────────────────────────────────────────
+export const veAuraAbi = [
+  // Read
+  { inputs: [], name: 'token', outputs: [{ name: '', type: 'address' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'totalLocked', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'user', type: 'address' }], name: 'locks', outputs: [{ name: 'amount', type: 'uint128' }, { name: 'unlockTime', type: 'uint48' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'account', type: 'address' }], name: 'getVotes', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'account', type: 'address' }], name: 'delegates', outputs: [{ name: '', type: 'address' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'user', type: 'address' }], name: 'pendingRevenue', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'revenueToken', outputs: [{ name: '', type: 'address' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'MAX_LOCK_DURATION', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  // Write
+  { inputs: [{ name: 'amount', type: 'uint256' }, { name: 'unlockTime', type: 'uint256' }], name: 'lock', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [{ name: 'extra', type: 'uint256' }], name: 'increaseAmount', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [{ name: 'newUnlockTime', type: 'uint256' }], name: 'extendLock', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [], name: 'withdraw', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [], name: 'claimRevenue', outputs: [{ name: 'reward', type: 'uint256' }], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [{ name: 'delegatee', type: 'address' }], name: 'delegate', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+] as const;
+
 // ─── MarketConfig type ────────────────────────────────────────────────────────
 export type MarketConfig = {
   vault:                       `0x${string}`;

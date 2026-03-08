@@ -1,14 +1,15 @@
 import { NavLink } from 'react-router-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { LayoutDashboard, BarChart3, Wallet, Zap, ShieldCheck, Menu, X } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Wallet, Zap, ShieldCheck, Vote, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 const NAV_LINKS = [
-  { to: '/',          label: 'Dashboard',  Icon: LayoutDashboard },
-  { to: '/markets',   label: 'Markets',    Icon: BarChart3 },
-  { to: '/position',  label: 'Position',   Icon: Wallet },
-  { to: '/liquidate', label: 'Liquidate',  Icon: Zap },
-  { to: '/admin',     label: 'Admin',      Icon: ShieldCheck },
+  { to: '/',            label: 'Dashboard',   Icon: LayoutDashboard },
+  { to: '/markets',     label: 'Markets',     Icon: BarChart3 },
+  { to: '/position',    label: 'Position',    Icon: Wallet },
+  { to: '/governance',  label: 'Governance',  Icon: Vote },
+  { to: '/liquidate',   label: 'Liquidate',   Icon: Zap },
+  { to: '/admin',       label: 'Admin',       Icon: ShieldCheck },
 ];
 
 export default function Navbar() {

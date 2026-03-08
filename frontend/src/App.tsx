@@ -5,6 +5,7 @@ import MarketsPage from './pages/MarketsPage';
 import PositionPage from './pages/PositionPage';
 import LiquidatePage from './pages/LiquidatePage';
 import AdminPage from './pages/AdminPage';
+import GovernancePage from './pages/GovernancePage';
 
 export default function App() {
   return (
@@ -16,6 +17,7 @@ export default function App() {
             <Route path="/" element={<DashboardPage />} />
             <Route path="/markets" element={<MarketsPage />} />
             <Route path="/position" element={<PositionPage />} />
+            <Route path="/governance" element={<GovernancePage />} />
             <Route path="/liquidate" element={<LiquidatePage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>
