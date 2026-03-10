@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
-import { LayoutDashboard, BarChart3, Wallet, Zap, ShieldCheck, Vote, ArrowDownUp, Menu, X } from 'lucide-react';
+import { LayoutDashboard, BarChart3, Wallet, Zap, Shield, ShieldCheck, Vote, ArrowDownUp, Menu, X } from 'lucide-react';
 import { useState } from 'react';
 
 const NAV_LINKS = [
@@ -10,6 +10,7 @@ const NAV_LINKS = [
   { to: '/swap',        label: 'Swap',        Icon: ArrowDownUp },
   { to: '/governance',  label: 'Governance',  Icon: Vote },
   { to: '/liquidate',   label: 'Liquidate',   Icon: Zap },
+  { to: '/security',    label: 'Security',    Icon: Shield },
   { to: '/admin',       label: 'Admin',       Icon: ShieldCheck },
 ];
 

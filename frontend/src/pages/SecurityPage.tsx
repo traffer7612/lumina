@@ -1,0 +1,118 @@
+import { Shield, FileSearch, Bug, ExternalLink, CheckCircle } from 'lucide-react';
+
+const DOCS_BASE = 'https://github.com/traffer7612/lumina/blob/master/docs';
+
+export default function SecurityPage() {
+  return (
+    <div className="page-container">
+      <div className="page-header">
+        <h1 className="page-title flex items-center gap-2">
+          <Shield size={28} className="text-aura-gold" />
+          Security
+        </h1>
+        <p className="page-subtitle">
+          Audits, static analysis (Slither), and Bug Bounty program.
+        </p>
+      </div>
+
+      <div className="grid md:grid-cols-2 gap-6">
+        {/* Slither */}
+        <div className="card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-aura-gold/15 flex items-center justify-center">
+              <FileSearch size={24} className="text-aura-gold" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Slither</h2>
+              <p className="text-xs text-aura-muted">Static analyzer</p>
+            </div>
+          </div>
+          <p className="text-sm text-aura-muted-2 mb-4">
+            All Lumina contracts are analyzed with <strong className="text-white">Slither v0.11.3</strong> (82 contracts, 100 detectors). 
+            High and Medium findings have been fixed; Low/Informational are documented and accepted where appropriate.
+          </p>
+          <ul className="text-sm text-aura-muted-2 space-y-1.5 mb-4">
+            <li className="flex items-center gap-2">
+              <CheckCircle size={14} className="text-aura-success shrink-0" />
+              Unchecked transfer return values (Router) — fixed
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle size={14} className="text-aura-success shrink-0" />
+              Reentrancy / CEI (VeAura, PSM) — fixed
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle size={14} className="text-aura-success shrink-0" />
+              Zero-address validation — added where required
+            </li>
+          </ul>
+          <a
+            href={`${DOCS_BASE}/SECURITY-AUDIT.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-medium text-aura-gold hover:text-aura-gold-bright"
+          >
+            Full audit report
+            <ExternalLink size={14} />
+          </a>
+          <span className="text-aura-muted text-xs ml-2">·</span>
+          <a
+            href={`${DOCS_BASE}/SLITHER.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-medium text-aura-gold hover:text-aura-gold-bright ml-2"
+          >
+            How to run Slither
+            <ExternalLink size={14} />
+          </a>
+        </div>
+
+        {/* Bug Bounty */}
+        <div className="card p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-xl bg-aura-gold/15 flex items-center justify-center">
+              <Bug size={24} className="text-aura-gold" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">Bug Bounty</h2>
+              <p className="text-xs text-aura-muted">Responsible disclosure</p>
+            </div>
+          </div>
+          <p className="text-sm text-aura-muted-2 mb-4">
+            We reward responsible disclosure of vulnerabilities in smart contracts and critical app bugs. 
+            Rewards can be <strong className="text-white">points</strong> or <strong className="text-white">LUMINA tokens</strong> (testnet or future).
+          </p>
+          <ul className="text-sm text-aura-muted-2 space-y-1.5 mb-4">
+            <li><strong className="text-white">Critical:</strong> direct loss of funds, protocol bypass</li>
+            <li><strong className="text-white">High:</strong> significant impact, invariant violations</li>
+            <li><strong className="text-white">Medium / Low:</strong> limited impact, edge cases</li>
+          </ul>
+          <a
+            href={`${DOCS_BASE}/BUG-BOUNTY.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 text-sm font-medium text-aura-gold hover:text-aura-gold-bright"
+          >
+            Bug Bounty program (scope, rules, contact)
+            <ExternalLink size={14} />
+          </a>
+        </div>
+      </div>
+
+      {/* Docs link */}
+      <div className="mt-8 p-4 rounded-xl bg-aura-surface border border-aura-border">
+        <p className="text-sm text-aura-muted-2">
+          <strong className="text-white">Documentation</strong> (interest rates math, liquidation mechanics, contract addresses):{' '}
+          <a
+            href={`${DOCS_BASE}/README-GITBOOK.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-aura-gold hover:text-aura-gold-bright"
+          >
+            docs in repo
+          </a>
+          {' '}— for docs.lumina.finance, use the <code className="text-aura-gold/90">docs/</code> folder.
+        </p>
+      </div>
+    </div>
+  );
+}

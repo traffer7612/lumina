@@ -229,6 +229,12 @@ export default function LandingPage() {
           </Link>
         </div>
       </section>
+
+      {/* Footer: Docs & Security */}
+      <footer className="px-4 py-8 border-t border-aura-border flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-aura-muted">
+        <Link to="/security" className="hover:text-aura-gold transition-colors">Security</Link>
+        <a href="https://github.com/traffer7612/lumina/tree/master/docs" target="_blank" rel="noopener noreferrer" className="hover:text-aura-gold transition-colors">Docs</a>
+      </footer>
     </div>
   );
 }

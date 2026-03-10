@@ -1,4 +1,4 @@
-﻿# Lumina: The Autonomous Yield-Backed Credit Engine
+# Lumina: The Autonomous Yield-Backed Credit Engine
 
 Production-ready DeFi primitive that lets protocols or users deposit **yield-bearing assets** (ERC-4626, e.g. stETH or sDAI) as collateral to **borrow stablecoins**. The **Yield Siphon** captures yield from collateral and applies it directly to principal debt in real time (self-liquidating debt).
 
@@ -94,8 +94,9 @@ Connect a wallet (Arbitrum or Base); the dashboard shows your position and lets 
 
 ## Documentation
 
+- **docs.lumina.finance:** GitBook-документация (папка [docs/](docs/), [SUMMARY](docs/SUMMARY.md)) — математика ставок, ликвидации, контракты, Security, Bug Bounty.
 - **Contracts API reference:** [docs/CONTRACTS.md](docs/CONTRACTS.md)
-- **Security audit:** [docs/SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md)
+- **Security audit & Slither:** [docs/SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md) · [Slither](docs/SLITHER.md) · [Bug Bounty](docs/BUG-BOUNTY.md)
 - **Changelog:** [docs/CHANGELOG.md](docs/CHANGELOG.md)
 - **Architecture:** [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
 - **Storage layout:** [docs/EIP-7201-STORAGE-MAP.md](docs/EIP-7201-STORAGE-MAP.md)

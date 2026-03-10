@@ -8,6 +8,7 @@ import LiquidatePage from './pages/LiquidatePage';
 import AdminPage from './pages/AdminPage';
 import GovernancePage from './pages/GovernancePage';
 import SwapPage from './pages/SwapPage';
+import SecurityPage from './pages/SecurityPage';
 
 export default function App() {
   return (
@@ -23,6 +24,7 @@ export default function App() {
             <Route path="/governance" element={<GovernancePage />} />
             <Route path="/swap" element={<SwapPage />} />
             <Route path="/liquidate" element={<LiquidatePage />} />
+            <Route path="/security" element={<SecurityPage />} />
             <Route path="/admin" element={<AdminPage />} />
           </Routes>
         </main>
