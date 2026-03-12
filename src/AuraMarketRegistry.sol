@@ -252,6 +252,18 @@ contract AuraMarketRegistry is IMarketRegistry {
         emit MarketRiskParamsUpdated(marketId);
     }
 
+    /// @notice Update isolation mode for a market.
+    function updateMarketIsolation(
+        uint256 marketId,
+        bool    isIsolated,
+        uint256 isolatedBorrowCap
+    ) external onlyAdmin {
+        if (!_exists[marketId]) revert Registry__MarketNotFound();
+        _markets[marketId].isIsolated        = isIsolated;
+        _markets[marketId].isolatedBorrowCap = isolatedBorrowCap;
+        emit MarketRiskParamsUpdated(marketId);
+    }
+
     /// @notice Re-activate a previously deactivated market.
     function activateMarket(uint256 marketId) external onlyAdmin {
         if (!_exists[marketId]) revert Registry__MarketNotFound();

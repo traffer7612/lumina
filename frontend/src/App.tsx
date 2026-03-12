@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import Navbar from './components/layout/Navbar';
+import WrongNetworkBanner from './components/layout/WrongNetworkBanner';
 import LandingPage from './pages/LandingPage';
 import DashboardPage from './pages/DashboardPage';
 import MarketsPage from './pages/MarketsPage';
@@ -15,6 +16,7 @@ export default function App() {
     <BrowserRouter>
       <div className="min-h-screen flex flex-col">
         <Navbar />
+        <WrongNetworkBanner />
         <main className="flex-1 animate-fade-in">
           <Routes>
             <Route path="/" element={<LandingPage />} />
