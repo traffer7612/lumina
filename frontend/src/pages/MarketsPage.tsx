@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useMarkets } from '../hooks/useMarkets';
+import { useContractAddresses } from '../lib/contracts';
 import { formatWad, formatBps, formatRate, formatAddress } from '../lib/utils';
 import { TrendingUp, RefreshCw } from 'lucide-react';
 
@@ -93,7 +94,10 @@ function Row({ label, value }: { label: string; value: string }) {
 }
 
 export default function MarketsPage() {
+  const { registry, engine, isLoading: addressesLoading } = useContractAddresses();
   const { markets, count, isLoading, refetch } = useMarkets();
+  const addressesReady = !!registry;
+  const configuredForMarkets = !!(registry && engine);
 
   return (
     <div className="page-container">
@@ -109,7 +113,7 @@ export default function MarketsPage() {
         </button>
       </div>
 
-      {isLoading && (
+      {(addressesLoading || isLoading) && (
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
           {[1, 2, 3].map(i => (
             <div key={i} className="card p-5 space-y-3">
@@ -122,15 +126,28 @@ export default function MarketsPage() {
         </div>
       )}
 
-      {!isLoading && markets.length === 0 && (
+      {!addressesLoading && !isLoading && markets.length === 0 && (
         <div className="card p-12 text-center">
           <TrendingUp size={40} className="text-aura-muted mx-auto mb-3" />
-          <p className="text-aura-muted">No markets found.</p>
-          <p className="text-xs text-aura-muted mt-1">Configure <code className="font-mono">VITE_REGISTRY_ADDRESS</code> to load markets.</p>
+          <p className="text-aura-muted">
+            {!addressesReady
+              ? 'Registry address not available yet.'
+              : !configuredForMarkets
+              ? 'Engine or registry address missing.'
+              : count === 0
+              ? 'No markets on this registry yet.'
+              : 'Could not load market data (check RPC or chain).'}
+          </p>
+          {(!addressesReady || !configuredForMarkets) && (
+            <p className="text-xs text-aura-muted mt-1">
+              Set <code className="font-mono">VITE_ENGINE_ADDRESS</code> and{' '}
+              <code className="font-mono">VITE_REGISTRY_ADDRESS</code> for the build (e.g. in Vercel env), then redeploy.
+            </p>
+          )}
         </div>
       )}
 
-      {markets.length > 0 && (
+      {!isLoading && markets.length > 0 && (
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
           {markets.map(m => <MarketCard key={m.id} market={m} />)}
         </div>

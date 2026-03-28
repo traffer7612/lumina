@@ -14,7 +14,7 @@ export function useMarkets() {
   const { engine, registry } = useContractAddresses();
 
   // 1. Market count from registry
-  const { data: countRaw } = useReadContract({
+  const { data: countRaw, isLoading: countLoading } = useReadContract({
     address: registry,
     abi: auraRegistryAbi,
     functionName: 'marketCount',
@@ -72,5 +72,5 @@ export function useMarkets() {
 
   const refetch = () => { refetchConfigs(); refetchStats(); };
 
-  return { markets, count, isLoading: configLoading, refetch };
+  return { markets, count, isLoading: countLoading || configLoading, refetch };
 }
