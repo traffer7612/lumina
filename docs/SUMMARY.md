@@ -21,6 +21,13 @@
 - [Новичок: Sepolia по шагам](NOVICE-SEPOLIA.md)
 - [Руководство для начинающих (RU)](BEGINNER-GUIDE.md)
 
+## Продукт и запуск
+
+- [Бренд и имена (Lumina vs Aura* в коде)](BRANDING-AND-NAMING.md)
+- [Roadmap](ROADMAP.md)
+- [Go-live checklist (tokenomics & prod)](TOKENOMICS-PROD-CHECKLIST.md)
+- [Адреса production — Arbitrum](PRODUCTION-ADDRESSES-ARBITRUM.md)
+
 ## Прочее
 
 - [О документации и GitBook](README-GITBOOK.md)

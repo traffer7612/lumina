@@ -2,6 +2,8 @@
 
 Ниже приведены **адреса контрактов** для тестнета Sepolia (chainId 11155111). Для Arbitrum, Base или mainnet адреса задаются через переменные окружения при деплое и в конфиге фронта/бэкенда.
 
+Имена в ссылках на Etherscan (**`AuraEngine`**, **`AuraProxy`**, …) — как в Solidity; публичный бренд протокола — **Lumina**. См. [BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md).
+
 ---
 
 ## Sepolia (тестнет)
@@ -54,8 +56,8 @@ API-ключ Etherscan не хранить в репозитории; задав
 
 | Название в коде | Роль |
 |-----------------|------|
-| Engine (AuraEngine) | Логика: депозит/вывод коллатерала, займ/погашение, ликвидации, harvest, пауза. |
-| Proxy (AuraProxy) | UUPS-прокси; пользователи вызывают этот адрес. |
+| `AuraEngine` | Движок Lumina: депозит/вывод коллатерала, займ/погашение, ликвидации, harvest, пауза. |
+| `AuraProxy` | UUPS-прокси движка Lumina; пользователи вызывают этот адрес. |
 | MarketRegistry | Реестр рынков: vault, оракул, LTV, пороги ликвидации, кэпы. |
 | OracleRelay / OracleRelayV2 | Цена коллатерала (Chainlink + fallback / median). |
 | LUMINA / veLUMINA | Governance и vote-escrow. |

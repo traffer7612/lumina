@@ -4,7 +4,7 @@ Operational policies referenced from [`TOKENOMICS-PROD-CHECKLIST.md`](TOKENOMICS
 
 ## 1. PSM economic parameters
 
-- **tin / tout**: Basis-point fees on swap in/out (`AuraPSM`). Governance can adjust within bounds you define off-chain (publish max allowed Bps for operator safety).  
+- **tin / tout**: Basis-point fees on swap in/out (`AuraPSM`). Lumina governance can adjust within bounds you define off-chain (publish max allowed Bps for operator safety).  
 - **Ceiling**: `ceiling` caps net aUSD minted via this PSM (`mintedViaPsm`). 0 = unlimited — document if you rely on a finite ceiling for risk.  
 - **Pegged token**: Decimals are fixed at deploy; changing collateral requires a **new PSM deployment** + minter migration.
 

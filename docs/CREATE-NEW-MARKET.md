@@ -52,7 +52,7 @@
 - **Supply Cap / Borrow Cap** — лимиты в токенах (0 = без лимита).
 - **Isolated Mode** — изолированный маркет; при включении задаётся **Isolated Borrow Cap**.
 
-Подробнее про параметры и контракт: [CONTRACTS.md](CONTRACTS.md) (AuraMarketRegistry, `addMarket`).
+Подробнее про параметры и контракт: [CONTRACTS.md](CONTRACTS.md) (`AuraMarketRegistry`, `addMarket`).
 
 ---
 

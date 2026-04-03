@@ -27,7 +27,7 @@ HF = Σ (collateralValue_i × liquidationThresholdBps_i / 10000) / Σ currentDeb
 
 - HF пользователя \< 1;
 - соблюдены ограничения по сумме (close factor, см. ниже);
-- при включённом Dutch auction сначала был вызван `initiateAuction(user, marketId)` и прошло необходимое время.
+- при включённом Dutch auction сначала был вызван `initiateLiquidation(user, marketId)` и при необходимости прошла часть окна `auctionDuration` (см. ниже).
 
 Ликвидатор **вносит** в протокол токен долга (например USDC) в размере `repayAmount` и **получает** коллатерал (vault shares) с учётом штрафа ликвидации (часть уходит в протокол как комиссия).
 
@@ -42,7 +42,7 @@ HF = Σ (collateralValue_i × liquidationThresholdBps_i / 10000) / Σ currentDeb
    За один вызов можно погасить не более заданной доли долга (например 50%), если HF выше порога полной ликвидации. Ниже этого порога можно погасить весь долг.
 
 3. **Dutch auction (опционально)**  
-   Если в конфиге рынка включён Dutch auction, штраф ликвидации уменьшается со временем от максимума до нуля. Сначала кто-то вызывает `initiateAuction(user, marketId)`, затем в течение окна можно вызывать `liquidate` с линейно уменьшающимся penalty.
+   Если в реестре рынка `dutchAuctionEnabled == true`, после старта аукциона **эффективный liquidation penalty** растёт **линейно** от **0** до **`liquidationPenaltyBps`** за **`auctionDuration`** секунд. Сначала любой вызывает `initiateLiquidation(user, marketId)` (только при HF \< 1, один активный аукцион на позицию), затем `liquidate`: чем раньше ликвидация после старта, тем **меньше** бонус ликвидатору (меньше коллатерала на тот же `repayAmount`); по истечении `auctionDuration` действует полный штраф. Если `auctionDuration == 0`, после `initiateLiquidation` сразу применяется полный `liquidationPenaltyBps`.
 
 4. **Bad debt (безнадёжный долг)**  
    Если после ликвидации коллатерала не хватает (позиция «под водой»), оставшийся долг списывается:

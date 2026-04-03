@@ -249,7 +249,7 @@ cast send 0xf6bbbe4dce6c99d66407f959dc4ec5495b2ec33b "deposit(uint256,address)" 
 - Если вы уже деплоили и вывод не сохранили — откройте в папке `broadcast\Deploy.s.sol\11155111\` файл вида `run-1772445815793.json` (число у вас будет другое). Внутри в массиве `transactions` найдите объекты с полями `contractName` и `contractAddress`:
   - **первый** объект с `"contractName": "MockERC20"` — его `contractAddress` это **ASSET**;
   - объект с `"contractName": "MockVault4626"` — его `contractAddress` это **VAULT**;
-  - объект с `"contractName": "AuraProxy"` — его `contractAddress` это адрес движка (для `.env`).
+  - объект с `"contractName": "AuraProxy"` — его `contractAddress` это адрес прокси движка Lumina (для `.env`).
 
 ### 3.1. Разрешить валюте забирать ваши токены (approve)
 
@@ -315,7 +315,7 @@ cast send 0x720adb50357f37ca79265f226c30289474315fc4 "approve(address,uint256)" 
 cast send 0xf6bbbe4dce6c99d66407f959dc4ec5495b2ec33b "deposit(uint256,address)" 500000000000000000 0xb32C80191296fC5612E8421823A78ba56D2Dc70e --rpc-url https://ethereum-sepolia.publicnode.com --private-key ВАШ_ПРИВАТНЫЙ_КЛЮЧ
 ```
 
-**3. Разрешить движку забирать доли валюты** (один раз или на большую сумму). VAULT = адрес валюты, ENGINE = AuraProxy.
+**3. Разрешить движку забирать доли валюты** (один раз или на большую сумму). VAULT = адрес валюты, ENGINE = адрес прокси Lumina (`AuraProxy`).
 
 ```powershell
 cast send 0xf6bbbe4dce6c99d66407f959dc4ec5495b2ec33b "approve(address,uint256)" 0x9b70dFe407a150FDbCebBFA2AC91be80049Bd6dA 1000000000000000000000 --rpc-url https://ethereum-sepolia.publicnode.com --private-key ВАШ_ПРИВАТНЫЙ_КЛЮЧ
@@ -337,7 +337,7 @@ cast send 0xf6bbbe4dce6c99d66407f959dc4ec5495b2ec33b "approve(address,uint256)" 
 
 **На сайте:** после подключения кошелька и выбора Sepolia в блоке **Your position** смотрите **Collateral (shares)**. Если там число (например 1.0), депозит прошёл.
 
-**Через терминал (cast):** запросить у движка коллатерал по вашему адресу. ENGINE — адрес AuraProxy из broadcast, ВАШ_АДРЕС — адрес кошелька.
+**Через терминал (cast):** запросить у движка коллатерал по вашему адресу. ENGINE — адрес прокси Lumina (`AuraProxy`) из broadcast, ВАШ_АДРЕС — адрес кошелька.
 
 ```powershell
 cast call ENGINE "getPositionCollateralShares(address)(uint256)" ВАШ_АДРЕС --rpc-url https://ethereum-sepolia.publicnode.com
@@ -362,7 +362,7 @@ cast call 0x9b70dFe407a150FDbCebBFA2AC91be80049Bd6dA "getPositionDebt(address)(u
 Чтобы погасить долг на сайте (вкладка **Repay**), движок должен иметь право забирать у вас **долговые токены**. Сначала один раз выдайте разрешение (approve).
 
 **Где взять адрес долгового токена (DEBT_TOKEN)**  
-В файле `broadcast\Deploy.s.sol\11155111\run-*.json` в массиве `transactions` найдите объект с `"contractName": "MockERC20"` **второй по счёту** (первый — это ASSET) — его `contractAddress` и есть DEBT_TOKEN. Адрес движка (ENGINE) — у объекта `"contractName": "AuraProxy"`.
+В файле `broadcast\Deploy.s.sol\11155111\run-*.json` в массиве `transactions` найдите объект с `"contractName": "MockERC20"` **второй по счёту** (первый — это ASSET) — его `contractAddress` и есть DEBT_TOKEN. Адрес прокси движка Lumina (ENGINE) — у объекта `"contractName": "AuraProxy"`.
 
 Выполните в терминале (подставьте DEBT_TOKEN, ENGINE и ваш приватный ключ):
 

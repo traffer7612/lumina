@@ -26,7 +26,7 @@
 **19 тестов** — ERC-3156 flash-loan: корректность выдачи, fee accounting, reentrancy protection, maxFlashLoan, невалидный callback return, insufficient repay.
 
 ### 1.4. Governance тесты (`test/Governance.t.sol`)
-**23 теста** — AuraToken, VeAura (lock, extend, withdraw, delegation, revenue), AuraGovernor (propose, vote, execute через timelock), AuraTreasury (deposit, withdraw, distribute).
+**23 теста** — контракты governance Lumina: `AuraToken`, `VeAura` (lock, extend, withdraw, delegation, revenue), `AuraGovernor` (propose, vote, execute через timelock), `AuraTreasury` (deposit, withdraw, distribute).
 
 ### 1.5. Phase 9 — CDP / PSM (`test/Phase9.t.sol`)
 **25 тестов** — AuraUSD (mint/burn, minter management, global debt ceiling), CDP-режим (borrow mints aUSD, repay/liquidate burns aUSD, per-market debt ceiling), PSM (swapIn/swapOut, fee accounting, ceiling, reserves).

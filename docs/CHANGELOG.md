@@ -1,6 +1,6 @@
 # Changelog — Lumina Protocol
 
-Все изменения по фазам разработки.
+Все изменения по фазам разработки. В списках ниже **AuraRouter**, **AuraEngine** и т.п. — **имена смарт-контрактов** в репозитории; публичный бренд — **Lumina** ([BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md)).
 
 ---
 
@@ -21,12 +21,12 @@
 
 ## Phase 7 — Governance
 - **AuraToken** — ERC-20 + ERC20Votes, timestamp-based clock (EIP-6372)
-- **VeAura** — Vote-Escrow: lock AURA (до 4 лет), линейное затухание voting power, delegation, revenue distribution (reward-per-token)
+- **VeAura** — Vote-Escrow: lock governance token (до 4 лет), линейное затухание voting power, delegation, revenue distribution (reward-per-token)
 - **AuraGovernor** — OpenZeppelin Governor + TimelockControl + VotesQuorumFraction
 - **AuraTreasury** — казначейство: deposit, withdraw, batch distribute
 
 ## Phase 6 — Advanced Liquidation
-- **Dutch-аукцион** — линейное снижение penalty от `liquidationPenaltyBps` до 0 за `auctionDuration`
+- **Dutch-аукцион** — линейный рост эффективного penalty от 0 до `liquidationPenaltyBps` за `auctionDuration` (после `initiateLiquidation`)
 - **Close factor** — максимальная доля долга для ликвидации за раз (closeFactorBps)
 - **Protocol liquidation fee** — часть seized коллатерала идёт в протокол
 - **Full liquidation threshold** — ниже порога разрешается полная ликвидация

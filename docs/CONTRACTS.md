@@ -2,6 +2,8 @@
 
 Полное описание всех смарт-контрактов, их функций, событий и ошибок.
 
+> **Бренд:** пользовательское имя протокола — **Lumina**. Ниже в заголовках и схеме — **имена контрактов в Solidity** (`AuraEngine`, `AuraUSD`, …): так они отображаются в коде и на блокчейн-эксплорере. См. [BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md).
+
 ---
 
 ## Обзор архитектуры
@@ -19,14 +21,14 @@ AuraProxy (UUPS) ──delegatecall──► AuraEngine (implementation)
                     ▼
                AuraPSM ◄──► Pegged Stablecoin
 
-Governance: AuraToken → VeAura → AuraGovernor → TimelockController
-Treasury:   AuraTreasury
-Router:     AuraRouter (composability)
+Governance (Lumina): AuraToken → VeAura → AuraGovernor → TimelockController
+Treasury:            AuraTreasury
+Router:              AuraRouter (composability)
 ```
 
 ---
 
-## 1. AuraEngine (`src/AuraEngine.sol`)
+## 1. Движок Lumina — `AuraEngine` (`src/AuraEngine.sol`)
 
 Основной движок протокола. Работает за UUPS-прокси.
 
@@ -90,7 +92,7 @@ Router:     AuraRouter (composability)
 
 ---
 
-## 2. AuraProxy (`src/AuraProxy.sol`)
+## 2. Прокси движка Lumina — `AuraProxy` (`src/AuraProxy.sol`)
 
 UUPS-прокси (EIP-1822). Все вызовы пользователей идут через этот адрес.
 

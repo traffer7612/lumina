@@ -14,8 +14,8 @@ Companion to [`TOKENOMICS-PROD-CHECKLIST.md`](TOKENOMICS-PROD-CHECKLIST.md). **N
 | Asset | Who can mint | Contract path | Admin / control |
 |-------|----------------|---------------|-----------------|
 | **aUSD** | Registered minters only | `AuraUSD.mint` / `burn` | `addMinter` / `removeMinter` / `transferAdmin` — `AuraUSD.admin` must be Timelock in production. |
-| **aUSD via CDP** | AuraEngine (proxy) | Engine calls `mint` when user borrows; `burn` on repay/liquidation | Engine is a minter; Engine admin params via timelocked governance. |
-| **aUSD via PSM** | AuraPSM | `swapIn` mints aUSD; `swapOut` burns | Each PSM deployment must be added as minter via governance. |
+| **aUSD via CDP** | `AuraEngine` (proxy) | Engine calls `mint` when user borrows; `burn` on repay/liquidation | Engine is a minter; Engine admin params via timelocked governance. |
+| **aUSD via PSM** | `AuraPSM` | `swapIn` mints aUSD; `swapOut` burns | Each PSM deployment must be added as minter via governance. |
 | **LUMINA** | Current `AuraToken.minter` | `AuraToken.mint` | `transferMinter` callable only by current minter → route to Timelock. |
 
 **Hidden mint path check**: There is no alternate ERC-20 mint on `AuraUSD` outside `minters`; `AuraToken` has no mint except through `minter`. Verify on Arbiscan: `AuraUSD.admin`, `AuraToken.minter`, and `minters(engine)`, `minters(psm)`.

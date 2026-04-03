@@ -1,6 +1,8 @@
 # Production contract addresses — Arbitrum One (42161)
 
-Canonical reference for **public** deployments. Keep in sync with `frontend/.env.example` and GitBook after any governance upgrade.
+Canonical reference for **public** deployments of **Lumina Protocol**. Имена в первом столбце — **как в Solidity/эксплорере** (`AuraEngine`, …); см. [BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md).
+
+Keep in sync with `frontend/.env.example` and GitBook after any governance upgrade.
 
 Explorer: [Arbitrum One](https://arbiscan.io/).
 

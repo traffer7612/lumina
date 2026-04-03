@@ -2,6 +2,8 @@
 
 Эту папку можно использовать как источник для **GitBook** (docs.lumina.finance): подключите репозиторий к GitBook и укажите папку `docs/` или скопируйте файлы.
 
+**Имена:** в текстах для людей используется бренд **Lumina**; имена контрактов в Solidity (**`AuraEngine`**, **`AuraUSD`**, …) оставляем как в коде и на эксплорере — см. [BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md).
+
 ## Содержание
 
 | Документ | Описание |
@@ -14,6 +16,9 @@
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Архитектура проекта. |
 | [DEPLOY.md](DEPLOY.md) | Деплой контрактов. |
 | [VERCEL.md](VERCEL.md) | Деплой фронта на Vercel. |
+| [ROADMAP.md](ROADMAP.md) | Дорожная карта продукта и фазы выхода в production. |
+| [TOKENOMICS-PROD-CHECKLIST.md](TOKENOMICS-PROD-CHECKLIST.md) | Чеклист токеномики и go-live перед публичным продом. |
+| [BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md) | Lumina vs имена контрактов Aura* в коде и на чейне. |
 
 ## Настройка GitBook
 

@@ -2,7 +2,7 @@
 
 ## Short Version
 
-Aura governance is designed to reduce unilateral control risk and make protocol changes transparent, reviewable, and delayed before execution.
+Lumina governance is designed to reduce unilateral control risk and make protocol changes transparent, reviewable, and delayed before execution.
 
 ## Governance Stack
 

@@ -69,7 +69,7 @@ These choices prevent attackers from exploiting rounding to underpay debt or ove
 ## 4. ERC-4626 Compatibility
 
 - The engine accepts **any ERC-4626 vault** as `collateralVault`. Collateral is deposited and held as **vault shares**; we use `convertToAssets` / `convertToShares` for valuation and accounting.
-- An **AuraVault4626** view adapter exposes `totalAssets()`, `convertToAssets`, and `convertToShares` backed by the engine’s total collateral, so 4626-based integrators can read engine state without holding a position.
+- A Lumina **`AuraVault4626`** view adapter exposes `totalAssets()`, `convertToAssets`, and `convertToShares` backed by the engine’s total collateral, so 4626-based integrators can read engine state without holding a position.
 
 ---
 

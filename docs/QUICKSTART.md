@@ -143,7 +143,7 @@ npm run dev
 1. Задеплоить смарт-контракты Lumina (через Foundry: `forge build`, затем скрипт деплоя на тестовую сеть).
 2. В папке **backend** в файле **.env** указать:
    ```env
-   AURA_ENGINE_ADDRESS=0x...   # адрес прокси AuraEngine
+   AURA_ENGINE_ADDRESS=0x...   # адрес прокси движка Lumina (`AuraProxy` → `AuraEngine`)
    ```
 3. Перезапустить бэкенд (`npm run dev` в папке `backend`).
 4. Во фронтенде перезагрузить страницу и переподключить кошелёк в нужной сети (Arbitrum или Base).
