@@ -148,6 +148,67 @@ export const veAuraAbi = [
   { inputs: [{ name: 'delegatee', type: 'address' }], name: 'delegate', outputs: [], stateMutability: 'nonpayable', type: 'function' },
 ] as const;
 
+// ─── AuraPSM ABI ──────────────────────────────────────────────────────────────
+export const auraPsmAbi = [
+  { inputs: [], name: 'admin', outputs: [{ name: '', type: 'address' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'peggedDecimals', outputs: [{ name: '', type: 'uint8' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'feeReserves', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'tinBps', outputs: [{ name: '', type: 'uint16' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'toutBps', outputs: [{ name: '', type: 'uint16' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], name: 'withdrawFeeReserves', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], name: 'withdrawLiquidity', outputs: [], stateMutability: 'nonpayable', type: 'function' },
+] as const;
+
+// ─── Governor ABI (OpenZeppelin Governor v5) ─────────────────────────────────
+export const governorAbi = [
+  { inputs: [], name: 'name', outputs: [{ name: '', type: 'string' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'votingDelay', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'votingPeriod', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'proposalThreshold', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'timepoint', type: 'uint256' }], name: 'quorum', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'proposalId', type: 'uint256' }], name: 'state', outputs: [{ name: '', type: 'uint8' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'proposalId', type: 'uint256' }, { name: 'account', type: 'address' }], name: 'hasVoted', outputs: [{ name: '', type: 'bool' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'proposalId', type: 'uint256' }], name: 'proposalSnapshot', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'proposalId', type: 'uint256' }], name: 'proposalDeadline', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  {
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'description', type: 'string' },
+    ],
+    name: 'propose',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  { inputs: [{ name: 'proposalId', type: 'uint256' }, { name: 'support', type: 'uint8' }], name: 'castVote', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'nonpayable', type: 'function' },
+  {
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'descriptionHash', type: 'bytes32' },
+    ],
+    name: 'queue',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable',
+    type: 'function',
+  },
+  {
+    inputs: [
+      { name: 'targets', type: 'address[]' },
+      { name: 'values', type: 'uint256[]' },
+      { name: 'calldatas', type: 'bytes[]' },
+      { name: 'descriptionHash', type: 'bytes32' },
+    ],
+    name: 'execute',
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'payable',
+    type: 'function',
+  },
+] as const;
+
 // ─── MarketConfig type ────────────────────────────────────────────────────────
 export type MarketConfig = {
   vault:                       `0x${string}`;

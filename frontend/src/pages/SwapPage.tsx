@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useAccount, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { useAccount, useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
 import { parseUnits, formatUnits, type Address, type Hash } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { ArrowDownUp, Loader2, CheckCircle, Wallet, RefreshCw, Info } from 'lucide-react';
 import { auraPsmAbi } from '../abi/auraPSM';
 import { erc20Abi } from '../abi/auraEngine';
 import { TARGET_CHAIN_ID, gasFor } from '../lib/contracts';
-import { formatWad } from '../lib/utils';
+import { formatWad, formatToken } from '../lib/utils';
 
 /* ─── Addresses ───────────────────────────────────────────────────────────── */
 
@@ -30,6 +30,16 @@ export default function SwapPage() {
   const { writeContractAsync, isPending } = useWriteContract();
   const { isSuccess: swapConfirmed } = useWaitForTransactionReceipt({ hash });
   const { isSuccess: approveConfirmed } = useWaitForTransactionReceipt({ hash: approveHash });
+
+  const { data: peggedDecimalsRaw } = useReadContract({
+    address: PSM,
+    abi: auraPsmAbi,
+    functionName: 'peggedDecimals',
+    chainId: TARGET_CHAIN_ID,
+    query: { enabled: !!PSM },
+  });
+  /** Pegged stable decimals (e.g. 6 native USDC); default 6 before load. */
+  const peggedDec = Math.min(Number(peggedDecimalsRaw ?? 6), 18);
 
   /* ── On-chain reads ─── */
   const { data, refetch } = useReadContracts({
@@ -70,15 +80,38 @@ export default function SwapPage() {
   const allowance   = direction === 'in' ? usdcAllowance : ausdAllowance;
   const tokenToApprove = direction === 'in' ? USDC : AUSD;
 
+  const inputDecimals = direction === 'in' ? peggedDec : 18;
   const parsedAmount = useMemo(() => {
-    try { return amount ? parseUnits(amount, 18) : 0n; } catch { return 0n; }
-  }, [amount]);
+    try { return amount ? parseUnits(amount, inputDecimals) : 0n; } catch { return 0n; }
+  }, [amount, inputDecimals]);
 
   const feeAmount = parsedAmount > 0n ? (parsedAmount * BigInt(feeBps)) / 10000n : 0n;
-  const outputAmount = parsedAmount > 0n ? parsedAmount - feeAmount : 0n;
+  const scalePow = 18 - peggedDec;
+  const scale = scalePow > 0 ? 10n ** BigInt(scalePow) : 1n;
+
+  /** Estimated output amount in output-token wei (matches on-chain rounding). */
+  const estimatedOutWei = useMemo(() => {
+    if (parsedAmount === 0n) return 0n;
+    const net = parsedAmount - feeAmount;
+    if (net <= 0n) return 0n;
+    if (direction === 'in') return net * scale;
+    return net / scale;
+  }, [parsedAmount, feeAmount, direction, scale]);
+
+  const feePegForLiquidity = direction === 'out' && feeAmount > 0n ? feeAmount / scale : 0n;
 
   const needsApproval = parsedAmount > 0n && (allowance === undefined || allowance < parsedAmount);
-  const canSwap = parsedAmount > 0n && !needsApproval && balance !== undefined && balance >= parsedAmount;
+  const liquidityOk =
+    direction !== 'out'
+    || availableReserves === undefined
+    || (estimatedOutWei > 0n && availableReserves >= estimatedOutWei + feePegForLiquidity);
+  const canSwap =
+    parsedAmount > 0n
+    && !needsApproval
+    && balance !== undefined
+    && balance >= parsedAmount
+    && liquidityOk
+    && estimatedOutWei > 0n;
 
   /* ── Refresh after confirm ─── */
   useEffect(() => {
@@ -126,7 +159,7 @@ export default function SwapPage() {
 
   function handleMax() {
     if (balance !== undefined && balance > 0n) {
-      setAmount(formatUnits(balance, 18));
+      setAmount(formatUnits(balance, inputDecimals));
     }
   }
 
@@ -179,7 +212,7 @@ export default function SwapPage() {
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs text-aura-muted">From</span>
             <button onClick={handleMax} className="text-xs text-aura-gold hover:underline">
-              Balance: {balance !== undefined ? formatWad(balance, 4) : '—'} {inputToken}
+              Balance: {balance !== undefined ? (direction === 'in' ? formatToken(balance, peggedDec, 4) : formatWad(balance, 4)) : '—'} {inputToken}
             </button>
           </div>
           <div className="flex items-center gap-3 bg-aura-surface rounded-xl p-3 border border-aura-border">
@@ -216,12 +249,14 @@ export default function SwapPage() {
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs text-aura-muted">To (estimated)</span>
             <span className="text-xs text-aura-muted">
-              Balance: {direction === 'in' ? formatWad(ausdBalance, 4) : formatWad(usdcBalance, 4)} {outputToken}
+              Balance: {direction === 'in' ? formatWad(ausdBalance, 4) : formatToken(usdcBalance, peggedDec, 4)} {outputToken}
             </span>
           </div>
           <div className="flex items-center gap-3 bg-aura-surface rounded-xl p-3 border border-aura-border">
             <span className="text-xl font-mono flex-1 text-aura-muted-2">
-              {outputAmount > 0n ? Number(formatUnits(outputAmount, 18)).toLocaleString(undefined, { maximumFractionDigits: 4 }) : '0.0'}
+              {estimatedOutWei > 0n
+                ? Number(formatUnits(estimatedOutWei, direction === 'in' ? 18 : peggedDec)).toLocaleString(undefined, { maximumFractionDigits: 4 })
+                : '0.0'}
             </span>
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-aura-card border border-aura-border shrink-0">
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
@@ -244,13 +279,13 @@ export default function SwapPage() {
             <div className="flex justify-between">
               <span className="text-aura-muted">Fee ({feePct}%)</span>
               <span className="text-aura-warning">
-                −{Number(formatUnits(feeAmount, 18)).toLocaleString(undefined, { maximumFractionDigits: 6 })} {outputToken}
+                −{Number(formatUnits(feeAmount, inputDecimals)).toLocaleString(undefined, { maximumFractionDigits: 6 })} {inputToken}
               </span>
             </div>
             <div className="flex justify-between font-medium">
               <span className="text-aura-muted">You receive</span>
               <span className="text-aura-success">
-                {Number(formatUnits(outputAmount, 18)).toLocaleString(undefined, { maximumFractionDigits: 4 })} {outputToken}
+                {Number(formatUnits(estimatedOutWei, direction === 'in' ? 18 : peggedDec)).toLocaleString(undefined, { maximumFractionDigits: 4 })} {outputToken}
               </span>
             </div>
           </div>
@@ -306,7 +341,7 @@ export default function SwapPage() {
         <div className="grid grid-cols-2 gap-4">
           <div>
             <p className="text-xs stat-label">Available USDC</p>
-            <p className="font-semibold mt-0.5 font-mono text-sm">{formatWad(availableReserves, 2)}</p>
+            <p className="font-semibold mt-0.5 font-mono text-sm">{formatToken(availableReserves, peggedDec, 2)}</p>
           </div>
           <div>
             <p className="text-xs stat-label">aUSD Minted via PSM</p>
@@ -320,7 +355,7 @@ export default function SwapPage() {
           </div>
           <div>
             <p className="text-xs stat-label">Fee Reserves</p>
-            <p className="font-semibold mt-0.5 font-mono text-sm">{formatWad(feeReserves, 4)}</p>
+            <p className="font-semibold mt-0.5 font-mono text-sm">{formatToken(feeReserves, peggedDec, 4)}</p>
           </div>
           <div>
             <p className="text-xs stat-label">SwapIn Fee</p>

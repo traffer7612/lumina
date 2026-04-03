@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+
 import { IAuraUSD } from "./interfaces/IAuraUSD.sol";
 
 /**
@@ -14,13 +16,18 @@ import { IAuraUSD } from "./interfaces/IAuraUSD.sol";
  *
  *         Fee is deducted from the OUTPUT amount (like MakerDAO PSM).
  *         Accumulated fees are kept as `peggedToken` in `feeReserves` and
- *         withdrawable by admin.
+ *         withdrawable by admin. Main swap liquidity (balance minus feeReserves)
+ *         can be withdrawn by admin via `withdrawLiquidity` (e.g. PSM migration).
  *
  *         A `ceiling` caps how much aUSD the PSM is permitted to mint cumulatively
  *         (net of burns through the PSM). 0 = unlimited.
  *
  * @dev Phase 9 implementation.
  *      PSM must be registered as a minter in `AuraUSD`.
+ *
+ *      Pegged token decimals are read at deploy time (e.g. USDC = 6 on Arbitrum).
+ *      aUSD is always 18 decimals; amounts are scaled so 1 unit of pegged nominal
+ *      matches 1e18 wei aUSD (1:1 dollar peg before fees).
  */
 contract AuraPSM {
     // ------------------------------- Errors
@@ -38,6 +45,8 @@ contract AuraPSM {
     event CeilingSet(uint256 ceiling);
     event FeeSet(uint16 tinBps, uint16 toutBps);
     event FeeReservesWithdrawn(address indexed to, uint256 amount);
+    /// @notice Pegged liquidity withdrawn (not from `feeReserves`); reduces swapOut capacity until refilled.
+    event LiquidityWithdrawn(address indexed to, uint256 amount);
     event AdminProposed(address indexed current, address indexed pending);
     event AdminTransferred(address indexed prev, address indexed next);
 
@@ -46,6 +55,10 @@ contract AuraPSM {
     address public immutable ausd;
     /// @notice The pegged stable token (USDC / DAI / USDT).
     address public immutable peggedToken;
+    /// @notice Decimals of `peggedToken` (read once in constructor).
+    uint8 public immutable peggedDecimals;
+
+    uint8 internal constant AUSD_DECIMALS = 18;
 
     // ------------------------------- State
     address public admin;
@@ -80,6 +93,10 @@ contract AuraPSM {
         admin       = admin_;
         tinBps      = tinBps_;
         toutBps     = toutBps_;
+
+        uint8 dec = IERC20Metadata(peggedToken_).decimals();
+        if (dec > AUSD_DECIMALS) revert PSM__InvalidParams();
+        peggedDecimals = dec;
     }
 
     // ------------------------------- Modifiers
@@ -90,22 +107,23 @@ contract AuraPSM {
 
     // ------------------------------- Core: swapIn (peggedToken → aUSD)
     /**
-     * @notice Swap `amount` of `peggedToken` for aUSD at 1:1 minus `tinBps` fee.
-     * @param  amount Amount of peggedToken to deposit (18-decimal assumed).
-     * @return ausdOut Amount of aUSD minted to caller.
+     * @notice Swap `amount` of `peggedToken` for aUSD at 1:1 nominal minus `tinBps` fee.
+     * @param  amount Amount of peggedToken in native peg decimals (e.g. 1e6 = 1 USDC).
+     * @return ausdOut Amount of aUSD minted (18 decimals).
      */
     function swapIn(uint256 amount) external returns (uint256 ausdOut) {
         if (amount == 0) revert PSM__ZeroAmount();
 
-        uint256 fee = (amount * tinBps) / 10_000;
-        ausdOut     = amount - fee;
+        uint256 feePeg = (amount * tinBps) / 10_000;
+        uint256 netPeg = amount - feePeg;
+        ausdOut = _peggedToAusd(netPeg);
 
         // Ceiling check
         if (ceiling != 0 && mintedViaPsm + ausdOut > ceiling) revert PSM__CeilingExceeded();
 
         // Effects first (CEI pattern)
         unchecked {
-            feeReserves  += fee;
+            feeReserves  += feePeg;
             mintedViaPsm += ausdOut;
         }
 
@@ -113,39 +131,40 @@ contract AuraPSM {
         _transferIn(peggedToken, msg.sender, amount);
         IAuraUSD(ausd).mint(msg.sender, ausdOut);
 
-        emit SwapIn(msg.sender, amount, ausdOut, fee);
+        emit SwapIn(msg.sender, amount, ausdOut, feePeg);
     }
 
     // ------------------------------- Core: swapOut (aUSD → peggedToken)
     /**
-     * @notice Swap `amount` of aUSD for `peggedToken` at 1:1 minus `toutBps` fee.
+     * @notice Swap `amount` of aUSD for `peggedToken` at 1:1 nominal minus `toutBps` fee.
      *         Caller must have approved this contract for `amount` aUSD beforehand.
-     * @param  amount Amount of aUSD to burn.
-     * @return stableOut Amount of peggedToken sent to caller.
+     * @param  amount Amount of aUSD to burn (18 decimals).
+     * @return stableOut Amount of peggedToken sent (native peg decimals).
      */
     function swapOut(uint256 amount) external returns (uint256 stableOut) {
         if (amount == 0) revert PSM__ZeroAmount();
 
-        uint256 fee = (amount * toutBps) / 10_000;
-        stableOut   = amount - fee;
+        uint256 feeAusd = (amount * toutBps) / 10_000;
+        uint256 netAusd = amount - feeAusd;
+        stableOut = _ausdToPegged(netAusd);
+        uint256 feePeg = _ausdToPegged(feeAusd);
+        if (stableOut == 0) revert PSM__ZeroAmount();
 
-        // Check PSM has enough peggedToken liquidity (total balance minus reserved fees)
-        uint256 available = _balance(peggedToken);
-        // feeReserves is part of total balance; available for swapOut = balance - feeReserves
-        if (available < feeReserves || available - feeReserves < stableOut)
-            revert PSM__InsufficientReserves();
+        // Need liquidity for user payout + pegged portion of fee booked to reserves
+        uint256 bal = _balance(peggedToken);
+        if (bal < feeReserves || bal - feeReserves < stableOut + feePeg) revert PSM__InsufficientReserves();
 
         // Effects first (CEI pattern)
         unchecked {
             mintedViaPsm  = mintedViaPsm >= amount ? mintedViaPsm - amount : 0;
-            feeReserves  += fee;
+            feeReserves  += feePeg;
         }
 
         // Interactions
         IAuraUSD(ausd).burnFrom(msg.sender, amount);
         _transferOut(peggedToken, msg.sender, stableOut);
 
-        emit SwapOut(msg.sender, amount, stableOut, fee);
+        emit SwapOut(msg.sender, amount, stableOut, feePeg);
     }
 
     // ------------------------------- Admin
@@ -173,6 +192,19 @@ contract AuraPSM {
         emit FeeReservesWithdrawn(to, amount);
     }
 
+    /**
+     * @notice Withdraw pegged tokens from the main liquidity pool (everything above `feeReserves`).
+     * @dev Does not touch `feeReserves`. Reduces how much users can `swapOut` until liquidity is sent back.
+     */
+    function withdrawLiquidity(address to, uint256 amount) external onlyAdmin {
+        if (to == address(0)) revert PSM__ZeroAddress();
+        if (amount == 0) revert PSM__ZeroAmount();
+        uint256 bal = _balance(peggedToken);
+        if (bal < feeReserves || bal - feeReserves < amount) revert PSM__InsufficientReserves();
+        _transferOut(peggedToken, to, amount);
+        emit LiquidityWithdrawn(to, amount);
+    }
+
     function proposeAdmin(address newAdmin) external onlyAdmin {
         if (newAdmin == address(0)) revert PSM__ZeroAddress();
         pendingAdmin = newAdmin;
@@ -194,6 +226,19 @@ contract AuraPSM {
     }
 
     // ------------------------------- Internal helpers
+
+    /// @dev 1 unit of pegged (10**peggedDecimals) → 1e18 wei aUSD.
+    function _peggedToAusd(uint256 peggedAmt) internal view returns (uint256) {
+        if (peggedDecimals == AUSD_DECIMALS) return peggedAmt;
+        return peggedAmt * (10 ** uint256(AUSD_DECIMALS - peggedDecimals));
+    }
+
+    /// @dev Rounds down: aUSD wei → pegged raw (conservative for protocol).
+    function _ausdToPegged(uint256 ausdAmt) internal view returns (uint256) {
+        if (peggedDecimals == AUSD_DECIMALS) return ausdAmt;
+        return ausdAmt / (10 ** uint256(AUSD_DECIMALS - peggedDecimals));
+    }
+
     function _balance(address token) internal view returns (uint256) {
         (bool ok, bytes memory data) = token.staticcall(
             abi.encodeWithSelector(0x70a08231, address(this)) // balanceOf(address)

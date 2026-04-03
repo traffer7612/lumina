@@ -1,6 +1,5 @@
 import { useAccount, useChainId, useSwitchChain } from 'wagmi';
-import { foundry } from 'viem/chains';
-import { SUPPORTED_CHAIN_IDS } from '../../wagmi';
+import { SUPPORTED_CHAIN_IDS, targetChain } from '../../wagmi';
 
 export default function WrongNetworkBanner() {
   const { isConnected } = useAccount();
@@ -15,11 +14,14 @@ export default function WrongNetworkBanner() {
   return (
     <div className="w-full bg-red-600/90 backdrop-blur-sm border-b border-red-500 px-4 py-2.5 flex items-center justify-center gap-4 text-sm font-medium text-white z-50">
       <span>
-        ⚠️ Wrong network detected — contracts are deployed on{' '}
-        <strong>Localhost Anvil (chain 31337)</strong>.
+        ⚠️ Wrong network detected — switch to{' '}
+        <strong>
+          {targetChain.name} (chain {targetChain.id})
+        </strong>
+        .
       </span>
       <button
-        onClick={() => switchChain({ chainId: foundry.id })}
+        onClick={() => switchChain({ chainId: targetChain.id })}
         disabled={isPending}
         className="shrink-0 px-3 py-1 rounded bg-white text-red-700 font-semibold hover:bg-red-100 transition-colors disabled:opacity-50"
       >

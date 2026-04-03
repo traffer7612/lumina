@@ -16,6 +16,23 @@
 | **PSM** | `0xde5a53134456c5b3bc0e23be92c6fc75c982985c` |
 | **USDC (тестнет)** | `0x6B0e4E0e03B5a17079443fcc082AbF4092fEa4F6` |
 
+### Верификация на Sepolia Etherscan
+
+Проверка через API v2 (`contract/getsourcecode`, chainId `11155111`). Статус на момент последней проверки:
+
+| Адрес из таблицы | Контракт на Etherscan | Верифицирован |
+|------------------|------------------------|---------------|
+| Engine (Proxy) | [AuraProxy](https://sepolia.etherscan.io/address/0x53F2B95E1A97f95Ec35F353CdE3B05e0d1b64e04#code) | Да |
+| — (implementation) | [AuraEngine](https://sepolia.etherscan.io/address/0x86a2d24f8502545c6c7944617faebe7c7e251cfd#code) | Да |
+| MarketRegistry | [реестр](https://sepolia.etherscan.io/address/0x05a585117DF7a0b909F611cC40aFd3b04dCf7A12#code) | **Нет** — байткод деплоя не совпадает с текущим `AuraMarketRegistry.sol` в репозитории (скорее всего деплой с более старой версии исходников / другого `MarketConfig`). Верифицировать можно только из **того же коммита и настроек компилятора**, с которых шёл деплой, либо вручную через Standard JSON с точным артефактом `out/`. |
+| LUMINA (токен) | [AuraToken](https://sepolia.etherscan.io/address/0xE023824b3160631466f2d3899D7A58E9747AF935#code) | Да |
+| veLUMINA | [VeAura](https://sepolia.etherscan.io/address/0xe07027D141b74BcFeb2cfe6b658D7fedD0E5448a#code) | Да |
+| aUSD | [AuraUSD](https://sepolia.etherscan.io/address/0x6a186ed7eB0046Ea18867EdA863A6F77adE2610F#code) | Да |
+| PSM | [AuraPSM](https://sepolia.etherscan.io/address/0xde5a53134456c5b3bc0e23be92c6fc75c982985c#code) | Да |
+| USDC (mock) | [MockERC20](https://sepolia.etherscan.io/address/0x6B0e4E0e03B5a17079443fcc082AbF4092fEa4F6#code) | Да |
+
+API-ключ Etherscan не хранить в репозитории; задавать через переменную окружения `ETHERSCAN_API_KEY` при вызове `forge verify-contract`.
+
 ### Последние рынки Sepolia (Vault + Oracle из реестра)
 
 Адреса взяты из `MarketRegistry.getMarket(marketId)` на Sepolia (реестр `0x05a585117DF7a0b909F611cC40aFd3b04dCf7A12`):

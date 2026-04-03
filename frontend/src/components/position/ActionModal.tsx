@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContracts } from 'wagmi';
-import { parseUnits, formatUnits, type Hash } from 'viem';
+import { parseUnits, formatUnits, type Hash, type Address } from 'viem';
 import { X, ArrowRight, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { auraEngineAbi, erc20Abi } from '../../abi/auraEngine';
+import { auraEngineAbi, erc20Abi, erc4626Abi } from '../../abi/auraEngine';
 import { useContractAddresses, gasFor, TARGET_CHAIN_ID } from '../../lib/contracts';
 
 export type ActionType = 'deposit' | 'withdraw' | 'borrow' | 'repay';
@@ -45,7 +45,7 @@ export default function ActionModal({
   const { engine } = useContractAddresses();
   const [amount, setAmount] = useState('');
   const [hash, setHash] = useState<Hash | undefined>();
-  const [step, setStep] = useState<'input' | 'approving' | 'writing' | 'success' | 'error'>('input');
+  const [step, setStep] = useState<'input' | 'approving' | 'writing' | 'withdrawn' | 'redeeming' | 'success' | 'error'>('input');
   const [errMsg, setErrMsg] = useState('');
 
   const { writeContractAsync } = useWriteContract();
@@ -66,6 +66,25 @@ export default function ActionModal({
   });
   const walletShares    = vaultAddress     ? ((walletData?.[0]?.result as bigint | undefined) ?? 0n) : 0n;
   const walletDebtToken = debtTokenAddress ? ((walletData?.[vaultAddress ? 1 : 0]?.result as bigint | undefined) ?? 0n) : 0n;
+
+  // Optional: for withdraw, show underlying asset symbol (assets received after redeem).
+  const { data: vaultSymbolData } = useReadContracts({
+    contracts: vaultAddress && address ? [{ address: vaultAddress, abi: erc20Abi, functionName: 'symbol' as const, chainId: TARGET_CHAIN_ID }] : [],
+    query: { enabled: !!vaultAddress && !!address && action === 'withdraw' },
+  });
+  const vaultSymbol = (vaultSymbolData?.[0]?.result as string | undefined) ?? 'SHARES';
+
+  const { data: vaultAssetData } = useReadContracts({
+    contracts: vaultAddress && address ? [{ address: vaultAddress, abi: erc4626Abi, functionName: 'asset' as const, chainId: TARGET_CHAIN_ID }] : [],
+    query: { enabled: !!vaultAddress && !!address && action === 'withdraw' },
+  });
+  const assetAddress = (vaultAssetData?.[0]?.result as Address | undefined) ?? undefined;
+
+  const { data: assetSymbolData } = useReadContracts({
+    contracts: assetAddress && action === 'withdraw' ? [{ address: assetAddress, abi: erc20Abi, functionName: 'symbol' as const, chainId: TARGET_CHAIN_ID }] : [],
+    query: { enabled: !!assetAddress && action === 'withdraw' },
+  });
+  const assetSymbol = (assetSymbolData?.[0]?.result as string | undefined) ?? 'ASSET';
 
   // Read collateral value for borrow max calculation
   const { data: posValueData } = useReadContracts({
@@ -97,6 +116,14 @@ export default function ActionModal({
         refetchAllowance();
         setStep('input'); // let user proceed to write
       } else if (step === 'writing') {
+        if (action === 'withdraw') {
+          // After withdrawing shares from the protocol, offer ERC-4626 redeem (shares -> underlying).
+          setStep('withdrawn');
+        } else {
+          setStep('success');
+          onSuccess();
+        }
+      } else if (step === 'redeeming') {
         setStep('success');
         onSuccess();
       }
@@ -153,13 +180,36 @@ export default function ActionModal({
     }
   }
 
+  async function redeemUnderlying() {
+    if (!address || !vaultAddress) return;
+    const gas = gasFor(chainId);
+    try {
+      setStep('redeeming');
+      const h = await writeContractAsync({
+        address: vaultAddress,
+        abi: erc4626Abi,
+        functionName: 'redeem',
+        // shares -> receiver in underlying; owner=msg.sender (no approve needed)
+        args: [amountRaw, address, address],
+        ...gas,
+      });
+      setHash(h);
+    } catch (e: unknown) {
+      setStep('error');
+      const msg = e instanceof Error ? e.message : String(e);
+      setErrMsg(msg.split('\n')[0].slice(0, 120));
+    }
+  }
+
   if (!open) return null;
 
-  const isPending  = step === 'approving' || step === 'writing';
+  const isPending  = step === 'approving' || step === 'writing' || step === 'redeeming';
   const buttonLabel = step === 'approving'
     ? 'Approving…'
     : step === 'writing'
     ? 'Confirming…'
+    : step === 'redeeming'
+    ? 'Redeeming…'
     : needsApproval
     ? `Approve ${action === 'deposit' ? 'Vault' : 'Debt Token'}`
     : ACTION_LABEL[action];
@@ -202,8 +252,30 @@ export default function ActionModal({
           </div>
         )}
 
+        {/* Withdraw confirmed -> redeem shares to underlying */}
+        {step === 'withdrawn' && (
+          <div className="text-center py-6">
+            <CheckCircle size={48} className="text-aura-success mx-auto mb-3" />
+            <p className="font-semibold text-lg">Withdraw confirmed!</p>
+            <p className="text-aura-muted text-sm mt-1">
+              Now you have <span className="font-mono">{amount ? amount : '0'}</span> {vaultSymbol} shares.
+              Redeem them to get <span className="font-mono">{assetSymbol}</span>.
+            </p>
+            <button
+              className="btn-primary mt-6 w-full"
+              onClick={redeemUnderlying}
+              disabled={!amountRaw || amountRaw <= 0n || isPending}
+            >
+              Redeem {vaultSymbol} → {assetSymbol}
+            </button>
+            <button className="btn-secondary mt-3 w-full" onClick={close} disabled={isPending}>
+              Close
+            </button>
+          </div>
+        )}
+
         {/* Input state */}
-        {step !== 'success' && step !== 'error' && (
+        {step !== 'success' && step !== 'error' && step !== 'withdrawn' && (
           <>
             {/* Approve step indicator */}
             {needsApproval && (

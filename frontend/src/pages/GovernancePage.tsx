@@ -1,19 +1,31 @@
 import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContracts } from 'wagmi';
-import { parseUnits, formatUnits, type Hash, type Address } from 'viem';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContracts, usePublicClient } from 'wagmi';
+import { parseUnits, formatUnits, encodeFunctionData, keccak256, stringToHex, isAddress, parseAbiItem, type Hash, type Address } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import {
   Vote, Lock, Unlock, Plus, Clock, Users, Gift,
-  CheckCircle, AlertCircle, Loader2, RefreshCw, HelpCircle,
+  CheckCircle, AlertCircle, Loader2, RefreshCw, ExternalLink,
 } from 'lucide-react';
-import { erc20Abi, veAuraAbi } from '../abi/auraEngine';
-import { gasFor, TARGET_CHAIN_ID } from '../lib/contracts';
+import { erc20Abi, veAuraAbi, governorAbi, auraRegistryAbi } from '../abi/auraEngine';
+import { gasFor, TARGET_CHAIN_ID, useContractAddresses } from '../lib/contracts';
 import { formatWad, formatAddress } from '../lib/utils';
+import { blockExplorerAddressUrl } from '../lib/explorer';
 
 const VE_AURA   = import.meta.env.VITE_VE_AURA_ADDRESS as Address | undefined;
 const AURA_TOKEN = import.meta.env.VITE_AURA_TOKEN_ADDRESS as Address | undefined;
+const GOVERNOR = import.meta.env.VITE_GOVERNOR_ADDRESS as Address | undefined;
+const TIMELOCK = import.meta.env.VITE_TIMELOCK_ADDRESS as Address | undefined;
+const AUSD     = import.meta.env.VITE_AUSD_ADDRESS as Address | undefined;
+const TALLY_URL = import.meta.env.VITE_TALLY_URL as string | undefined;
+
+/** Minimal ABI for governance calldata to AuraUSD */
+const ausdGovAbi = [
+  { type: 'function', name: 'addMinter', stateMutability: 'nonpayable', inputs: [{ name: 'minter', type: 'address' }], outputs: [] },
+] as const;
 
 const WEEK = 7 * 24 * 3600;
+const FEED_WINDOW_SECONDS = 10 * 24 * 3600; // 10 days
+const ACTIVITY_INITIAL_COUNT = 5;
 
 /** Duration presets in weeks */
 const DURATIONS = [
@@ -26,10 +38,45 @@ const DURATIONS = [
 ];
 
 type Step = 'idle' | 'approving' | 'writing' | 'success' | 'error';
+type ProposalFeedItem = {
+  proposalId: bigint;
+  proposer: Address;
+  description: string;
+  voteStart: bigint;
+  voteEnd: bigint;
+  txHash?: Hash;
+  state?: number;
+};
+type GovernanceActivityItem = {
+  kind: 'proposed' | 'voted' | 'queued' | 'executed';
+  proposalId: bigint;
+  actor?: Address;
+  support?: number;
+  weight?: bigint;
+  txHash?: Hash;
+  blockNumber?: bigint;
+  logIndex?: number;
+};
+
+const proposalCreatedEvent = parseAbiItem(
+  'event ProposalCreated(uint256 proposalId,address proposer,address[] targets,uint256[] values,string[] signatures,bytes[] calldatas,uint256 voteStart,uint256 voteEnd,string description)',
+);
+const voteCastEvent = parseAbiItem(
+  'event VoteCast(address indexed voter,uint256 proposalId,uint8 support,uint256 weight,string reason)',
+);
+const proposalQueuedEvent = parseAbiItem(
+  'event ProposalQueued(uint256 proposalId,uint256 etaSeconds)',
+);
+const proposalExecutedEvent = parseAbiItem(
+  'event ProposalExecuted(uint256 proposalId)',
+);
 
 export default function GovernancePage() {
   const { address, isConnected, chainId } = useAccount();
+  const explorerChainId = chainId ?? TARGET_CHAIN_ID;
+  const publicClient = usePublicClient({ chainId: TARGET_CHAIN_ID });
   const { writeContractAsync } = useWriteContract();
+  const { registry } = useContractAddresses();
 
   // ── tx tracking ──
   const [hash, setHash] = useState<Hash | undefined>();
@@ -48,6 +95,22 @@ export default function GovernancePage() {
   const [delegateTo, setDelegateTo] = useState('');
   // ── which action is active ──
   const [activeAction, setActiveAction] = useState<string>('');
+  const [proposalIdInput, setProposalIdInput] = useState('');
+  const [voteSupport, setVoteSupport] = useState<'0' | '1' | '2'>('1');
+  const [govDescription, setGovDescription] = useState('AIP: Update market risk params');
+  const [marketId, setMarketId] = useState('2');
+  const [newLtv, setNewLtv] = useState('85');
+  const [newLiqThreshold, setNewLiqThreshold] = useState('93');
+  const [newLiqPenalty, setNewLiqPenalty] = useState('3');
+  /** Which single-action template feeds propose / queue / execute (must stay the same for a given proposal). */
+  const [govProposalKind, setGovProposalKind] = useState<'market' | 'addPsmMinter'>('market');
+  const [newPsmMinterAddress, setNewPsmMinterAddress] = useState('');
+  const [proposalFeed, setProposalFeed] = useState<ProposalFeedItem[]>([]);
+  const [activityFeed, setActivityFeed] = useState<GovernanceActivityItem[]>([]);
+  const [proposalTitleMap, setProposalTitleMap] = useState<Record<string, string>>({});
+  const [activityExpanded, setActivityExpanded] = useState(false);
+  const [isFeedLoading, setIsFeedLoading] = useState(false);
+  const [feedErr, setFeedErr] = useState('');
 
   // ── read contract data ──
   const { data: readData, refetch } = useReadContracts({
@@ -76,6 +139,76 @@ export default function GovernancePage() {
   const tokenSymbol   = (readData?.[7]?.result as string | undefined) ?? 'LUMINA';
   const displaySymbol = tokenSymbol === 'AURA' ? 'LUMINA' : tokenSymbol; // UI branding
 
+  const proposalId = proposalIdInput.trim() ? BigInt(proposalIdInput.trim()) : undefined;
+  const hasGovConfig = !!GOVERNOR && (!!registry || !!AUSD);
+  const marketCalldata =
+    GOVERNOR && registry
+      ? encodeFunctionData({
+        abi: auraRegistryAbi,
+        functionName: 'updateMarketRiskParams',
+        args: [
+          BigInt(marketId || '0'),
+          Math.round(Number(newLtv || '0') * 100),
+          Math.round(Number(newLiqThreshold || '0') * 100),
+          Math.round(Number(newLiqPenalty || '0') * 100),
+        ],
+      })
+      : '0x';
+  const trimmedPsm = newPsmMinterAddress.trim();
+  const addMinterCalldata =
+    GOVERNOR && AUSD && trimmedPsm && isAddress(trimmedPsm as Address)
+      ? encodeFunctionData({
+        abi: ausdGovAbi,
+        functionName: 'addMinter',
+        args: [trimmedPsm as Address],
+      })
+      : '0x';
+
+  const govTargets: Address[] =
+    govProposalKind === 'market' && registry
+      ? [registry as Address]
+      : govProposalKind === 'addPsmMinter' && AUSD
+        ? [AUSD]
+        : [];
+  const govValues: bigint[] = [0n];
+  const govCalldatas: `0x${string}`[] =
+    govProposalKind === 'market' && marketCalldata !== '0x'
+      ? [marketCalldata as `0x${string}`]
+      : govProposalKind === 'addPsmMinter' && addMinterCalldata !== '0x'
+        ? [addMinterCalldata as `0x${string}`]
+        : [];
+  const descriptionHash = keccak256(stringToHex(govDescription || ''));
+  const canCreateGovProposal =
+    !!GOVERNOR &&
+    govCalldatas.length > 0 &&
+    govTargets.length > 0 &&
+    (govProposalKind === 'market' ? !!registry : !!AUSD && isAddress(trimmedPsm as Address));
+
+  const { data: govData, refetch: refetchGov } = useReadContracts({
+    contracts: (GOVERNOR ? [
+      { address: GOVERNOR, abi: governorAbi, functionName: 'votingDelay', chainId: TARGET_CHAIN_ID },
+      { address: GOVERNOR, abi: governorAbi, functionName: 'votingPeriod', chainId: TARGET_CHAIN_ID },
+      { address: GOVERNOR, abi: governorAbi, functionName: 'proposalThreshold', chainId: TARGET_CHAIN_ID },
+      { address: GOVERNOR, abi: governorAbi, functionName: 'quorum', args: [BigInt(Math.floor(Date.now() / 1000))], chainId: TARGET_CHAIN_ID },
+      ...(proposalId !== undefined ? [
+        { address: GOVERNOR, abi: governorAbi, functionName: 'state', args: [proposalId], chainId: TARGET_CHAIN_ID },
+        { address: GOVERNOR, abi: governorAbi, functionName: 'proposalSnapshot', args: [proposalId], chainId: TARGET_CHAIN_ID },
+        { address: GOVERNOR, abi: governorAbi, functionName: 'proposalDeadline', args: [proposalId], chainId: TARGET_CHAIN_ID },
+        ...(address ? [{ address: GOVERNOR, abi: governorAbi, functionName: 'hasVoted', args: [proposalId, address], chainId: TARGET_CHAIN_ID }] : []),
+      ] : []),
+    ] : []),
+    query: { enabled: !!GOVERNOR },
+  });
+
+  const govVotingDelay = (govData?.[0]?.result as bigint | undefined) ?? 0n;
+  const govVotingPeriod = (govData?.[1]?.result as bigint | undefined) ?? 0n;
+  const govProposalThreshold = (govData?.[2]?.result as bigint | undefined) ?? 0n;
+  const govQuorumNow = (govData?.[3]?.result as bigint | undefined) ?? 0n;
+  const proposalState = (govData?.[4]?.result as number | undefined);
+  const proposalSnapshot = (govData?.[5]?.result as bigint | undefined);
+  const proposalDeadline = (govData?.[6]?.result as bigint | undefined);
+  const hasVoted = (govData?.[7]?.result as boolean | undefined);
+
   const hasLock       = lockedAmount > 0n;
   const lockExpired   = hasLock && BigInt(Math.floor(Date.now() / 1000)) >= unlockTime;
   const nowSec        = Math.floor(Date.now() / 1000);
@@ -96,9 +229,10 @@ export default function GovernancePage() {
       } else if (step === 'writing') {
         setStep('success');
         refetch();
+        refetchGov();
       }
     }
-  }, [confirmed, hash, step, refetch]);
+  }, [confirmed, hash, step, refetch, refetchGov]);
 
   const reset = () => { setHash(undefined); setStep('idle'); setErrMsg(''); setActiveAction(''); };
 
@@ -224,6 +358,348 @@ export default function GovernancePage() {
     }
   }
 
+  const proposalStateLabel = (s?: number) => {
+    switch (s) {
+      case 0: return 'Pending';
+      case 1: return 'Active';
+      case 2: return 'Canceled';
+      case 3: return 'Defeated';
+      case 4: return 'Succeeded';
+      case 5: return 'Queued';
+      case 6: return 'Expired';
+      case 7: return 'Executed';
+      default: return 'Unknown';
+    }
+  };
+
+  const formatUnix = (v?: bigint) => {
+    if (v === undefined) return '—';
+    return new Date(Number(v) * 1000).toLocaleString();
+  };
+  const blockExplorerTxUrl = (txHash: string) => {
+    switch (explorerChainId) {
+      case 42161:
+        return `https://arbiscan.io/tx/${txHash}`;
+      case 8453:
+        return `https://basescan.org/tx/${txHash}`;
+      case 11155111:
+        return `https://sepolia.etherscan.io/tx/${txHash}`;
+      default:
+        return null;
+    }
+  };
+
+  async function refreshProposalFeed() {
+    if (!publicClient || !GOVERNOR) return;
+    setIsFeedLoading(true);
+    setFeedErr('');
+    try {
+      const latestBlock = await publicClient.getBlockNumber();
+      const latest = await publicClient.getBlock({ blockNumber: latestBlock });
+      const minTs = BigInt(Math.max(0, Number(latest.timestamp) - FEED_WINDOW_SECONDS));
+      const fromBlock = latestBlock > 300_000n ? latestBlock - 300_000n : 0n;
+      const [createdLogs, voteLogs, queuedLogs, executedLogs] = await Promise.all([
+        publicClient.getLogs({
+          address: GOVERNOR,
+          event: proposalCreatedEvent,
+          fromBlock,
+          toBlock: 'latest',
+        }),
+        publicClient.getLogs({
+          address: GOVERNOR,
+          event: voteCastEvent,
+          fromBlock,
+          toBlock: 'latest',
+        }),
+        publicClient.getLogs({
+          address: GOVERNOR,
+          event: proposalQueuedEvent,
+          fromBlock,
+          toBlock: 'latest',
+        }),
+        publicClient.getLogs({
+          address: GOVERNOR,
+          event: proposalExecutedEvent,
+          fromBlock,
+          toBlock: 'latest',
+        }),
+      ]);
+
+      const stateIds = new Set<bigint>();
+      for (const lg of createdLogs) stateIds.add((lg.args as { proposalId: bigint }).proposalId);
+      for (const lg of voteLogs) stateIds.add((lg.args as { proposalId: bigint }).proposalId);
+      for (const lg of queuedLogs) stateIds.add((lg.args as { proposalId: bigint }).proposalId);
+      for (const lg of executedLogs) stateIds.add((lg.args as { proposalId: bigint }).proposalId);
+
+      const stateEntries = await Promise.all(
+        [...stateIds].map(async (proposalId) => {
+          try {
+            const st = await publicClient.readContract({
+              address: GOVERNOR,
+              abi: governorAbi,
+              functionName: 'state',
+              args: [proposalId],
+            });
+            return [proposalId, Number(st)] as const;
+          } catch {
+            return [proposalId, undefined] as const;
+          }
+        }),
+      );
+      const stateMap = new Map<bigint, number | undefined>(stateEntries);
+
+      const rawActivity: GovernanceActivityItem[] = [
+        ...createdLogs.map((log) => {
+          const args = log.args as { proposalId: bigint; proposer: Address };
+          return {
+            kind: 'proposed' as const,
+            proposalId: args.proposalId,
+            actor: args.proposer,
+            txHash: log.transactionHash,
+            blockNumber: log.blockNumber,
+            logIndex: log.logIndex,
+          };
+        }),
+        ...voteLogs.map((log) => {
+          const args = log.args as { proposalId: bigint; voter: Address; support: number; weight: bigint };
+          return {
+            kind: 'voted' as const,
+            proposalId: args.proposalId,
+            actor: args.voter,
+            support: Number(args.support),
+            weight: args.weight,
+            txHash: log.transactionHash,
+            blockNumber: log.blockNumber,
+            logIndex: log.logIndex,
+          };
+        }),
+        ...queuedLogs.map((log) => {
+          const args = log.args as { proposalId: bigint };
+          return {
+            kind: 'queued' as const,
+            proposalId: args.proposalId,
+            txHash: log.transactionHash,
+            blockNumber: log.blockNumber,
+            logIndex: log.logIndex,
+          };
+        }),
+        ...executedLogs.map((log) => {
+          const args = log.args as { proposalId: bigint };
+          return {
+            kind: 'executed' as const,
+            proposalId: args.proposalId,
+            txHash: log.transactionHash,
+            blockNumber: log.blockNumber,
+            logIndex: log.logIndex,
+          };
+        }),
+      ].sort((a, b) => {
+        const aBlock = Number(a.blockNumber ?? 0n);
+        const bBlock = Number(b.blockNumber ?? 0n);
+        if (aBlock !== bBlock) return bBlock - aBlock;
+        return (b.logIndex ?? 0) - (a.logIndex ?? 0);
+      });
+
+      const isRecent = async (item: GovernanceActivityItem) => {
+        if (!item.blockNumber) return false;
+        const b = await publicClient.getBlock({ blockNumber: item.blockNumber });
+        return b.timestamp >= minTs;
+      };
+      const filteredByTime: GovernanceActivityItem[] = [];
+      for (const item of rawActivity) {
+        // Keep list small without parallel RPC bursts
+        // eslint-disable-next-line no-await-in-loop
+        if (await isRecent(item)) filteredByTime.push(item);
+        if (filteredByTime.length >= 30) break;
+      }
+
+      const proposalIdsShown = new Set(recentProposalIdsFromLogs(createdLogs));
+      const activity = filteredByTime
+        .filter((a) => !(a.kind === 'proposed' && proposalIdsShown.has(a.proposalId.toString())))
+        .slice(0, 20);
+      setActivityFeed(activity);
+      const titles: Record<string, string> = {};
+      for (const log of createdLogs) {
+        const args = log.args as { proposalId: bigint; description: string };
+        titles[args.proposalId.toString()] = humanizeProposalDescription(args.description);
+      }
+      const missingTitleIds = [...stateIds].filter((id) => !titles[id.toString()]);
+      if (missingTitleIds.length > 0) {
+        const deepFromBlock = latestBlock > 3_000_000n ? latestBlock - 3_000_000n : 0n;
+        const deepCreatedLogs = await publicClient.getLogs({
+          address: GOVERNOR,
+          event: proposalCreatedEvent,
+          fromBlock: deepFromBlock,
+          toBlock: 'latest',
+        });
+        for (const log of deepCreatedLogs) {
+          const args = log.args as { proposalId: bigint; description: string };
+          const id = args.proposalId.toString();
+          if (missingTitleIds.some((x) => x.toString() === id)) {
+            titles[id] = humanizeProposalDescription(args.description);
+          }
+        }
+      }
+      setProposalTitleMap(titles);
+
+      const createdRecent: typeof createdLogs = [];
+      for (const log of [...createdLogs].reverse()) {
+        if (!log.blockNumber) continue;
+        // eslint-disable-next-line no-await-in-loop
+        const b = await publicClient.getBlock({ blockNumber: log.blockNumber });
+        if (b.timestamp >= minTs) createdRecent.push(log);
+        if (createdRecent.length >= 12) break;
+      }
+      const recent = createdRecent;
+      const withState = await Promise.all(recent.map(async (log) => {
+        const args = log.args as {
+          proposalId: bigint;
+          proposer: Address;
+          voteStart: bigint;
+          voteEnd: bigint;
+          description: string;
+        };
+        const s = stateMap.get(args.proposalId);
+        return {
+          proposalId: args.proposalId,
+          proposer: args.proposer,
+          voteStart: args.voteStart,
+          voteEnd: args.voteEnd,
+          description: args.description,
+          txHash: log.transactionHash,
+          state: s,
+        } satisfies ProposalFeedItem;
+      }));
+
+      setProposalFeed(withState);
+    } catch (e: unknown) {
+      setFeedErr(e instanceof Error ? e.message.split('\n')[0] : String(e));
+    } finally {
+      setIsFeedLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void refreshProposalFeed();
+  }, [publicClient, GOVERNOR]);
+
+  function recentProposalIdsFromLogs(
+    logs: readonly { args: unknown; blockNumber?: bigint }[],
+  ): string[] {
+    // lightweight fallback: dedupe by order; exact time filtering done above for displayed list
+    const out: string[] = [];
+    for (const log of [...logs].reverse()) {
+      const args = log.args as { proposalId: bigint };
+      const id = args.proposalId.toString();
+      if (!out.includes(id)) out.push(id);
+      if (out.length >= 12) break;
+    }
+    return out;
+  }
+
+  const supportLabel = (s?: number) => {
+    if (s === 0) return 'Against';
+    if (s === 1) return 'For';
+    if (s === 2) return 'Abstain';
+    return 'Unknown';
+  };
+  const humanizeProposalDescription = (description: string) => {
+    const d = description.toLowerCase();
+    if (d.includes('addminter') || (d.includes('psm') && d.includes('minter'))) {
+      if (d.includes('usdc')) return 'Open new USDC PSM market (enable swaps on the new PSM)';
+      return 'Open new PSM market (enable swaps on the new PSM)';
+    }
+    if (d.includes('market') && d.includes('risk')) {
+      return 'Update market risk parameters';
+    }
+    if (d.includes('market') && (d.includes('add') || d.includes('new'))) {
+      if (d.includes('usdc')) return 'Open Lumina USDC market';
+      if (d.includes('usdt')) return 'Open Lumina USDT market';
+      return 'Open a new market';
+    }
+    return description || 'Governance proposal';
+  };
+  const shortProposalId = (id: bigint) => {
+    const s = id.toString();
+    return s.length > 18 ? `${s.slice(0, 10)}...${s.slice(-6)}` : s;
+  };
+
+  async function handleProposeRiskUpdate() {
+    if (!GOVERNOR || !hasGovConfig || !canCreateGovProposal) return;
+    setActiveAction('propose');
+    try {
+      setStep('writing');
+      const h = await writeContractAsync({
+        address: GOVERNOR,
+        abi: governorAbi,
+        functionName: 'propose',
+        args: [govTargets, govValues, govCalldatas, govDescription],
+        ...gas,
+      });
+      setHash(h);
+    } catch (e: unknown) {
+      setStep('error');
+      setErrMsg(e instanceof Error ? e.message.split('\n')[0].slice(0, 120) : String(e));
+    }
+  }
+
+  async function handleVote() {
+    if (!GOVERNOR || proposalId === undefined) return;
+    setActiveAction('vote');
+    try {
+      setStep('writing');
+      const h = await writeContractAsync({
+        address: GOVERNOR,
+        abi: governorAbi,
+        functionName: 'castVote',
+        args: [proposalId, Number(voteSupport)],
+        ...gas,
+      });
+      setHash(h);
+    } catch (e: unknown) {
+      setStep('error');
+      setErrMsg(e instanceof Error ? e.message.split('\n')[0].slice(0, 120) : String(e));
+    }
+  }
+
+  async function handleQueue() {
+    if (!GOVERNOR || !hasGovConfig || govCalldatas.length === 0) return;
+    setActiveAction('queue');
+    try {
+      setStep('writing');
+      const h = await writeContractAsync({
+        address: GOVERNOR,
+        abi: governorAbi,
+        functionName: 'queue',
+        args: [govTargets, govValues, govCalldatas, descriptionHash],
+        ...gas,
+      });
+      setHash(h);
+    } catch (e: unknown) {
+      setStep('error');
+      setErrMsg(e instanceof Error ? e.message.split('\n')[0].slice(0, 120) : String(e));
+    }
+  }
+
+  async function handleExecute() {
+    if (!GOVERNOR || !hasGovConfig || govCalldatas.length === 0) return;
+    setActiveAction('execute');
+    try {
+      setStep('writing');
+      const h = await writeContractAsync({
+        address: GOVERNOR,
+        abi: governorAbi,
+        functionName: 'execute',
+        args: [govTargets, govValues, govCalldatas, descriptionHash],
+        ...gas,
+      });
+      setHash(h);
+    } catch (e: unknown) {
+      setStep('error');
+      setErrMsg(e instanceof Error ? e.message.split('\n')[0].slice(0, 120) : String(e));
+    }
+  }
+
   const isPending = step === 'approving' || step === 'writing';
 
   // ── Not connected ──
@@ -269,9 +745,34 @@ export default function GovernancePage() {
           </h1>
           <p className="page-subtitle">Lock LUMINA → get veLUMINA → vote &amp; earn revenue</p>
         </div>
-        <button onClick={() => refetch()} className="btn-ghost flex items-center gap-2 text-sm">
-          <RefreshCw size={14} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          {TALLY_URL && (
+            <a
+              href={TALLY_URL}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-ghost flex items-center gap-2 text-sm"
+            >
+              <ExternalLink size={14} /> Open on Tally
+            </a>
+          )}
+          <button onClick={() => { refetch(); void refreshProposalFeed(); }} className="btn-ghost flex items-center gap-2 text-sm">
+            <RefreshCw size={14} /> Refresh
+          </button>
+        </div>
+      </div>
+
+      <div className="card p-4 mb-6 text-sm">
+        <p className="font-medium text-white">How Governance Works</p>
+        <p className="text-aura-muted mt-1">
+          Buy or receive <span className="text-white">LUMINA</span>, lock it to receive <span className="text-white">veLUMINA</span>,
+          then use your voting power to participate in proposals. While locked, you can also claim protocol
+          revenue shown in <span className="text-white">Pending Revenue</span>.
+        </p>
+        <p className="text-aura-muted mt-2">
+          On-chain flow: <span className="text-white">Create</span> → <span className="text-white">Vote</span> →{' '}
+          <span className="text-white">Queue</span> → <span className="text-white">Execute</span>.
+        </p>
       </div>
 
       {/* Success / Error overlay */}
@@ -300,19 +801,6 @@ export default function GovernancePage() {
         </div>
       )}
 
-      {/* How to get LUMINA (when balance is zero) */}
-      {auraBalance === 0n && (
-        <div className="mb-6 p-4 rounded-xl bg-aura-gold/10 border border-aura-gold/20 flex gap-3">
-          <HelpCircle size={20} className="text-aura-gold shrink-0 mt-0.5" />
-          <div className="text-sm">
-            <p className="font-medium text-white mb-1">Как получить LUMINA?</p>
-            <p className="text-aura-muted">
-              В этом приложении LUMINA только блокируется и используется для голосования. Купить или обменять LUMINA здесь нельзя: на мейннете получите токены на DEX (Uniswap, Camelot и т.д.) или бирже и переведите в кошелёк. На тестнете (Sepolia) или localhost тестовые LUMINA появляются при полном деплое: скрипт <code className="text-aura-gold/90">DeployFullSepolia</code> минтит 10 000 000 LUMINA на адрес деплоера — если вы запускали деплой с этого кошелька, токены пришли оттуда.
-            </p>
-          </div>
-        </div>
-      )}
-
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="stat-card">
@@ -331,6 +819,113 @@ export default function GovernancePage() {
           <span className="stat-label">Total Locked (Protocol)</span>
           <p className="stat-value font-mono">{formatWad(totalLocked, 2)}</p>
         </div>
+      </div>
+
+      {/* Proposal feed */}
+      <div className="card p-5 mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="font-semibold text-lg">Recent Proposals</h2>
+          {isFeedLoading && <p className="text-xs text-aura-muted">Loading...</p>}
+        </div>
+        {feedErr && <p className="text-xs text-aura-danger mb-3">{feedErr}</p>}
+        {proposalFeed.length === 0 ? (
+          <p className="text-sm text-aura-muted">No recent ProposalCreated events found in scanned block range.</p>
+        ) : (
+          <div className="space-y-3">
+            {proposalFeed.map((p) => (
+              <div key={p.proposalId.toString()} className="rounded-xl border border-aura-border p-3 bg-aura-bg">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs text-aura-muted">#{p.proposalId.toString()}</p>
+                    <p className="text-sm text-white mt-1 break-words">{humanizeProposalDescription(p.description)}</p>
+                    {p.description && (
+                      <p className="text-xs text-aura-muted mt-1 break-words">Raw: {p.description}</p>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => setProposalIdInput(p.proposalId.toString())}
+                    className="btn-secondary text-xs shrink-0"
+                    disabled={isPending}
+                  >
+                    Use in Vote
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 text-xs">
+                  <p className="text-aura-muted">State: <span className="text-aura-gold">{proposalStateLabel(p.state)}</span></p>
+                  <p className="text-aura-muted">Start: <span className="text-white">{formatUnix(p.voteStart)}</span></p>
+                  <p className="text-aura-muted">End: <span className="text-white">{formatUnix(p.voteEnd)}</span></p>
+                </div>
+                <div className="flex items-center justify-between mt-2 text-xs">
+                  <p className="text-aura-muted">Proposer: <span className="font-mono text-white">{formatAddress(p.proposer)}</span></p>
+                  {p.txHash && blockExplorerTxUrl(p.txHash) && (
+                    <a
+                      href={blockExplorerTxUrl(p.txHash) ?? undefined}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-aura-gold hover:underline flex items-center gap-1"
+                    >
+                      Tx <ExternalLink size={12} />
+                    </a>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Governance activity feed */}
+      <div className="card p-5 mb-6">
+        <h2 className="font-semibold text-lg mb-3">Recent Governance Activity</h2>
+        {activityFeed.length === 0 ? (
+          <p className="text-sm text-aura-muted">No recent governance events found.</p>
+        ) : (
+          <div className="space-y-2">
+            {(activityExpanded ? activityFeed : activityFeed.slice(0, ACTIVITY_INITIAL_COUNT)).map((a, idx) => (
+              <div key={`${a.kind}-${a.proposalId.toString()}-${a.txHash ?? idx}-${idx}`} className="rounded-xl border border-aura-border p-3 bg-aura-bg text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-white">
+                    {a.kind === 'proposed' && 'Proposal created'}
+                    {a.kind === 'voted' && `Vote cast (${supportLabel(a.support)})`}
+                    {a.kind === 'queued' && 'Proposal queued'}
+                    {a.kind === 'executed' && 'Proposal executed'}
+                    {' '}for <span className="font-mono">#{shortProposalId(a.proposalId)}</span>
+                  </p>
+                  <button
+                    onClick={() => setProposalIdInput(a.proposalId.toString())}
+                    className="btn-secondary text-xs shrink-0"
+                    disabled={isPending}
+                  >
+                    Use in Vote
+                  </button>
+                </div>
+                <div className="flex items-center justify-between gap-2 mt-2 text-aura-muted">
+                  <p>
+                    {a.actor ? <>Actor: <span className="font-mono text-white">{formatAddress(a.actor)}</span></> : ' '}
+                    {a.weight !== undefined ? <> · Weight: <span className="text-white">{formatWad(a.weight, 2)}</span></> : ' '}
+                  </p>
+                  {a.txHash && blockExplorerTxUrl(a.txHash) && (
+                    <a href={blockExplorerTxUrl(a.txHash) ?? undefined} target="_blank" rel="noreferrer" className="text-aura-gold hover:underline flex items-center gap-1">
+                      Tx <ExternalLink size={12} />
+                    </a>
+                  )}
+                </div>
+                <p className="text-xs text-aura-muted mt-2">
+                  {(proposalTitleMap[a.proposalId.toString()] ?? 'Governance proposal action')}
+                  {' '}· id: <span className="font-mono text-white">{a.proposalId.toString()}</span>
+                </p>
+              </div>
+            ))}
+            {activityFeed.length > ACTIVITY_INITIAL_COUNT && (
+              <button
+                onClick={() => setActivityExpanded((v) => !v)}
+                className="btn-secondary w-full text-sm"
+              >
+                {activityExpanded ? 'Show less' : `Show more (${activityFeed.length - ACTIVITY_INITIAL_COUNT})`}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-6">
@@ -550,7 +1145,7 @@ export default function GovernancePage() {
               >Self</button>
               <button
                 onClick={handleDelegate}
-                disabled={isPending || !delegateTo || delegateTo.length < 42}
+                disabled={isPending || !delegateTo || !isAddress(delegateTo)}
                 className="btn-primary text-sm flex-1 flex items-center justify-center gap-2"
               >
                 {isPending && activeAction === 'delegate' && <Loader2 size={16} className="animate-spin" />}
@@ -558,6 +1153,174 @@ export default function GovernancePage() {
               </button>
             </div>
           </div>
+
+          <div className="card p-5">
+            <h2 className="font-semibold text-lg flex items-center gap-2 mb-4">
+              <Vote size={18} className="text-aura-gold" /> Production Governance Actions
+            </h2>
+
+            {!GOVERNOR || !hasGovConfig ? (
+              <div className="text-sm text-aura-muted">
+                Set <code className="font-mono">VITE_GOVERNOR_ADDRESS</code> and at least one of{' '}
+                <code className="font-mono">VITE_REGISTRY_ADDRESS</code> (market risk) or{' '}
+                <code className="font-mono">VITE_AUSD_ADDRESS</code> (add PSM minter).
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="p-3 rounded-xl bg-aura-bg">
+                    <p className="text-aura-muted">Voting Delay</p>
+                    <p className="font-mono mt-1">{govVotingDelay.toString()}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-aura-bg">
+                    <p className="text-aura-muted">Voting Period</p>
+                    <p className="font-mono mt-1">{govVotingPeriod.toString()}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-aura-bg">
+                    <p className="text-aura-muted">Proposal Threshold</p>
+                    <p className="font-mono mt-1">{formatWad(govProposalThreshold, 2)}</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-aura-bg">
+                    <p className="text-aura-muted">Quorum (current)</p>
+                    <p className="font-mono mt-1">{formatWad(govQuorumNow, 2)}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGovProposalKind('market')}
+                    className={`btn-secondary text-xs ${govProposalKind === 'market' ? 'ring-1 ring-aura-gold' : ''}`}
+                    disabled={isPending || !registry}
+                  >Market risk</button>
+                  <button
+                    type="button"
+                    onClick={() => setGovProposalKind('addPsmMinter')}
+                    className={`btn-secondary text-xs ${govProposalKind === 'addPsmMinter' ? 'ring-1 ring-aura-gold' : ''}`}
+                    disabled={isPending || !AUSD}
+                  >aUSD add PSM minter</button>
+                </div>
+                {!registry && govProposalKind === 'market' && (
+                  <p className="text-xs text-aura-danger">Registry address missing — switch template or set <code className="font-mono">VITE_REGISTRY_ADDRESS</code>.</p>
+                )}
+                {!AUSD && govProposalKind === 'addPsmMinter' && (
+                  <p className="text-xs text-aura-danger">Set <code className="font-mono">VITE_AUSD_ADDRESS</code> in <code className="font-mono">.env</code>.</p>
+                )}
+
+                <div className="space-y-2">
+                  <p className="text-xs text-aura-muted uppercase tracking-wider">
+                    1) Create proposal ({govProposalKind === 'market' ? 'market risk' : 'aUSD addMinter'})
+                  </p>
+                  {govProposalKind === 'market' ? (
+                    <>
+                      <div className="grid grid-cols-3 gap-2">
+                        <input type="number" value={marketId} onChange={e => setMarketId(e.target.value)} placeholder="marketId" className="input-field" disabled={isPending} />
+                        <input type="number" value={newLtv} onChange={e => setNewLtv(e.target.value)} placeholder="LTV %" className="input-field" disabled={isPending} />
+                        <input type="number" value={newLiqThreshold} onChange={e => setNewLiqThreshold(e.target.value)} placeholder="Liq threshold %" className="input-field" disabled={isPending} />
+                      </div>
+                      <input type="number" value={newLiqPenalty} onChange={e => setNewLiqPenalty(e.target.value)} placeholder="Liq penalty %" className="input-field w-full" disabled={isPending} />
+                    </>
+                  ) : (
+                    <div>
+                      <label className="block text-xs text-aura-muted mb-1">New PSM contract address</label>
+                      <input
+                        type="text"
+                        value={newPsmMinterAddress}
+                        onChange={e => setNewPsmMinterAddress(e.target.value)}
+                        placeholder="0x330c36C9Fe280a7d9328165DB7ca78e59b119e12"
+                        className="input-field w-full font-mono text-xs"
+                        disabled={isPending}
+                      />
+                      <p className="text-xs text-aura-muted mt-1">Calls <code className="font-mono">AuraUSD.addMinter(psm)</code> via Timelock after vote.</p>
+                    </div>
+                  )}
+                  <input type="text" value={govDescription} onChange={e => setGovDescription(e.target.value)} placeholder="Proposal description" className="input-field w-full" disabled={isPending} />
+                  <p className="text-xs text-aura-muted">
+                    After creating a proposal, keep the same template, fields, and description text for Queue / Execute.
+                  </p>
+                  <button onClick={handleProposeRiskUpdate} disabled={isPending || !govDescription.trim() || !canCreateGovProposal} className="btn-primary w-full flex items-center justify-center gap-2">
+                    {isPending && activeAction === 'propose' && <Loader2 size={14} className="animate-spin" />}
+                    Create Proposal
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs text-aura-muted uppercase tracking-wider">2) Vote on proposalId</p>
+                  <input type="text" value={proposalIdInput} onChange={e => setProposalIdInput(e.target.value)} placeholder="Proposal ID (uint256)" className="input-field w-full" disabled={isPending} />
+                  <div className="grid grid-cols-3 gap-2">
+                    <button onClick={() => setVoteSupport('0')} className={`btn-secondary text-xs ${voteSupport === '0' ? 'ring-1 ring-aura-gold' : ''}`} disabled={isPending}>Against</button>
+                    <button onClick={() => setVoteSupport('1')} className={`btn-secondary text-xs ${voteSupport === '1' ? 'ring-1 ring-aura-gold' : ''}`} disabled={isPending}>For</button>
+                    <button onClick={() => setVoteSupport('2')} className={`btn-secondary text-xs ${voteSupport === '2' ? 'ring-1 ring-aura-gold' : ''}`} disabled={isPending}>Abstain</button>
+                  </div>
+                  <button onClick={handleVote} disabled={isPending || proposalId === undefined} className="btn-primary w-full flex items-center justify-center gap-2">
+                    {isPending && activeAction === 'vote' && <Loader2 size={14} className="animate-spin" />}
+                    Cast Vote
+                  </button>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs text-aura-muted uppercase tracking-wider">3) Queue and 4) Execute</p>
+                  <button onClick={handleQueue} disabled={isPending || !govDescription.trim() || govCalldatas.length === 0} className="btn-secondary w-full flex items-center justify-center gap-2">
+                    {isPending && activeAction === 'queue' && <Loader2 size={14} className="animate-spin" />}
+                    Queue Proposal
+                  </button>
+                  <button onClick={handleExecute} disabled={isPending || !govDescription.trim() || govCalldatas.length === 0} className="btn-primary w-full flex items-center justify-center gap-2">
+                    {isPending && activeAction === 'execute' && <Loader2 size={14} className="animate-spin" />}
+                    Execute Proposal
+                  </button>
+                </div>
+
+                {proposalId !== undefined && (
+                  <div className="p-3 rounded-xl bg-aura-bg text-xs font-mono space-y-1">
+                    <p>State: <span className="text-aura-gold">{proposalStateLabel(proposalState)}</span></p>
+                    {proposalSnapshot !== undefined && <p>Snapshot: {proposalSnapshot.toString()}</p>}
+                    {proposalDeadline !== undefined && <p>Deadline: {proposalDeadline.toString()}</p>}
+                    {hasVoted !== undefined && address && <p>Has voted ({formatAddress(address)}): {hasVoted ? 'yes' : 'no'}</p>}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Investor-facing: admin is the Timelock contract, not an EOA */}
+          {TIMELOCK && GOVERNOR && (
+            <div className="mb-5 rounded-xl border border-aura-gold/25 bg-aura-gold/5 p-4 text-sm text-aura-muted-2 leading-relaxed">
+              <p className="text-xs font-semibold uppercase tracking-wider text-aura-gold/90 mb-2">
+                For investors: who &quot;owns&quot; the protocol
+              </p>
+              <p className="mb-2">
+                Core administration (engine, market registry, PSM, aUSD, treasury) sits with the{' '}
+                <span className="text-white/90 font-medium">Timelock</span> smart contract, not a personal wallet (EOA).
+                Parameter changes and privileged calls flow through the{' '}
+                <span className="text-white/90 font-medium">Governor</span>: propose → vote → queue on Timelock → delay → execute.
+                You can verify the Timelock address and full transaction history in the block explorer.
+              </p>
+              <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs">
+                {blockExplorerAddressUrl(explorerChainId, TIMELOCK) && (
+                  <a
+                    href={blockExplorerAddressUrl(explorerChainId, TIMELOCK)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-aura-gold hover:underline"
+                  >
+                    Timelock on explorer
+                    <ExternalLink size={12} className="opacity-80" aria-hidden />
+                  </a>
+                )}
+                {blockExplorerAddressUrl(explorerChainId, GOVERNOR) && (
+                  <a
+                    href={blockExplorerAddressUrl(explorerChainId, GOVERNOR)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-aura-gold hover:underline"
+                  >
+                    Governor on explorer
+                    <ExternalLink size={12} className="opacity-80" aria-hidden />
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Contract info */}
           <div className="text-xs text-aura-muted space-y-1">
@@ -569,9 +1332,44 @@ export default function GovernancePage() {
               <span className="text-aura-muted-2 uppercase tracking-wider">veLUMINA:</span>{' '}
               <span className="font-mono">{formatAddress(VE_AURA)}</span>
             </p>
-            {(chainId === 31337 || chainId === 11155111) && (
+            {GOVERNOR && (
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="text-aura-muted-2 uppercase tracking-wider">Governor:</span>{' '}
+                <span className="font-mono">{formatAddress(GOVERNOR)}</span>
+                {blockExplorerAddressUrl(explorerChainId, GOVERNOR) && (
+                  <a
+                    href={blockExplorerAddressUrl(explorerChainId, GOVERNOR)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-0.5 text-aura-gold hover:underline shrink-0"
+                    title="Open in block explorer"
+                  >
+                    <ExternalLink size={12} aria-hidden />
+                  </a>
+                )}
+              </p>
+            )}
+            {TIMELOCK && (
+              <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="text-aura-muted-2 uppercase tracking-wider">Timelock (on-chain admin):</span>{' '}
+                <span className="font-mono">{formatAddress(TIMELOCK)}</span>
+                {blockExplorerAddressUrl(explorerChainId, TIMELOCK) && (
+                  <a
+                    href={blockExplorerAddressUrl(explorerChainId, TIMELOCK)!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-0.5 text-aura-gold hover:underline shrink-0"
+                    title="Open in block explorer"
+                  >
+                    <ExternalLink size={12} aria-hidden />
+                  </a>
+                )}
+              </p>
+            )}
+            {(chainId === 31337 || chainId === 11155111 || chainId === 42161) && (
               <p className="pt-2 text-aura-gold/80">
-                Тестовые LUMINA: наминчены скриптом DeployFullSepolia (10M) на адрес деплоера при запуске деплоя.
+                Testnet LUMINA: on a full deploy, 10M tokens are minted to the deployer address (DeployFullSepolia /
+                DeployFullArbitrum or local stack).
               </p>
             )}
           </div>

@@ -1,6 +1,15 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Lock, Shield, Wallet, TrendingUp, Vote, Coins } from 'lucide-react';
+import { ArrowRight, Lock, Shield, Wallet, TrendingUp, Vote, Coins, ExternalLink } from 'lucide-react';
+import { TARGET_CHAIN_ID } from '../lib/chainEnv';
+import { blockExplorerAddressUrl } from '../lib/explorer';
+import {
+  DOCS_TREE_URL,
+  DOC_TOKENOMICS_CHECKLIST_URL,
+  DOC_PRODUCTION_ADDRESSES_URL,
+} from '../lib/publicDocs';
+
+const TIMELOCK_ENV = import.meta.env.VITE_TIMELOCK_ADDRESS as string | undefined;
 
 const CHART_BARS = [38, 62, 48, 78, 55, 88, 68, 82, 58, 92, 72, 85];
 
@@ -196,6 +205,59 @@ export default function LandingPage() {
           <span className="flex items-center gap-2"><Lock size={16} className="text-aura-gold" /> Non-custodial</span>
           <span className="flex items-center gap-2"><Shield size={16} className="text-aura-gold" /> On-chain execution</span>
         </div>
+        {TIMELOCK_ENV && (
+          <p className="max-w-xl mx-auto mt-8 text-center text-xs sm:text-sm text-aura-muted-2 leading-relaxed px-2">
+            Protocol administration is handled by the{' '}
+            <span className="text-white/90 font-medium">Timelock</span> contract (not a personal EOA). Changes go through{' '}
+            <Link to="/governance" className="text-aura-gold hover:underline font-medium">
+              governance
+            </Link>
+            {blockExplorerAddressUrl(TARGET_CHAIN_ID, TIMELOCK_ENV) && (
+              <>
+                {' '}
+                <a
+                  href={blockExplorerAddressUrl(TARGET_CHAIN_ID, TIMELOCK_ENV)!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-aura-gold hover:underline font-medium"
+                >
+                  Timelock on explorer
+                  <ExternalLink size={12} className="opacity-80 shrink-0" aria-hidden />
+                </a>
+              </>
+            )}
+            .
+          </p>
+        )}
+        <p className="max-w-xl mx-auto mt-6 text-center text-xs text-aura-muted px-2">
+          <a
+            href={DOCS_TREE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1 text-aura-gold hover:underline font-medium"
+          >
+            Documentation
+            <ExternalLink size={12} className="opacity-80 shrink-0" aria-hidden />
+          </a>
+          <span className="text-aura-border mx-2">·</span>
+          <a
+            href={DOC_TOKENOMICS_CHECKLIST_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-aura-gold hover:underline font-medium"
+          >
+            Go-live checklist
+          </a>
+          <span className="text-aura-border mx-2">·</span>
+          <a
+            href={DOC_PRODUCTION_ADDRESSES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-aura-gold hover:underline font-medium"
+          >
+            Arbitrum contracts
+          </a>
+        </p>
       </section>
 
       {/* LUMINA token */}
@@ -230,11 +292,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Footer: Docs & Security */}
-      <footer className="px-4 py-8 border-t border-aura-border flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-aura-muted">
-        <Link to="/security" className="hover:text-aura-gold transition-colors">Security</Link>
-        <a href="https://github.com/traffer7612/lumina/tree/master/docs" target="_blank" rel="noopener noreferrer" className="hover:text-aura-gold transition-colors">Docs</a>
-      </footer>
     </div>
   );
 }

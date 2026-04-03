@@ -3,8 +3,8 @@
   "buildCommand": "cd frontend && npm run build",
   "outputDirectory": "frontend/dist",
   "rewrites": [
-    { "source": "/rpc", "destination": "https://ethereum-sepolia.publicnode.com/" },
-    { "source": "/rpc/:path*", "destination": "https://ethereum-sepolia.publicnode.com/:path*" },
+    { "source": "/rpc", "destination": "https://arb1.arbitrum.io/rpc/" },
+    { "source": "/rpc/:path*", "destination": "https://arb1.arbitrum.io/rpc/:path*" },
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }

@@ -57,7 +57,28 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
   const vaultSymbol  = (tokenData?.[4]?.result as string | undefined) ?? 'VAULT';
   const needsApproval = amountRaw > 0n && allowance < amountRaw;
 
-  const isSepolia = chainId === 11155111;
+  /**
+   * Mint-кнопка только там, где underlying — тестовый MockERC20 (есть публичный mint).
+   * Раньше для всего Arbitrum (42161) показывали mock — из‑за этого real Lido wstETH выглядел как тест.
+   */
+  const showMockMint = (() => {
+    if (!assetAddress || chainId == null) return false;
+    const assetLc = assetAddress.toLowerCase();
+    if (chainId === 31337 || chainId === 1337 || chainId === 11155111) return true;
+
+    if (chainId === 42161) {
+      const canonicalWstEth = '0x5979d7b546e38e414f7e9822514be443a4800529';
+      if (assetLc === canonicalWstEth) return false;
+      const mockEnv = (
+        (import.meta.env.VITE_MOCK_WSTETH_ADDRESS as string | undefined) ||
+        (import.meta.env.VITE_MOCK_WSTETH as string | undefined)
+      )
+        ?.toLowerCase()
+        .trim();
+      return !!mockEnv && assetLc === mockEnv;
+    }
+    return false;
+  })();
   const [mintTxHash, setMintTxHash] = useState<Hash | undefined>();
   const [mintError, setMintError] = useState('');
   const { isSuccess: mintConfirmed } = useWaitForTransactionReceipt({ hash: mintTxHash });
@@ -236,11 +257,12 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
               </div>
             </div>
 
-            {/* Sepolia: mint test tokens (MockERC20 allows anyone to mint) */}
-            {isSepolia && assetAddress && address && (
+            {/* MockERC20: mint test tokens (allowed on mock deploys) */}
+            {showMockMint && assetAddress && address && (
               <div className="mb-5 p-3 bg-aura-gold/10 border border-aura-gold/20 rounded-xl">
                 <p className="text-xs text-aura-muted mb-2">
-                  На тестнете Sepolia нет реального {assetSymbol}. Нажмите кнопку ниже, чтобы наминтить себе тестовые токены (контракт MockERC20 разрешает это любому адресу).
+                  Для этого рынка используется тестовый {assetSymbol} (mock). Нажмите ниже,
+                  чтобы наминтить себе токены (контракт MockERC20 разрешает это любому адресу).
                 </p>
                 <button
                   type="button"

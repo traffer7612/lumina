@@ -1,34 +1,72 @@
 import { getDefaultConfig } from '@rainbow-me/rainbowkit';
 import { http, fallback } from 'wagmi';
-import { sepolia } from 'viem/chains';
+import { arbitrum, hardhat, sepolia } from 'viem/chains';
+import type { Chain } from 'viem/chains';
+import { TARGET_CHAIN_ID } from './lib/chainEnv';
 
-// Supported chains: Sepolia testnet
-export const SUPPORTED_CHAIN_IDS = [sepolia.id] as const;
+function chainFor(id: number): Chain {
+  switch (id) {
+    case 42161:
+      return arbitrum;
+    case 11155111:
+      return sepolia;
+    case 31337:
+    case 1337:
+      return hardhat;
+    default:
+      return hardhat;
+  }
+}
 
-/** Public Sepolia HTTP endpoints (no API key). Tried in order by viem fallback. */
+/** Active chain from `VITE_CHAIN_ID` (RainbowKit / wagmi). */
+export const targetChain = chainFor(TARGET_CHAIN_ID);
+
+export const SUPPORTED_CHAIN_IDS = [targetChain.id] as const;
+
+const PUBLIC_ARBITRUM_RPCS = [
+  'https://arb1.arbitrum.io/rpc',
+  'https://arbitrum-one.publicnode.com',
+  'https://arbitrum.drpc.org',
+] as const;
+
 const PUBLIC_SEPOLIA_RPCS = [
   'https://ethereum-sepolia.publicnode.com',
   'https://rpc.sepolia.org',
   'https://sepolia.drpc.org',
 ] as const;
 
+function validHttpUrl(s: string | undefined): string | undefined {
+  const t = s?.trim();
+  if (t && /^https?:\/\//i.test(t)) return t;
+  return undefined;
+}
+
 /**
- * Dev: Vite proxies /rpc → publicnode (vite.config.ts).
- * Prod: fallback across public RPCs. Optional VITE_SEPOLIA_RPC_URL (https://…) overrides all.
+ * Dev: `/rpc` → Vite proxy (see vite.config.ts), matches `VITE_CHAIN_ID`.
+ * Prod: optional `VITE_ARBITRUM_RPC_URL` / `VITE_SEPOLIA_RPC_URL`, else public fallbacks.
  */
-function sepoliaTransport() {
-  const raw = (import.meta.env.VITE_SEPOLIA_RPC_URL as string | undefined)?.trim();
-  if (raw && /^https?:\/\//i.test(raw)) return http(raw);
-  if (import.meta.env.DEV) return http('/rpc');
-  return fallback(PUBLIC_SEPOLIA_RPCS.map((url) => http(url)));
+function transportFor(chainId: number) {
+  if (chainId === 42161) {
+    const raw = validHttpUrl(import.meta.env.VITE_ARBITRUM_RPC_URL as string | undefined);
+    if (raw) return http(raw);
+    if (import.meta.env.DEV) return http('/rpc');
+    return fallback(PUBLIC_ARBITRUM_RPCS.map((url) => http(url)));
+  }
+  if (chainId === 11155111) {
+    const raw = validHttpUrl(import.meta.env.VITE_SEPOLIA_RPC_URL as string | undefined);
+    if (raw) return http(raw);
+    if (import.meta.env.DEV) return http('/rpc');
+    return fallback(PUBLIC_SEPOLIA_RPCS.map((url) => http(url)));
+  }
+  return http('http://127.0.0.1:8545');
 }
 
 export const config = getDefaultConfig({
   appName: 'Aura Protocol',
   projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID ?? 'aura-dev-placeholder',
-  chains: [sepolia],
+  chains: [targetChain],
   transports: {
-    [sepolia.id]: sepoliaTransport(),
+    [targetChain.id]: transportFor(targetChain.id),
   },
   ssr: false,
 });

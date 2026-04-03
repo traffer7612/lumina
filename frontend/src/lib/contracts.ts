@@ -2,9 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 import { useReadContract } from 'wagmi';
 import type { Address } from 'viem';
 import { auraEngineAbi } from '../abi/auraEngine';
+import { TARGET_CHAIN_ID } from './chainEnv';
 
-/** Target chain for all contract reads (from .env or default Foundry) */
-export const TARGET_CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID ?? 31337);
+export { TARGET_CHAIN_ID };
 
 async function fetchFromApi(): Promise<{ engine?: string; registry?: string }> {
   try {

@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from 'wagmi';
+import { Link } from 'react-router-dom';
+import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContracts } from 'wagmi';
 import { isAddress, parseUnits, type Address, type Hash } from 'viem';
 import {
   ShieldCheck, ShieldAlert, Lock, Unlock, Zap, UserX, Loader2,
   Copy, CheckCircle, Plus, Settings, ChevronDown, ChevronUp,
   Snowflake, Sun,
 } from 'lucide-react';
-import { auraEngineAbi, auraRegistryAbi } from '../abi/auraEngine';
+import { auraEngineAbi, auraRegistryAbi, auraPsmAbi } from '../abi/auraEngine';
 import { useAdmin } from '../hooks/useAdmin';
-import { useContractAddresses, gasFor } from '../lib/contracts';
+import { useContractAddresses, gasFor, TARGET_CHAIN_ID } from '../lib/contracts';
+import { blockExplorerAddressUrl } from '../lib/explorer';
 import { useMarkets, type Market } from '../hooks/useMarkets';
 import { formatAddress, formatBps, formatWad } from '../lib/utils';
+
+const TIMELOCK_ENV = import.meta.env.VITE_TIMELOCK_ADDRESS as Address | undefined;
 
 /* ─── Helpers ─────────────────────────────────────────────────────────────── */
 
@@ -364,15 +368,41 @@ export default function AdminPage() {
   const { admin, paused, emergencyShutdown, debtToken, marketRegistry, isAdmin, isLoading, refetch } = useAdmin();
   const { markets, count, refetch: refetchMarkets } = useMarkets();
   const [newAdmin, setNewAdmin] = useState('');
+  const [psmWithdrawTo, setPsmWithdrawTo] = useState('');
+  const [psmWithdrawAmount, setPsmWithdrawAmount] = useState('');
+  const [psmLiqTo, setPsmLiqTo] = useState('');
+  const [psmLiqAmount, setPsmLiqAmount] = useState('');
   const [hash, setHash] = useState<Hash | undefined>();
+  const psmAddress = import.meta.env.VITE_PSM_ADDRESS as Address | undefined;
+
+  const { data: psmData, refetch: refetchPsm } = useReadContracts({
+    contracts: psmAddress ? [
+      { address: psmAddress, abi: auraPsmAbi, functionName: 'peggedDecimals', chainId },
+      { address: psmAddress, abi: auraPsmAbi, functionName: 'feeReserves', chainId },
+      { address: psmAddress, abi: auraPsmAbi, functionName: 'tinBps', chainId },
+      { address: psmAddress, abi: auraPsmAbi, functionName: 'toutBps', chainId },
+    ] : [],
+    query: { enabled: !!psmAddress && !!chainId },
+  });
+  const psmPeggedDecimals = Number((psmData?.[0]?.result as number | undefined) ?? 6);
+  const psmFeeReserves = (psmData?.[1]?.result as bigint | undefined) ?? 0n;
+  const psmTinBps = (psmData?.[2]?.result as bigint | undefined) ?? 0n;
+  const psmToutBps = (psmData?.[3]?.result as bigint | undefined) ?? 0n;
 
   const { writeContractAsync, isPending } = useWriteContract();
   const { isSuccess: confirmed } = useWaitForTransactionReceipt({ hash });
-  if (confirmed && hash) { refetch(); }
+  if (confirmed && hash) { refetch(); refetchPsm(); }
 
   const gas = gasFor(chainId);
   const exec = async (fn: () => Promise<Hash>) => { try { setHash(await fn()); } catch (e) { console.error(e); } };
   const handleMarketSuccess = () => { refetch(); refetchMarkets(); };
+
+  const adminIsTimelock =
+    !!admin &&
+    !!TIMELOCK_ENV &&
+    admin.toLowerCase() === TIMELOCK_ENV.toLowerCase();
+  const timelockExplorer =
+    TIMELOCK_ENV && blockExplorerAddressUrl(chainId ?? TARGET_CHAIN_ID, TIMELOCK_ENV);
 
   return (
     <div className="page-container max-w-3xl mx-auto">
@@ -382,6 +412,30 @@ export default function AdminPage() {
         </h1>
         <p className="page-subtitle">Protocol configuration, market management and emergency controls.</p>
       </div>
+
+      {adminIsTimelock && (
+        <div className="rounded-xl border border-aura-gold/35 bg-aura-gold/10 p-4 mb-5 text-sm text-aura-muted-2 leading-relaxed">
+          <p className="font-medium text-aura-gold mb-1">On-chain admin is the Timelock contract</p>
+          <p className="mb-2">
+            Direct EOA admin actions from this page are disabled while <span className="text-white/90">engine.admin()</span> points to Timelock.
+            Use{' '}
+            <Link to="/governance" className="text-aura-gold hover:underline font-medium">
+              Governance
+            </Link>
+            {' '}to pass proposals (queue → time delay → execute).
+          </p>
+          {timelockExplorer && (
+            <a
+              href={timelockExplorer}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-aura-gold hover:underline inline-flex items-center gap-1"
+            >
+              View Timelock on block explorer
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Protocol status */}
       <div className="card p-5 mb-5">
@@ -422,7 +476,12 @@ export default function AdminPage() {
       <div className="card p-5 mb-5">
         <h2 className="font-semibold mb-4">Contract Addresses</h2>
         <div className="space-y-3 text-sm font-mono">
-          {([['Engine', engine], ['Registry', marketRegistry], ['Debt Token', debtToken], ['Admin', admin]] as const).map(([label, addr]) => addr && (
+          {([
+            ['Engine', engine],
+            ['Registry', marketRegistry],
+            ['Debt Token', debtToken],
+            [adminIsTimelock ? 'Protocol admin' : 'Admin', admin],
+          ] as const).map(([label, addr]) => addr && (
             <div key={label} className="flex items-center justify-between gap-2 py-2 border-b border-aura-border last:border-0">
               <span className="text-aura-muted text-xs min-w-[80px]">{label}</span>
               <span className="text-white truncate">{addr}</span>
@@ -476,6 +535,92 @@ export default function AdminPage() {
               <p className="text-xs text-aura-danger mt-2">⚠ This is irreversible. Verify the address carefully.</p>
             </div>
           </div>
+
+          {/* PSM Fee Reserves */}
+          {psmAddress && (
+            <div className="card p-5 mb-5">
+              <div className="flex items-center gap-2 mb-4">
+                <Settings size={16} className="text-aura-gold" />
+                <h2 className="font-semibold">PSM Fee Reserves</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4 text-sm">
+                <div className="p-3 rounded-lg bg-aura-bg">
+                  <p className="text-aura-muted text-xs">PSM Address</p>
+                  <p className="font-mono text-xs mt-1">{formatAddress(psmAddress)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-aura-bg">
+                  <p className="text-aura-muted text-xs">Fee Reserves</p>
+                  <p className="font-mono mt-1">{formatWad(psmFeeReserves, 6)}</p>
+                </div>
+                <div className="p-3 rounded-lg bg-aura-bg">
+                  <p className="text-aura-muted text-xs">Fees</p>
+                  <p className="font-mono mt-1">tin {formatBps(psmTinBps)} / tout {formatBps(psmToutBps)}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                <InputField
+                  label="Withdraw to"
+                  value={psmWithdrawTo}
+                  onChange={setPsmWithdrawTo}
+                  placeholder="0x..."
+                />
+                <InputField
+                  label={`Amount (pegged token, ${psmPeggedDecimals} decimals)`}
+                  value={psmWithdrawAmount}
+                  onChange={setPsmWithdrawAmount}
+                  placeholder="0.0"
+                  type="number"
+                />
+              </div>
+              <button
+                onClick={() => exec(() => writeContractAsync({
+                  address: psmAddress,
+                  abi: auraPsmAbi,
+                  functionName: 'withdrawFeeReserves',
+                  args: [psmWithdrawTo as Address, parseUnits(psmWithdrawAmount || '0', psmPeggedDecimals)],
+                  ...gas,
+                }))}
+                disabled={isPending || !isAddress(psmWithdrawTo) || Number(psmWithdrawAmount) <= 0}
+                className="btn-primary"
+              >
+                {isPending ? <Loader2 size={14} className="animate-spin" /> : 'Withdraw PSM Fees'}
+              </button>
+              <p className="text-xs text-aura-muted mt-2">
+                Withdraws accumulated PSM swap fees (`feeReserves`) only.
+              </p>
+
+              <div className="mt-6 pt-5 border-t border-aura-border">
+                <h3 className="font-semibold text-sm mb-3 text-aura-danger">Withdraw swap liquidity</h3>
+                <p className="text-xs text-aura-muted mb-3">
+                  Moves USDC (or other pegged token) above fee reserves to another address — for migrating to a new PSM. Users cannot swap out until liquidity is restored.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                  <InputField label="Withdraw to" value={psmLiqTo} onChange={setPsmLiqTo} placeholder="0x..." />
+                  <InputField
+                    label={`Amount (${psmPeggedDecimals} decimals)`}
+                    value={psmLiqAmount}
+                    onChange={setPsmLiqAmount}
+                    placeholder="0.0"
+                    type="number"
+                  />
+                </div>
+                <button
+                  onClick={() => exec(() => writeContractAsync({
+                    address: psmAddress,
+                    abi: auraPsmAbi,
+                    functionName: 'withdrawLiquidity',
+                    args: [psmLiqTo as Address, parseUnits(psmLiqAmount || '0', psmPeggedDecimals)],
+                    ...gas,
+                  }))}
+                  disabled={isPending || !isAddress(psmLiqTo) || Number(psmLiqAmount) <= 0}
+                  className="btn-danger"
+                >
+                  {isPending ? <Loader2 size={14} className="animate-spin" /> : 'Withdraw PSM liquidity'}
+                </button>
+              </div>
+            </div>
+          )}
         </>
       ) : (
         <div className="card p-6 text-center">
