@@ -3,11 +3,11 @@ pragma solidity ^0.8.20;
 
 import { Script, console } from "forge-std/Script.sol";
 
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 
 /**
  * @title PrintRegistryAddMarketCalldata
- * @notice Simulates only: prints calldata for `AuraMarketRegistry.addMarket` so you can paste into
+ * @notice Simulates only: prints calldata for `CeitnotMarketRegistry.addMarket` so you can paste into
  *         Governor `propose` (target = registry, value = 0, calldata = printed bytes). After vote,
  *         `queue` then Timelock `execute` as usual.
  *
@@ -39,12 +39,12 @@ contract PrintRegistryAddMarketCalldata is Script {
         uint256 isoBorrow = vm.envOr("ISOLATED_BORROW_CAP", uint256(0));
 
         bytes memory data = abi.encodeCall(
-            AuraMarketRegistry.addMarket,
+            CeitnotMarketRegistry.addMarket,
             (vault, oracle, ltv, liq, pen, supplyCap, borrowCap, isolated, isoBorrow)
         );
 
         console.log("=== addMarket calldata for Governor / Timelock ===");
-        console.log("target: REGISTRY_ADDRESS (AuraMarketRegistry)");
+        console.log("target: REGISTRY_ADDRESS (CeitnotMarketRegistry)");
         console.log("value:  0");
         console.log("vault:  %s", vault);
         console.log("oracle: %s", oracle);

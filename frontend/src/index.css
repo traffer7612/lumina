@@ -7,7 +7,7 @@
 html { font-family: 'Outfit', system-ui, sans-serif; scroll-behavior: smooth; }
 
 body {
-  @apply bg-aura-bg text-white antialiased min-h-screen;
+  @apply bg-ceitnot-bg text-white antialiased min-h-screen;
   background-image:
     radial-gradient(ellipse 90% 60% at 50% -10%, rgba(212, 168, 83, 0.09), transparent),
     radial-gradient(ellipse 50% 40% at 85% 60%, rgba(139, 92, 246, 0.07), transparent),
@@ -16,59 +16,59 @@ body {
 
 @layer components {
   .card {
-    @apply bg-aura-surface border border-aura-border rounded-2xl;
+    @apply bg-ceitnot-surface border border-ceitnot-border rounded-2xl;
   }
   .card-padded {
     @apply card p-6;
   }
   .btn-primary {
-    @apply px-5 py-2.5 rounded-xl font-semibold bg-aura-gold text-aura-bg
-           hover:bg-aura-gold-bright active:scale-[0.98] transition-all
+    @apply px-5 py-2.5 rounded-xl font-semibold bg-ceitnot-gold text-ceitnot-bg
+           hover:bg-ceitnot-gold-bright active:scale-[0.98] transition-all
            disabled:opacity-40 disabled:cursor-not-allowed disabled:scale-100;
   }
   .btn-secondary {
-    @apply px-5 py-2.5 rounded-xl font-medium border border-aura-border text-aura-muted-2
-           hover:border-aura-border-2 hover:text-white transition-all
+    @apply px-5 py-2.5 rounded-xl font-medium border border-ceitnot-border text-ceitnot-muted-2
+           hover:border-ceitnot-border-2 hover:text-white transition-all
            disabled:opacity-40 disabled:cursor-not-allowed;
   }
   .btn-danger {
-    @apply px-5 py-2.5 rounded-xl font-medium bg-aura-danger/10 text-aura-danger
-           border border-aura-danger/30 hover:bg-aura-danger/20 transition-all
+    @apply px-5 py-2.5 rounded-xl font-medium bg-ceitnot-danger/10 text-ceitnot-danger
+           border border-ceitnot-danger/30 hover:bg-ceitnot-danger/20 transition-all
            disabled:opacity-40 disabled:cursor-not-allowed;
   }
   .btn-ghost {
-    @apply px-4 py-2 rounded-lg font-medium text-aura-muted hover:text-white transition-colors;
+    @apply px-4 py-2 rounded-lg font-medium text-ceitnot-muted hover:text-white transition-colors;
   }
   .input-field {
-    @apply w-full bg-aura-bg border border-aura-border rounded-xl px-4 py-3
-           font-mono text-white placeholder-aura-muted
-           focus:outline-none focus:ring-2 focus:ring-aura-gold/40 focus:border-aura-gold-dim
+    @apply w-full bg-ceitnot-bg border border-ceitnot-border rounded-xl px-4 py-3
+           font-mono text-white placeholder-ceitnot-muted
+           focus:outline-none focus:ring-2 focus:ring-ceitnot-gold/40 focus:border-ceitnot-gold-dim
            transition-colors;
   }
   .stat-card {
     @apply card p-5 flex flex-col gap-1;
   }
   .stat-label {
-    @apply text-xs text-aura-muted uppercase tracking-wider font-medium;
+    @apply text-xs text-ceitnot-muted uppercase tracking-wider font-medium;
   }
   .stat-value {
-    @apply text-2xl font-bold font-mono text-aura-gold;
+    @apply text-2xl font-bold font-mono text-ceitnot-gold;
   }
   .table-row {
-    @apply border-b border-aura-border last:border-0
-           hover:bg-aura-surface-2 transition-colors;
+    @apply border-b border-ceitnot-border last:border-0
+           hover:bg-ceitnot-surface-2 transition-colors;
   }
   .table-th {
-    @apply text-left text-xs text-aura-muted uppercase tracking-wider font-medium py-3 px-4;
+    @apply text-left text-xs text-ceitnot-muted uppercase tracking-wider font-medium py-3 px-4;
   }
   .table-td {
     @apply py-4 px-4 text-sm;
   }
-  .badge-active   { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-aura-success/15 text-aura-success; }
-  .badge-frozen   { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-aura-cyan/15 text-aura-cyan; }
-  .badge-inactive { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-aura-muted/15 text-aura-muted-2; }
-  .badge-isolated { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-aura-warning/15 text-aura-warning; }
-  .badge-danger   { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-aura-danger/15 text-aura-danger; }
+  .badge-active   { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-ceitnot-success/15 text-ceitnot-success; }
+  .badge-frozen   { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-ceitnot-cyan/15 text-ceitnot-cyan; }
+  .badge-inactive { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-ceitnot-muted/15 text-ceitnot-muted-2; }
+  .badge-isolated { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-ceitnot-warning/15 text-ceitnot-warning; }
+  .badge-danger   { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-ceitnot-danger/15 text-ceitnot-danger; }
   .page-container {
     @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10;
   }
@@ -79,7 +79,7 @@ body {
     @apply text-3xl font-bold tracking-tight;
   }
   .page-subtitle {
-    @apply text-aura-muted mt-1;
+    @apply text-ceitnot-muted mt-1;
   }
 }
 
@@ -87,9 +87,9 @@ body {
 .skeleton {
   background: linear-gradient(
     90deg,
-    theme('colors.aura.border') 25%,
-    theme('colors.aura.border-2') 50%,
-    theme('colors.aura.border') 75%
+    theme('colors.ceitnot.border') 25%,
+    theme('colors.ceitnot.border-2') 50%,
+    theme('colors.ceitnot.border') 75%
   );
   background-size: 200% 100%;
   @apply animate-shimmer rounded;
@@ -97,9 +97,9 @@ body {
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: theme('colors.aura.bg'); }
-::-webkit-scrollbar-thumb { background: theme('colors.aura.border-2'); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: theme('colors.aura.muted'); }
+::-webkit-scrollbar-track { background: theme('colors.ceitnot.bg'); }
+::-webkit-scrollbar-thumb { background: theme('colors.ceitnot.border-2'); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: theme('colors.ceitnot.muted'); }
 
 /* ========== Landing: hero & sections ========== */
 @keyframes lp-fade-up {

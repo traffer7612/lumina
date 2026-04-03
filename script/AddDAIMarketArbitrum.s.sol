@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import { Script, console } from "forge-std/Script.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 import { OracleRelay } from "../src/OracleRelay.sol";
 import { SimpleERC4626Vault } from "../src/vaults/SimpleERC4626Vault.sol";
 
@@ -14,7 +14,7 @@ import { SimpleERC4626Vault } from "../src/vaults/SimpleERC4626Vault.sol";
  *         deploy OracleRelay(Chainlink DAI/USD), call addMarket on an existing registry.
  *
  * Required env:
- *   REGISTRY_ADDRESS — AuraMarketRegistry where msg.sender is `admin`
+ *   REGISTRY_ADDRESS — CeitnotMarketRegistry where msg.sender is `admin`
  *
  * Optional env:
  *   DAI_ADDRESS          — default canonical DAI on Arbitrum One
@@ -63,7 +63,7 @@ contract AddDAIMarketArbitrum is Script {
             vault_.deposit(seed, deployer);
         }
 
-        uint256 marketId = AuraMarketRegistry(registryAddr).addMarket(
+        uint256 marketId = CeitnotMarketRegistry(registryAddr).addMarket(
             vault,
             address(oracle),
             ltv,

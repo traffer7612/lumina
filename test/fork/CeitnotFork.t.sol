@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import { Test }               from "forge-std/Test.sol";
-import { AuraEngine }         from "../../src/AuraEngine.sol";
-import { AuraProxy }          from "../../src/AuraProxy.sol";
-import { AuraMarketRegistry } from "../../src/AuraMarketRegistry.sol";
+import { CeitnotEngine }         from "../../src/CeitnotEngine.sol";
+import { CeitnotProxy }          from "../../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry } from "../../src/CeitnotMarketRegistry.sol";
 import { OracleRelayV2 }      from "../../src/OracleRelayV2.sol";
 import { IOracleRelayV2 }     from "../../src/interfaces/IOracleRelayV2.sol";
 import { MockERC20 }          from "../mocks/MockERC20.sol";
@@ -13,13 +13,13 @@ import { MockOracle }         from "../mocks/MockOracle.sol";
 import { MockFlashBorrower }  from "../mocks/MockFlashBorrower.sol";
 
 /**
- * @title  AuraForkTest
+ * @title  CeitnotForkTest
  * @notice Fork tests against Arbitrum mainnet.
  *         All tests skip silently when ARBITRUM_RPC_URL is not configured.
  *
  * Running locally with a live RPC:
  *   $Env:ARBITRUM_RPC_URL="https://arb-mainnet.g.alchemy.com/v2/..."
- *   forge test --match-contract AuraForkTest -vv
+ *   forge test --match-contract CeitnotForkTest -vv
  *
  * Chainlink feeds used (Arbitrum One):
  *   ETH/USD  — 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612
@@ -30,7 +30,7 @@ import { MockFlashBorrower }  from "../mocks/MockFlashBorrower.sol";
  *   3. Liquidation sim          — Price manipulation triggers liquidation on forked state.
  *   4. Flash loan round-trip    — Flash loan + full repay on forked chain.
  */
-contract AuraForkTest is Test {
+contract CeitnotForkTest is Test {
 
     // ---- Chainlink feed addresses on Arbitrum One
     address constant ARBI_ETH_USD = 0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612;
@@ -45,9 +45,9 @@ contract AuraForkTest is Test {
     address public admin = address(this);
 
     // ---- Shared state populated in _forkSetup()
-    AuraEngine         public engine;
-    AuraProxy          public proxy;
-    AuraMarketRegistry public registry;
+    CeitnotEngine         public engine;
+    CeitnotProxy          public proxy;
+    CeitnotMarketRegistry public registry;
     MockERC20          public assetToken;
     MockERC20          public debtToken;
     MockVault4626      public vault;
@@ -61,7 +61,7 @@ contract AuraForkTest is Test {
     }
 
     /**
-     * @dev Fork Arbitrum and deploy a fresh Aura protocol instance.
+     * @dev Fork Arbitrum and deploy a fresh Ceitnot Protocol instance.
      *      Uses a real Chainlink ETH/USD feed as the market oracle so that
      *      prices reflect on-chain reality rather than a hardcoded mock.
      */
@@ -98,7 +98,7 @@ contract AuraForkTest is Test {
             oracleAddr = address(mockOracle);
         }
 
-        registry = new AuraMarketRegistry(admin);
+        registry = new CeitnotMarketRegistry(admin);
         registry.addMarket(
             address(vault),
             oracleAddr,
@@ -108,13 +108,13 @@ contract AuraForkTest is Test {
             0, 0, false, 0
         );
 
-        AuraEngine impl = new AuraEngine();
+        CeitnotEngine impl = new CeitnotEngine();
         bytes memory init = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(debtToken), address(registry), 1 days, 2 days)
         );
-        proxy  = new AuraProxy(address(impl), init);
-        engine = AuraEngine(address(proxy));
+        proxy  = new CeitnotProxy(address(impl), init);
+        engine = CeitnotEngine(address(proxy));
         registry.setEngine(address(proxy));
     }
 

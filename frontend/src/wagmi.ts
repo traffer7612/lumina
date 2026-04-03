@@ -62,8 +62,8 @@ function transportFor(chainId: number) {
 }
 
 export const config = getDefaultConfig({
-  appName: 'Aura Protocol',
-  projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID ?? 'aura-dev-placeholder',
+  appName: 'Ceitnot Protocol',
+  projectId: import.meta.env.VITE_WALLETCONNECT_PROJECT_ID ?? 'ceitnot-dev-placeholder',
   chains: [targetChain],
   transports: {
     [targetChain.id]: transportFor(targetChain.id),

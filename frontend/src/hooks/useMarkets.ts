@@ -1,5 +1,5 @@
 import { useReadContract, useReadContracts } from 'wagmi';
-import { auraEngineAbi, auraRegistryAbi, erc20Abi, type MarketConfig } from '../abi/auraEngine';
+import { ceitnotEngineAbi, marketRegistryAbi, erc20Abi, type MarketConfig } from '../abi/ceitnotEngine';
 import { useContractAddresses, TARGET_CHAIN_ID } from '../lib/contracts';
 
 export type Market = {
@@ -16,7 +16,7 @@ export function useMarkets() {
   // 1. Market count from registry
   const { data: countRaw, isLoading: countLoading } = useReadContract({
     address: registry,
-    abi: auraRegistryAbi,
+    abi: marketRegistryAbi,
     functionName: 'marketCount',
     chainId: TARGET_CHAIN_ID,
     query: { enabled: !!registry },
@@ -27,7 +27,7 @@ export function useMarkets() {
   const { data: configResults, isLoading: configLoading, refetch: refetchConfigs } = useReadContracts({
     contracts: Array.from({ length: count }, (_, i) => ({
       address: registry!,
-      abi: auraRegistryAbi,
+      abi: marketRegistryAbi,
       functionName: 'getMarket' as const,
       args: [BigInt(i)] as const,
       chainId: TARGET_CHAIN_ID,
@@ -38,8 +38,8 @@ export function useMarkets() {
   // 3. Engine stats (totalDebt + totalCollateralAssets per market)
   const { data: statsResults, refetch: refetchStats } = useReadContracts({
     contracts: Array.from({ length: count }, (_, i) => [
-      { address: engine!, abi: auraEngineAbi, functionName: 'totalDebt' as const, args: [BigInt(i)] as const, chainId: TARGET_CHAIN_ID },
-      { address: engine!, abi: auraEngineAbi, functionName: 'totalCollateralAssets' as const, args: [BigInt(i)] as const, chainId: TARGET_CHAIN_ID },
+      { address: engine!, abi: ceitnotEngineAbi, functionName: 'totalDebt' as const, args: [BigInt(i)] as const, chainId: TARGET_CHAIN_ID },
+      { address: engine!, abi: ceitnotEngineAbi, functionName: 'totalCollateralAssets' as const, args: [BigInt(i)] as const, chainId: TARGET_CHAIN_ID },
     ]).flat(),
     query: { enabled: !!engine && count > 0 },
   });

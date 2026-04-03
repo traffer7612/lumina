@@ -19,15 +19,15 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-aura-border bg-aura-bg/80 backdrop-blur-md">
+    <header className="sticky top-0 z-50 border-b border-ceitnot-border bg-ceitnot-bg/80 backdrop-blur-md">
       <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex items-center justify-between h-16">
         {/* Logo */}
         <NavLink to="/" className="flex items-center gap-2 shrink-0" end>
           <span className="text-xl font-bold">
-            <span className="text-aura-gold">⬡</span>
-            <span className="ml-1.5 tracking-tight">LUMINA</span>
+            <span className="text-ceitnot-gold">⬡</span>
+            <span className="ml-1.5 tracking-tight">Ceitnot</span>
           </span>
-          <span className="hidden sm:block text-[10px] uppercase tracking-[0.2em] text-aura-muted leading-none mt-0.5">
+          <span className="hidden sm:block text-[10px] uppercase tracking-[0.2em] text-ceitnot-muted leading-none mt-0.5">
             Protocol
           </span>
         </NavLink>
@@ -42,8 +42,8 @@ export default function Navbar() {
               className={({ isActive }) =>
                 `px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                   isActive
-                    ? 'bg-aura-gold/15 text-aura-gold'
-                    : 'text-aura-muted-2 hover:text-white hover:bg-aura-surface-2'
+                    ? 'bg-ceitnot-gold/15 text-ceitnot-gold'
+                    : 'text-ceitnot-muted-2 hover:text-white hover:bg-ceitnot-surface-2'
                 }`
               }
             >
@@ -52,7 +52,7 @@ export default function Navbar() {
           ))}
           <NavLink
             to="/dashboard"
-            className="ml-2 px-4 py-2 rounded-xl text-sm font-semibold bg-aura-gold text-aura-bg hover:bg-aura-gold-bright transition-colors"
+            className="ml-2 px-4 py-2 rounded-xl text-sm font-semibold bg-ceitnot-gold text-ceitnot-bg hover:bg-ceitnot-gold-bright transition-colors"
           >
             Open App
           </NavLink>
@@ -77,7 +77,7 @@ export default function Navbar() {
 
       {/* Mobile menu */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-aura-border bg-aura-surface">
+        <div className="md:hidden border-t border-ceitnot-border bg-ceitnot-surface">
           {NAV_LINKS.map(({ to, label, Icon }) => (
             <NavLink
               key={to}
@@ -87,8 +87,8 @@ export default function Navbar() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-6 py-3 text-sm font-medium transition-colors ${
                   isActive
-                    ? 'text-aura-gold bg-aura-gold/10'
-                    : 'text-aura-muted-2 hover:text-white'
+                    ? 'text-ceitnot-gold bg-ceitnot-gold/10'
+                    : 'text-ceitnot-muted-2 hover:text-white'
                 }`
               }
             >

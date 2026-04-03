@@ -16,13 +16,13 @@ interface IOracleAdmin {
 
 /**
  * @title  TransferAdminToMultisig
- * @notice Migrates an existing Aura deployment from an EOA admin to a Gnosis Safe.
+ * @notice Migrates an existing Ceitnot deployment from an EOA admin to a Gnosis Safe.
  *         Calls proposeAdmin() on the engine and registry so the Safe can finalise
  *         the transfer via acceptAdmin(). OracleRelayV2 uses a one-step setAdmin().
  *
  * Required env vars:
- *   ENGINE_PROXY       - AuraEngine proxy address
- *   REGISTRY_ADDRESS   - AuraMarketRegistry address
+ *   ENGINE_PROXY       - CeitnotEngine proxy address
+ *   REGISTRY_ADDRESS   - CeitnotMarketRegistry address
  *   MULTISIG_ADDRESS   - Gnosis Safe that will become admin
  *
  * Optional env vars:

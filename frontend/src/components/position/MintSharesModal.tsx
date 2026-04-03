@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContracts } from 'wagmi';
 import { parseUnits, formatUnits, type Hash, type Address } from 'viem';
 import { X, ArrowRight, CheckCircle, AlertCircle, Loader2, Coins } from 'lucide-react';
-import { erc20Abi, erc4626Abi } from '../../abi/auraEngine';
+import { erc20Abi, erc4626Abi } from '../../abi/ceitnotEngine';
 import { gasFor } from '../../lib/contracts';
 
 type Props = {
@@ -162,13 +162,13 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} />
 
-      <div className="relative z-10 w-full max-w-md card bg-aura-surface border border-aura-border-2 shadow-2xl p-6 animate-fade-in">
+      <div className="relative z-10 w-full max-w-md card bg-ceitnot-surface border border-ceitnot-border-2 shadow-2xl p-6 animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold flex items-center gap-2">
-            <Coins size={20} className="text-aura-gold" />
+            <Coins size={20} className="text-ceitnot-gold" />
             Get Vault Shares
-            <span className="ml-1 text-sm text-aura-muted font-normal">Market #{marketId}</span>
+            <span className="ml-1 text-sm text-ceitnot-muted font-normal">Market #{marketId}</span>
           </h2>
           <button onClick={close} className="btn-ghost p-1.5 rounded-lg" aria-label="Close">
             <X size={18} />
@@ -178,9 +178,9 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
         {/* Success */}
         {step === 'success' && (
           <div className="text-center py-6">
-            <CheckCircle size={48} className="text-aura-success mx-auto mb-3" />
+            <CheckCircle size={48} className="text-ceitnot-success mx-auto mb-3" />
             <p className="font-semibold text-lg">Shares received!</p>
-            <p className="text-aura-muted text-sm mt-1">
+            <p className="text-ceitnot-muted text-sm mt-1">
               You now have {vaultSymbol} shares on your wallet. You can deposit them as collateral.
             </p>
             <button className="btn-primary mt-6 w-full" onClick={close}>Close</button>
@@ -190,9 +190,9 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
         {/* Error */}
         {step === 'error' && (
           <div className="text-center py-4">
-            <AlertCircle size={40} className="text-aura-danger mx-auto mb-3" />
-            <p className="font-semibold text-aura-danger">Transaction failed</p>
-            <p className="text-aura-muted text-xs mt-2 break-words">{errMsg}</p>
+            <AlertCircle size={40} className="text-ceitnot-danger mx-auto mb-3" />
+            <p className="font-semibold text-ceitnot-danger">Transaction failed</p>
+            <p className="text-ceitnot-muted text-xs mt-2 break-words">{errMsg}</p>
             <button className="btn-secondary mt-5 w-full" onClick={() => { setStep('input'); setErrMsg(''); }}>Try again</button>
           </div>
         )}
@@ -201,8 +201,8 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
         {step !== 'success' && step !== 'error' && (
           <>
             {/* Explanation */}
-            <div className="mb-5 p-3 bg-aura-gold/5 border border-aura-gold/10 rounded-xl">
-              <p className="text-xs text-aura-muted">
+            <div className="mb-5 p-3 bg-ceitnot-gold/5 border border-ceitnot-gold/10 rounded-xl">
+              <p className="text-xs text-ceitnot-muted">
                 To deposit collateral, you first need <strong className="text-white">vault shares</strong>.
                 Enter the amount of <strong className="text-white">{assetSymbol}</strong> to convert into
                 {' '}<strong className="text-white">{vaultSymbol}</strong> shares.
@@ -211,9 +211,9 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
 
             {/* Approve indicator */}
             {needsApproval && (
-              <div className="flex items-center gap-2 mb-4 p-3 bg-aura-warning/10 border border-aura-warning/20 rounded-xl">
-                <ArrowRight size={14} className="text-aura-warning shrink-0" />
-                <p className="text-xs text-aura-warning">
+              <div className="flex items-center gap-2 mb-4 p-3 bg-ceitnot-warning/10 border border-ceitnot-warning/20 rounded-xl">
+                <ArrowRight size={14} className="text-ceitnot-warning shrink-0" />
+                <p className="text-xs text-ceitnot-warning">
                   Step 1: Approve {assetSymbol} for the vault. Step 2: Deposit.
                 </p>
               </div>
@@ -221,7 +221,7 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
 
             {/* Amount */}
             <div className="mb-4">
-              <label className="block text-sm text-aura-muted mb-2">
+              <label className="block text-sm text-ceitnot-muted mb-2">
                 Amount of {assetSymbol}
               </label>
               <div className="flex gap-2">
@@ -237,7 +237,7 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
                 <button
                   type="button"
                   onClick={setMax}
-                  className="px-3 py-2 rounded-xl text-sm font-medium bg-aura-gold/15 text-aura-gold hover:bg-aura-gold/25 transition-colors"
+                  className="px-3 py-2 rounded-xl text-sm font-medium bg-ceitnot-gold/15 text-ceitnot-gold hover:bg-ceitnot-gold/25 transition-colors"
                   disabled={isPending || assetBalance === 0n}
                 >
                   Max
@@ -247,20 +247,20 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
 
             {/* Balances */}
             <div className="grid grid-cols-2 gap-3 mb-5 text-xs">
-              <div className="p-3 bg-aura-bg rounded-xl">
-                <p className="text-aura-muted">{assetSymbol} balance</p>
+              <div className="p-3 bg-ceitnot-bg rounded-xl">
+                <p className="text-ceitnot-muted">{assetSymbol} balance</p>
                 <p className="text-white font-mono mt-1">{formatUnits(assetBalance, 18)}</p>
               </div>
-              <div className="p-3 bg-aura-bg rounded-xl">
-                <p className="text-aura-muted">{vaultSymbol} shares</p>
+              <div className="p-3 bg-ceitnot-bg rounded-xl">
+                <p className="text-ceitnot-muted">{vaultSymbol} shares</p>
                 <p className="text-white font-mono mt-1">{formatUnits(shareBalance, 18)}</p>
               </div>
             </div>
 
             {/* MockERC20: mint test tokens (allowed on mock deploys) */}
             {showMockMint && assetAddress && address && (
-              <div className="mb-5 p-3 bg-aura-gold/10 border border-aura-gold/20 rounded-xl">
-                <p className="text-xs text-aura-muted mb-2">
+              <div className="mb-5 p-3 bg-ceitnot-gold/10 border border-ceitnot-gold/20 rounded-xl">
+                <p className="text-xs text-ceitnot-muted mb-2">
                   Для этого рынка используется тестовый {assetSymbol} (mock). Нажмите ниже,
                   чтобы наминтить себе токены (контракт MockERC20 разрешает это любому адресу).
                 </p>
@@ -282,12 +282,12 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
                       setMintError(e instanceof Error ? e.message : String(e));
                     }
                   }}
-                  className="w-full py-2 rounded-xl text-sm font-medium bg-aura-gold/20 text-aura-gold hover:bg-aura-gold/30 transition-colors flex items-center justify-center gap-2"
+                  className="w-full py-2 rounded-xl text-sm font-medium bg-ceitnot-gold/20 text-ceitnot-gold hover:bg-ceitnot-gold/30 transition-colors flex items-center justify-center gap-2"
                 >
                   {(mintTxHash && !mintConfirmed) && <Loader2 size={14} className="animate-spin" />}
                   {mintTxHash && !mintConfirmed ? 'Ожидание подтверждения…' : `Получить 100 ${assetSymbol}`}
                 </button>
-                {mintError && <p className="text-xs text-aura-danger mt-2">{mintError}</p>}
+                {mintError && <p className="text-xs text-ceitnot-danger mt-2">{mintError}</p>}
               </div>
             )}
 
@@ -303,13 +303,13 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
             </button>
 
             {amountRaw > assetBalance && assetBalance > 0n && (
-              <p className="text-xs text-aura-danger mt-2 text-center">
+              <p className="text-xs text-ceitnot-danger mt-2 text-center">
                 Amount exceeds your {assetSymbol} balance.
               </p>
             )}
 
             {hash && (
-              <p className="text-xs text-aura-muted mt-3 text-center font-mono break-all">
+              <p className="text-xs text-ceitnot-muted mt-3 text-center font-mono break-all">
                 tx: {hash.slice(0, 10)}…{hash.slice(-8)}
               </p>
             )}

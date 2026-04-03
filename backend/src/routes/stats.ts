@@ -1,9 +1,8 @@
 import { Router } from "express";
-import { createPublicClient, http, formatEther } from "viem";
-import { arbitrum, base, sepolia } from "viem/chains";
-import { foundry } from "viem/chains";
+import { createPublicClient, http, formatEther, type Chain } from "viem";
+import { arbitrum, base, sepolia, foundry } from "viem/chains";
 
-const AURA_ENGINE_ABI = [
+const CEITNOT_ENGINE_READ_ABI = [
   { inputs: [], name: "totalDebt", outputs: [{ name: "", type: "uint256" }], stateMutability: "view", type: "function" },
   { inputs: [], name: "totalCollateralAssets", outputs: [{ name: "", type: "uint256" }], stateMutability: "view", type: "function" },
   { inputs: [], name: "asset", outputs: [{ name: "", type: "address" }], stateMutability: "view", type: "function" },
@@ -24,7 +23,7 @@ function getRpc(chainId: number): string {
   return rpcs[chainId] ?? "";
 }
 
-const chains: Record<number, typeof arbitrum> = {
+const chains: Record<number, Chain> = {
   31337: foundry,
   11155111: sepolia,
   42161: arbitrum,
@@ -33,7 +32,7 @@ const chains: Record<number, typeof arbitrum> = {
 
 statsRouter.get("/:chainId", async (req, res) => {
   const chainId = Number(req.params.chainId);
-  const engineAddress = process.env.AURA_ENGINE_ADDRESS as `0x${string}` | undefined;
+  const engineAddress = process.env.CEITNOT_ENGINE_ADDRESS as `0x${string}` | undefined;
   if (!engineAddress) {
     return res.json({ totalDebt: "0", totalCollateralAssets: "0" });
   }
@@ -49,12 +48,12 @@ statsRouter.get("/:chainId", async (req, res) => {
     const [totalDebt, totalCollateralAssets] = await Promise.all([
       client.readContract({
         address: engineAddress,
-        abi: AURA_ENGINE_ABI,
+        abi: CEITNOT_ENGINE_READ_ABI,
         functionName: "totalDebt",
       }),
       client.readContract({
         address: engineAddress,
-        abi: AURA_ENGINE_ABI,
+        abi: CEITNOT_ENGINE_READ_ABI,
         functionName: "totalCollateralAssets",
       }),
     ]);

@@ -1,6 +1,6 @@
 # Aura Protocol — Monitoring & Alerting
 
-Operational monitoring for AuraEngine on Arbitrum One.
+Operational monitoring for CeitnotEngine on Arbitrum One.
 Two parallel stacks are supported: **OpenZeppelin Defender** and **Tenderly**.
 
 ---
@@ -24,15 +24,15 @@ monitoring/
 
 | Event | Contract | Severity | Description |
 |-------|----------|----------|-------------|
-| `Liquidated` | AuraEngine | Warning | Any liquidation (filter by `repayAmount` threshold) |
-| `BadDebtRealized` | AuraEngine | Critical | Uncollateralised bad debt written off |
+| `Liquidated` | CeitnotEngine | Warning | Any liquidation (filter by `repayAmount` threshold) |
+| `BadDebtRealized` | CeitnotEngine | Critical | Uncollateralised bad debt written off |
 | `PriceDeviationBreached` | OracleRelayV2 | Critical | Circuit breaker tripped; price feeds halted |
 | `CircuitBreakerReset` | OracleRelayV2 | Info | Admin cleared the circuit breaker |
-| `PausedSet` | AuraEngine | Warning | Protocol paused or unpaused |
-| `EmergencyShutdownSet` | AuraEngine | Critical | Emergency shutdown toggled |
-| `AdminTransferred` | AuraEngine | Warning | Admin role transferred |
-| `AdminProposed` | AuraEngine | Info | Two-step admin transfer initiated |
-| `YieldHarvested` | AuraEngine | Info | Yield applied to debt principal |
+| `PausedSet` | CeitnotEngine | Warning | Protocol paused or unpaused |
+| `EmergencyShutdownSet` | CeitnotEngine | Critical | Emergency shutdown toggled |
+| `AdminTransferred` | CeitnotEngine | Warning | Admin role transferred |
+| `AdminProposed` | CeitnotEngine | Info | Two-step admin transfer initiated |
+| `YieldHarvested` | CeitnotEngine | Info | Yield applied to debt principal |
 
 ---
 
@@ -51,7 +51,7 @@ monitoring/
 2. **Create Monitors**
    For each JSON file in `monitoring/defender/`:
    - Replace placeholder addresses:
-     - `${ENGINE_PROXY_ADDRESS}` → your AuraEngine proxy address
+     - `${ENGINE_PROXY_ADDRESS}` → your CeitnotEngine proxy address
      - `${ORACLE_RELAY_V2_ADDRESS}` → your OracleRelayV2 address
    - Defender Dashboard → Monitors → Create Monitor → paste the JSON, or
    - Use the Defender API: `POST https://defender.openzeppelin.com/v2/monitor`

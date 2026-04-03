@@ -1,6 +1,6 @@
-# Архитектура проекта Lumina
+# Архитектура проекта Ceitnot
 
-Краткое описание для новичка: **Lumina** — это протокол займов под залог (lending). Пользователь вносит коллатерал (например wstETH), получает право занимать стейблкоин (в CDP-режиме — **aUSD**). Цена коллатерала берётся из оракула; логику движка можно обновлять через прокси. Имена контрактов в коде — **`AuraEngine`**, **`AuraProxy`** и т.д.; см. [BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md).
+Краткое описание для новичка: **Ceitnot** — это протокол займов под залог (lending). Пользователь вносит коллатерал (например wstETH), получает право занимать стейблкоин (в CDP-режиме — **aUSD**). Цена коллатерала берётся из оракула; логику движка можно обновлять через прокси. Имена контрактов в коде — **`CeitnotEngine`**, **`CeitnotProxy`** и т.д.; см. [BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md).
 
 ---
 
@@ -52,20 +52,20 @@
 
 ```
                     ┌─────────────────┐
-                    │   `AuraProxy`   │  ← Прокси движка Lumina: адрес знает фронт и бэкенд
+                    │   `CeitnotProxy`   │  ← Прокси движка Ceitnot: адрес знает фронт и бэкенд
                     │ (прокси UUPS)   │     Все вызовы идут сюда.
                     └────────┬────────┘
                              │ delegatecall
                              ▼
                     ┌─────────────────┐
-                    │  `AuraEngine`   │  ← Реализация: депозит, займ, repay,
+                    │  `CeitnotEngine`   │  ← Реализация: депозит, займ, repay,
                     │ (implementation)│     ликвидации, harvest, пауза, апгрейд
                     └────────┬────────┘
                              │
          ┌───────────────────┼───────────────────┐
          ▼                   ▼                    ▼
 ┌──────────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-│ AuraMarketRegistry   │ │  OracleRelay    │ │  ERC-4626 Vault │
+│ CeitnotMarketRegistry   │ │  OracleRelay    │ │  ERC-4626 Vault │
 │ (список рынков)      │ │ (цена коллатерала)│ │ (например wstETH)│
 │ marketId → vault…    │ │ Chainlink +      │ │ shares ↔ assets │
 │ LTV, caps            │ │ fallback         │ │                 │
@@ -80,13 +80,13 @@
 
 ### 3.2. Кратко по каждому контракту
 
-- **`AuraProxy`**  
-  Прокси движка Lumina: единственный такой адрес знают пользователь и фронт. Хранит адрес реализации (`AuraEngine`) и перенаправляет вызовы через `delegatecall`. Позволяет обновлять логику (апгрейд) без смены адреса.
+- **`CeitnotProxy`**  
+  Прокси движка Ceitnot: единственный такой адрес знают пользователь и фронт. Хранит адрес реализации (`CeitnotEngine`) и перенаправляет вызовы через `delegatecall`. Позволяет обновлять логику (апгрейд) без смены адреса.
 
-- **`AuraEngine`**  
-  Ядро протокола Lumina: депозит/вывод коллатерала по `marketId`, займ и погашение (в CDP — aUSD), учёт долга и коллатерала, ликвидации, harvest, пауза и emergency shutdown. Состояние в `AuraStorage` (EIP-7201), реестр рынков и оракул.
+- **`CeitnotEngine`**  
+  Ядро протокола Ceitnot: депозит/вывод коллатерала по `marketId`, займ и погашение (в CDP — aUSD), учёт долга и коллатерала, ликвидации, harvest, пауза и emergency shutdown. Состояние в `CeitnotStorage` (EIP-7201), реестр рынков и оракул.
 
-- **`AuraMarketRegistry`**  
+- **`CeitnotMarketRegistry`**  
   Реестр рынков: у каждого рынка есть vault (ERC-4626), оракул и параметры риска (LTV, порог ликвидации, штраф, кэпы, изоляция). Движок читает конфиг из реестра и проверяет лимиты.
 
 - **OracleRelay**  
@@ -105,7 +105,7 @@
 | **Коллатерал** | Залог (например wstETH). Чем больше и «дороже» коллатерал, тем больше можно занять. |
 | **LTV (Loan-to-Value)** | Доля от стоимости коллатерала, которую можно занять (например 85%). |
 | **Health factor** | Показатель «здоровья» позиции. Ниже 1 — позицию можно ликвидировать. |
-| **Прокси** | Контракт-обёртка: пользователь вызывает один и тот же адрес, а код может обновляться (новая версия `AuraEngine`). |
+| **Прокси** | Контракт-обёртка: пользователь вызывает один и тот же адрес, а код может обновляться (новая версия `CeitnotEngine`). |
 | **Оракул** | Внешний источник цены (например Chainlink), чтобы контракт знал, сколько стоит коллатерал в USD. |
 
 ---
@@ -121,7 +121,7 @@ backend/
 │       ├── stats.ts      # GET /api/stats/:chainId (totalDebt, totalCollateral)
 │       ├── rpc.ts        # POST /api/rpc/:chainId — прокси RPC (обход CORS)
 │       └── faucet.ts     # Кран ETH для локального Anvil
-└── .env                  # AURA_ENGINE_ADDRESS, ARBITRUM_RPC_URL, ARBISCAN_API_KEY...
+└── .env                  # CEITNOT_ENGINE_ADDRESS, ARBITRUM_RPC_URL, ARBISCAN_API_KEY...
 ```
 
 - Фронт запрашивает `/api/config/contracts`, чтобы получить адрес движка (прокси) и при необходимости vault.
@@ -161,7 +161,7 @@ frontend/src/
 3. Фронт через wagmi читает с контракта: коллатерал пользователя, долг, health factor, ликвидность пула (баланс USDC на движке).
 4. Пользователь вводит сумму займа и нажимает Borrow. Фронт вызывает `writeContract({ address: engine, functionName: 'borrow', args: [user, amount] })`.
 5. Кошелёк показывает комиссию и запрашивает подпись. После подписания транзакция уходит в сеть (Arbitrum).
-6. `AuraProxy` перенаправляет вызов в `AuraEngine`. Движок проверяет LTV, реестр рынков и оракул; в legacy-режиме со стейблом на балансе движка — списывает долг-токен и переводит пользователю (в CDP — минт/берн aUSD).
+6. `CeitnotProxy` перенаправляет вызов в `CeitnotEngine`. Движок проверяет LTV, реестр рынков и оракул; в legacy-режиме со стейблом на балансе движка — списывает долг-токен и переводит пользователю (в CDP — минт/берн aUSD).
 
 ---
 
@@ -170,11 +170,11 @@ frontend/src/
 Скрипт `script/DeployProduction.s.sol` (Foundry):
 
 1. Деплоит **OracleRelay** (Chainlink + опционально fallback).
-2. Деплоит **`AuraMarketRegistry`**, добавляет первый рынок (vault, оракул, LTV, кэпы).
-3. Деплоит **`AuraEngine`** (implementation) и **`AuraProxy`** с вызовом `initialize(debtToken, registry, heartbeat, timelock)`.
+2. Деплоит **`CeitnotMarketRegistry`**, добавляет первый рынок (vault, оракул, LTV, кэпы).
+3. Деплоит **`CeitnotEngine`** (implementation) и **`CeitnotProxy`** с вызовом `initialize(debtToken, registry, heartbeat, timelock)`.
 4. Регистрирует в реестре адрес движка: `registry.setEngine(proxy)`.
 
-После деплоя в `backend/.env` прописывают `AURA_ENGINE_ADDRESS=<адрес прокси>`. Чтобы пользователи могли занимать, на этот адрес нужно перевести USDC (вручную или через раздел «Пополнить пул» в интерфейсе).
+После деплоя в `backend/.env` прописывают `CEITNOT_ENGINE_ADDRESS=<адрес прокси>`. Чтобы пользователи могли занимать, на этот адрес нужно перевести USDC (вручную или через раздел «Пополнить пул» в интерфейсе).
 
 ---
 
@@ -194,8 +194,8 @@ flowchart LR
         C[API + RPC proxy]
     end
     subgraph Blockchain
-        P[AuraProxy]
-        E[AuraEngine]
+        P[CeitnotProxy]
+        E[CeitnotEngine]
         R[Registry]
         O[Oracle]
         V[Vault wstETH]

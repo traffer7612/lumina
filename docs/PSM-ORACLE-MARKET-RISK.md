@@ -4,7 +4,7 @@ Operational policies referenced from [`TOKENOMICS-PROD-CHECKLIST.md`](TOKENOMICS
 
 ## 1. PSM economic parameters
 
-- **tin / tout**: Basis-point fees on swap in/out (`AuraPSM`). Lumina governance can adjust within bounds you define off-chain (publish max allowed Bps for operator safety).  
+- **tin / tout**: Basis-point fees on swap in/out (`CeitnotPSM`). Ceitnot governance can adjust within bounds you define off-chain (publish max allowed Bps for operator safety).  
 - **Ceiling**: `ceiling` caps net aUSD minted via this PSM (`mintedViaPsm`). 0 = unlimited — document if you rely on a finite ceiling for risk.  
 - **Pegged token**: Decimals are fixed at deploy; changing collateral requires a **new PSM deployment** + minter migration.
 
@@ -44,7 +44,7 @@ For each live market, publish (and store in internal runbook):
 
 ## 6. Market parameter table
 
-**Authoritative values** are on-chain (`AuraMarketRegistry` + engine reads). Maintain a **public table** (GitBook or this repo) with columns:
+**Authoritative values** are on-chain (`CeitnotMarketRegistry` + engine reads). Maintain a **public table** (GitBook or this repo) with columns:
 
 - Market id, collateral vault, LTV, liquidation threshold, liquidation penalty, debt ceiling, oracle feed
 
@@ -55,7 +55,7 @@ Regenerate after each `addMarket` or param change proposal.
 | Action | Path |
 |--------|------|
 | **Freeze single market** | Governance sets restrictive params or pauses specific market flows per engine capabilities — document exact function names per deployment. |
-| **Global pause** | `AuraEngine.pause()` (Timelock) — stops state-changing ops until `unpause`. |
+| **Global pause** | `CeitnotEngine.pause()` (Timelock) — stops state-changing ops until `unpause`. |
 | **Emergency shutdown** | `emergencyShutdown()` — **irreversible** in typical deployment; only for catastrophic scenarios with legal/comms plan. |
 | **PSM-only issue** | Increase fees to disincentivize flow, or migrate to new PSM + `removeMinter(old)` after liquidity drained. |
 

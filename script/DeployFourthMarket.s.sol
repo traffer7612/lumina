@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import { Script }  from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 import { MockERC20 }          from "../test/mocks/MockERC20.sol";
 import { MockVault4626 }      from "../test/mocks/MockVault4626.sol";
 import { MockOracle }         from "../test/mocks/MockOracle.sol";
@@ -29,7 +29,7 @@ contract DeployFourthMarket is Script {
         address deployer = msg.sender;
 
         // 1. Deactivate old Market #2
-        AuraMarketRegistry(REGISTRY).deactivateMarket(2);
+        CeitnotMarketRegistry(REGISTRY).deactivateMarket(2);
 
         // 2. Mock LYT token
         MockERC20 lyt = new MockERC20("Lumina Yield Token", "LYT", 18);
@@ -42,7 +42,7 @@ contract DeployFourthMarket is Script {
         oracle.setPrice(150e18);
 
         // 5. Register market — NOT isolated
-        uint256 marketId = AuraMarketRegistry(REGISTRY).addMarket(
+        uint256 marketId = CeitnotMarketRegistry(REGISTRY).addMarket(
             address(vault),
             address(oracle),
             uint16(7500),   // LTV 75%

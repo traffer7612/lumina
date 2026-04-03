@@ -1,18 +1,18 @@
-# AuraEngine Upgrade Checklist
+# CeitnotEngine Upgrade Checklist
 
-This document must be followed in full before and during every AuraEngine upgrade.
+This document must be followed in full before and during every CeitnotEngine upgrade.
 All steps are mandatory. Do not proceed to the next step until the current step passes.
 
 ---
 
 ## 0. Pre-work (days before upgrade)
 
-- [ ] Prepare the new `AuraEngine` implementation in a feature branch
+- [ ] Prepare the new `CeitnotEngine` implementation in a feature branch
 - [ ] Open a PR; ensure CI is green (all 296+ tests passing)
 - [ ] Request an audit or internal security review of the diff
 - [ ] Confirm `UPGRADE_INTERFACE_VERSION` constant has been updated in the new implementation
-- [ ] Confirm no new state variables were added directly to `AuraEngine.sol`
-      (all new fields must go into `AuraStorage.EngineStorage` and consume from `__gap`)
+- [ ] Confirm no new state variables were added directly to `CeitnotEngine.sol`
+      (all new fields must go into `CeitnotStorage.EngineStorage` and consume from `__gap`)
 - [ ] Confirm `__gap` size was reduced by exactly the number of new fields added
 
 ---
@@ -27,14 +27,14 @@ bash script/CheckStorageLayout.sh
 
 Expected output:
 ```
-[PASS] AuraEngine: no regular storage variables (EIP-7201 intact)
-[PASS] AuraStorage.sol hash matches baseline
-[PASS] AuraMarketRegistry layout matches baseline
+[PASS] CeitnotEngine: no regular storage variables (EIP-7201 intact)
+[PASS] CeitnotStorage.sol hash matches baseline
+[PASS] CeitnotMarketRegistry layout matches baseline
 [PASS] OracleRelayV2 layout matches baseline
 Results: 4 passed, 0 failed
 ```
 
-If the AuraStorage struct was intentionally extended:
+If the CeitnotStorage struct was intentionally extended:
 1. Verify the diff only appends new fields (no insertions / reorderings)
 2. Verify `__gap` shrank by the correct number of slots
 3. Update the baseline: `bash script/CheckStorageLayout.sh --update`
@@ -62,7 +62,7 @@ forge script script/DeployMultisig.s.sol ... # or a dedicated impl-only script
 
 Or deploy manually:
 ```bash
-forge create src/AuraEngine.sol:AuraEngine \
+forge create src/CeitnotEngine.sol:CeitnotEngine \
   --rpc-url $RPC_URL \
   --private-key $DEPLOYER_KEY
 ```
@@ -71,7 +71,7 @@ Note the new implementation address as `NEW_IMPLEMENTATION`.
 
 Verify it on Arbiscan:
 ```bash
-forge verify-contract $NEW_IMPLEMENTATION src/AuraEngine.sol:AuraEngine \
+forge verify-contract $NEW_IMPLEMENTATION src/CeitnotEngine.sol:CeitnotEngine \
   --chain-id 42161 --watch
 ```
 
@@ -162,7 +162,7 @@ cast call $ENGINE_PROXY "healthFactor(address)(uint256)" $SOME_USER
 
 ### 7d. Run fork tests against live state
 ```bash
-ARBITRUM_RPC_URL=$RPC_URL forge test --match-path test/fork/AuraFork.t.sol -v
+ARBITRUM_RPC_URL=$RPC_URL forge test --match-path test/fork/CeitnotFork.t.sol -v
 ```
 
 ### 7e. Check Defender / Tenderly monitors are receiving events
@@ -175,7 +175,7 @@ fire without errors.
 
 - [ ] Update deployment addresses doc with new implementation address
 - [ ] Tag the git commit: `git tag v<major>.<minor>.<patch>-impl`
-- [ ] Update `UPGRADE_INTERFACE_VERSION` in `src/AuraEngine.sol` if not already done
+- [ ] Update `UPGRADE_INTERFACE_VERSION` in `src/CeitnotEngine.sol` if not already done
 - [ ] Update storage layout baselines if struct was extended:
       `bash script/CheckStorageLayout.sh --update && git commit -m "chore: update storage layout baselines"`
 - [ ] Post upgrade summary to governance forum / Discord
@@ -186,7 +186,7 @@ fire without errors.
 
 If the upgrade introduces a critical bug:
 
-1. Prepare a rollback implementation (the previous `AuraEngine` binary)
+1. Prepare a rollback implementation (the previous `CeitnotEngine` binary)
 2. Repeat Steps 4–6 pointing `NEW_IMPLEMENTATION` to the rollback address
 3. The previous implementation still has `UPGRADE_INTERFACE_VERSION` = old value
 4. Note: storage changes from the upgrade cannot be rolled back — only code changes
@@ -197,8 +197,8 @@ If the upgrade introduces a critical bug:
 
 | Name | Address |
 |------|---------|
-| AuraEngine Proxy | *(fill in after deploy)* |
-| AuraMarketRegistry | *(fill in after deploy)* |
+| CeitnotEngine Proxy | *(fill in after deploy)* |
+| CeitnotMarketRegistry | *(fill in after deploy)* |
 | OracleRelayV2 | *(fill in after deploy)* |
 | Gnosis Safe (Admin) | *(fill in)* |
 | TimelockController | *(fill in if governance-gated)* |

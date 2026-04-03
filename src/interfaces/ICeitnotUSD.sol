@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/// @title  IAuraUSD
-/// @notice Interface for the AuraUSD mintable/burnable CDP stablecoin.
-interface IAuraUSD {
+/// @title  ICeitnotUSD
+/// @notice Interface for the CeitnotUSD mintable/burnable CDP stablecoin.
+interface ICeitnotUSD {
     // ------------------------------- Mint / Burn
 
     /// @notice Mint `amount` aUSD to `to`. Only callable by registered minters.

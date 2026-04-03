@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import { Script }  from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 import { MockERC20 }          from "../test/mocks/MockERC20.sol";
 import { MockVault4626 }      from "../test/mocks/MockVault4626.sol";
 import { MockOracle }         from "../test/mocks/MockOracle.sol";
@@ -12,7 +12,7 @@ import { MockOracle }         from "../test/mocks/MockOracle.sol";
 /**
  * @title  DeploySecondMarket
  * @notice Deploys MockRETH + aRETH vault + oracle and registers as Market #1
- *         in the existing AuraMarketRegistry on Sepolia.
+ *         in the existing CeitnotMarketRegistry on Sepolia.
  *
  * Usage:
  *   forge script script/DeploySecondMarket.s.sol:DeploySecondMarket \
@@ -32,14 +32,14 @@ contract DeploySecondMarket is Script {
         MockERC20 rETH = new MockERC20("Rocket Pool ETH", "rETH", 18);
 
         // 2. ERC-4626 vault wrapping rETH → aRETH
-        MockVault4626 vault = new MockVault4626(address(rETH), "Aura rETH Vault", "aRETH");
+        MockVault4626 vault = new MockVault4626(address(rETH), "Ceitnot rETH Vault", "aRETH");
 
         // 3. Mock oracle: rETH = $2200 (2200e18 in WAD)
         MockOracle oracle = new MockOracle();
         oracle.setPrice(2200e18);
 
         // 4. Register market in existing registry
-        AuraMarketRegistry registry = AuraMarketRegistry(REGISTRY);
+        CeitnotMarketRegistry registry = CeitnotMarketRegistry(REGISTRY);
         uint256 marketId = registry.addMarket(
             address(vault),
             address(oracle),

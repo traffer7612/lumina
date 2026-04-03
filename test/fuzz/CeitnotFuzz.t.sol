@@ -2,23 +2,23 @@
 pragma solidity ^0.8.20;
 
 import { Test }               from "forge-std/Test.sol";
-import { AuraEngine }         from "../../src/AuraEngine.sol";
-import { AuraProxy }          from "../../src/AuraProxy.sol";
-import { AuraMarketRegistry } from "../../src/AuraMarketRegistry.sol";
-import { AuraUSD }            from "../../src/AuraUSD.sol";
+import { CeitnotEngine }         from "../../src/CeitnotEngine.sol";
+import { CeitnotProxy }          from "../../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry } from "../../src/CeitnotMarketRegistry.sol";
+import { CeitnotUSD }            from "../../src/CeitnotUSD.sol";
 import { MockERC20 }          from "../mocks/MockERC20.sol";
 import { MockVault4626 }      from "../mocks/MockVault4626.sol";
 import { MockOracle }         from "../mocks/MockOracle.sol";
 
 /**
- * @title  AuraFuzzTest
- * @notice Stateless property-based fuzz tests for AuraEngine.
+ * @title  CeitnotFuzzTest
+ * @notice Stateless property-based fuzz tests for CeitnotEngine.
  *         Each test deploys its own isolated state and explores a single
  *         behavioral property across the fuzz input space.
  *
  * Foundry runs 1000 iterations per test (set in foundry.toml).
  */
-contract AuraFuzzTest is Test {
+contract CeitnotFuzzTest is Test {
 
     // ---- Constants
     uint256 constant WAD       = 1e18;
@@ -35,9 +35,9 @@ contract AuraFuzzTest is Test {
     // ---- Shared internal helpers
 
     struct Env {
-        AuraEngine         engine;
-        AuraProxy          proxy;
-        AuraMarketRegistry registry;
+        CeitnotEngine         engine;
+        CeitnotProxy          proxy;
+        CeitnotMarketRegistry registry;
         MockERC20          assetToken;
         MockERC20          debtToken;
         MockVault4626      vault;
@@ -54,7 +54,7 @@ contract AuraFuzzTest is Test {
         e.vault      = new MockVault4626(address(e.assetToken), "aVault", "aV");
         e.oracle     = new MockOracle();
 
-        e.registry = new AuraMarketRegistry(address(this));
+        e.registry = new CeitnotMarketRegistry(address(this));
         e.registry.addMarket(
             address(e.vault),
             address(e.oracle),
@@ -64,13 +64,13 @@ contract AuraFuzzTest is Test {
             0, 0, false, 0
         );
 
-        AuraEngine impl = new AuraEngine();
+        CeitnotEngine impl = new CeitnotEngine();
         bytes memory init = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(e.debtToken), address(e.registry), 1 days, 2 days)
         );
-        e.proxy  = new AuraProxy(address(impl), init);
-        e.engine = AuraEngine(address(e.proxy));
+        e.proxy  = new CeitnotProxy(address(impl), init);
+        e.engine = CeitnotEngine(address(e.proxy));
         e.registry.setEngine(address(e.proxy));
 
         // Fund engine with plenty of debt tokens
@@ -132,7 +132,7 @@ contract AuraFuzzTest is Test {
         vm.roll(block.number + 1);
 
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__ExceedsLTV.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__ExceedsLTV.selector);
         e.engine.borrow(alice, MARKET_ID, amount);
     }
 
@@ -160,7 +160,7 @@ contract AuraFuzzTest is Test {
         vm.roll(block.number + 1);
 
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__ExceedsLTV.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__ExceedsLTV.selector);
         e.engine.borrow(alice, MARKET_ID, overBorrow);
     }
 
@@ -265,7 +265,7 @@ contract AuraFuzzTest is Test {
 
         // Attempt withdraw in the SAME block — must revert
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__SameBlockInteraction.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__SameBlockInteraction.selector);
         e.engine.withdrawCollateral(alice, MARKET_ID, shares);
     }
 
@@ -315,7 +315,7 @@ contract AuraFuzzTest is Test {
     }
 
     // =========================================================================
-    // Test 8: AuraUSD permit sets allowance to exactly the requested value
+    // Test 8: CeitnotUSD permit sets allowance to exactly the requested value
     // =========================================================================
 
     /**
@@ -325,8 +325,8 @@ contract AuraFuzzTest is Test {
     function testFuzz_permitAllowanceMatchesValue(uint128 value, uint256 deadlineOffset) public {
         deadlineOffset = bound(deadlineOffset, 0, 365 days);
 
-        // Deploy AuraUSD (standalone — no engine needed for permit)
-        AuraUSD ausd = new AuraUSD(address(this));
+        // Deploy CeitnotUSD (standalone — no engine needed for permit)
+        CeitnotUSD ausd = new CeitnotUSD(address(this));
 
         // Derive alice's address from the known private key
         address aliceAddr = vm.addr(ALICE_PK);

@@ -2,12 +2,12 @@
 
 ## Short Version
 
-Lumina governance is designed to reduce unilateral control risk and make protocol changes transparent, reviewable, and delayed before execution.
+Ceitnot governance is designed to reduce unilateral control risk and make protocol changes transparent, reviewable, and delayed before execution.
 
 ## Governance Stack
 
-- `veLUMINA` as voting power (obtained by locking LUMINA),
-- `AuraGovernor` for proposal lifecycle and voting,
+- `veCEITNOT` as voting power (obtained by locking CEITNOT),
+- `CeitnotGovernor` for proposal lifecycle and voting,
 - `Timelock` for delayed execution of approved actions,
 - on-chain execution into core protocol contracts.
 
@@ -28,8 +28,8 @@ Lumina governance is designed to reduce unilateral control risk and make protoco
 ## Operational model
 
 Users:
-- acquire LUMINA,
-- lock LUMINA to receive veLUMINA,
+- acquire CEITNOT,
+- lock CEITNOT to receive veCEITNOT,
 - vote and optionally delegate,
 - earn protocol revenue as long-term participants.
 

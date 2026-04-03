@@ -1,11 +1,11 @@
 # Создание нового маркета на Arbitrum One (от и до)
 
-Это пошаговый гайд для тех, кто **никогда** не добавлял маркет в Lumina на боевой сети.
+Это пошаговый гайд для тех, кто **никогда** не добавлял маркет в Ceitnot на боевой сети.
 После этого гайда у вас будет новый маркет в протоколе, куда пользователи смогут вносить коллатерал и занимать aUSD / USDC.
 
 ---
 
-## Что такое «маркет» в Lumina
+## Что такое «маркет» в Ceitnot
 
 Маркет — это тройка:
 
@@ -13,7 +13,7 @@
 2. **Oracle** — контракт, который отдаёт цену коллатерала в USD.
 3. **Risk-параметры** — LTV, порог ликвидации, штраф, caps и т.д.
 
-Маркет регистрируется в реестре Lumina — контракт **`AuraMarketRegistry`** — вызовом `addMarket(...)`. После этого пользователи могут вносить коллатерал и занимать.
+Маркет регистрируется в реестре Ceitnot — контракт **`CeitnotMarketRegistry`** — вызовом `addMarket(...)`. После этого пользователи могут вносить коллатерал и занимать.
 
 ---
 
@@ -37,7 +37,7 @@
 2. **Кошелёк** с ETH на Arbitrum One (на газ). Даже 0.001 ETH хватит на десяток транзакций.
 3. **Приватный ключ** этого кошелька (только для деплоя, не храните крупные суммы).
 4. **Доступ к RPC Arbitrum**: `https://arb1.arbitrum.io/rpc` (бесплатный) или свой Alchemy/Infura.
-5. **Протокол Lumina уже задеплоен** — у вас есть адреса Engine (proxy) и Registry.
+5. **Протокол Ceitnot уже задеплоен** — у вас есть адреса Engine (proxy) и Registry.
 
 ---
 
@@ -186,7 +186,7 @@ pragma solidity ^0.8.20;
 import { Script }  from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 import { OracleRelay }        from "../src/OracleRelay.sol";
 
 contract DeployNewMarket is Script {
@@ -215,7 +215,7 @@ contract DeployNewMarket is Script {
         );
 
         // 2. Регистрируем маркет
-        AuraMarketRegistry registry = AuraMarketRegistry(REGISTRY);
+        CeitnotMarketRegistry registry = CeitnotMarketRegistry(REGISTRY);
         uint256 marketId = registry.addMarket(
             VAULT,                   // ERC-4626 vault
             address(oracle),         // OracleRelay

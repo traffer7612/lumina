@@ -2,14 +2,14 @@
 pragma solidity ^0.8.20;
 
 import { Test }         from "forge-std/Test.sol";
-import { AuraTreasury } from "../src/AuraTreasury.sol";
+import { CeitnotTreasury } from "../src/CeitnotTreasury.sol";
 import { MockERC20 }    from "./mocks/MockERC20.sol";
 
 contract TreasuryTest is Test {
-    AuraTreasury public treasury;
+    CeitnotTreasury public treasury;
     MockERC20    public token;
 
-    // Mirror events from AuraTreasury for vm.expectEmit
+    // Mirror events from CeitnotTreasury for vm.expectEmit
     event Deposited(address indexed token, address indexed from, uint256 amount);
     event Withdrawn(address indexed token, address indexed to, uint256 amount);
     event Distributed(address indexed token, uint256 totalAmount, uint256 recipientCount);
@@ -23,7 +23,7 @@ contract TreasuryTest is Test {
 
     function setUp() public {
         token    = new MockERC20("Test Token", "TST", 18);
-        treasury = new AuraTreasury(admin);
+        treasury = new CeitnotTreasury(admin);
 
         // Fund admin (test contract) with tokens
         token.mint(admin, 1_000 * WAD);
@@ -37,8 +37,8 @@ contract TreasuryTest is Test {
     }
 
     function test_constructor_zeroAdmin_reverts() public {
-        vm.expectRevert(AuraTreasury.Treasury__InvalidParams.selector);
-        new AuraTreasury(address(0));
+        vm.expectRevert(CeitnotTreasury.Treasury__InvalidParams.selector);
+        new CeitnotTreasury(address(0));
     }
 
     // ==================== Deposit ====================
@@ -51,12 +51,12 @@ contract TreasuryTest is Test {
     }
 
     function test_deposit_zeroAmount_reverts() public {
-        vm.expectRevert(AuraTreasury.Treasury__InvalidParams.selector);
+        vm.expectRevert(CeitnotTreasury.Treasury__InvalidParams.selector);
         treasury.deposit(address(token), 0);
     }
 
     function test_deposit_zeroToken_reverts() public {
-        vm.expectRevert(AuraTreasury.Treasury__InvalidParams.selector);
+        vm.expectRevert(CeitnotTreasury.Treasury__InvalidParams.selector);
         treasury.deposit(address(0), 100 * WAD);
     }
 
@@ -85,21 +85,21 @@ contract TreasuryTest is Test {
         treasury.deposit(address(token), 100 * WAD);
 
         vm.prank(alice);
-        vm.expectRevert(AuraTreasury.Treasury__Unauthorized.selector);
+        vm.expectRevert(CeitnotTreasury.Treasury__Unauthorized.selector);
         treasury.withdraw(address(token), 50 * WAD, alice);
     }
 
     function test_withdraw_insufficientBalance_reverts() public {
         treasury.deposit(address(token), 50 * WAD);
 
-        vm.expectRevert(AuraTreasury.Treasury__InsufficientBalance.selector);
+        vm.expectRevert(CeitnotTreasury.Treasury__InsufficientBalance.selector);
         treasury.withdraw(address(token), 100 * WAD, alice);
     }
 
     function test_withdraw_zeroAmount_reverts() public {
         treasury.deposit(address(token), 100 * WAD);
 
-        vm.expectRevert(AuraTreasury.Treasury__InvalidParams.selector);
+        vm.expectRevert(CeitnotTreasury.Treasury__InvalidParams.selector);
         treasury.withdraw(address(token), 0, alice);
     }
 
@@ -145,7 +145,7 @@ contract TreasuryTest is Test {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = 50 * WAD;
 
-        vm.expectRevert(AuraTreasury.Treasury__LengthMismatch.selector);
+        vm.expectRevert(CeitnotTreasury.Treasury__LengthMismatch.selector);
         treasury.distribute(address(token), recipients, amounts);
     }
 
@@ -158,7 +158,7 @@ contract TreasuryTest is Test {
         uint256[] memory amounts = new uint256[](1);
         amounts[0] = 100 * WAD;
 
-        vm.expectRevert(AuraTreasury.Treasury__InsufficientBalance.selector);
+        vm.expectRevert(CeitnotTreasury.Treasury__InsufficientBalance.selector);
         treasury.distribute(address(token), recipients, amounts);
     }
 
@@ -171,7 +171,7 @@ contract TreasuryTest is Test {
         amounts[0] = 50 * WAD;
 
         vm.prank(alice);
-        vm.expectRevert(AuraTreasury.Treasury__Unauthorized.selector);
+        vm.expectRevert(CeitnotTreasury.Treasury__Unauthorized.selector);
         treasury.distribute(address(token), recipients, amounts);
     }
 
@@ -179,7 +179,7 @@ contract TreasuryTest is Test {
         address[] memory recipients = new address[](0);
         uint256[] memory amounts    = new uint256[](0);
 
-        vm.expectRevert(AuraTreasury.Treasury__InvalidParams.selector);
+        vm.expectRevert(CeitnotTreasury.Treasury__InvalidParams.selector);
         treasury.distribute(address(token), recipients, amounts);
     }
 
@@ -198,7 +198,7 @@ contract TreasuryTest is Test {
 
     function test_proposeAdmin_nonAdmin_reverts() public {
         vm.prank(alice);
-        vm.expectRevert(AuraTreasury.Treasury__Unauthorized.selector);
+        vm.expectRevert(CeitnotTreasury.Treasury__Unauthorized.selector);
         treasury.proposeAdmin(bob);
     }
 
@@ -206,7 +206,7 @@ contract TreasuryTest is Test {
         treasury.proposeAdmin(alice);
 
         vm.prank(bob);
-        vm.expectRevert(AuraTreasury.Treasury__Unauthorized.selector);
+        vm.expectRevert(CeitnotTreasury.Treasury__Unauthorized.selector);
         treasury.acceptAdmin();
     }
 }

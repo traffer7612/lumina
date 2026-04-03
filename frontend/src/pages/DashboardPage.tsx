@@ -8,15 +8,15 @@ import { useContractAddresses } from '../lib/contracts';
 
 function StatCard({ label, value, sub, icon: Icon }: { label: string; value: string; sub?: string; icon: LucideIcon }) {
   return (
-    <div className="stat-card hover:border-aura-border-2 transition-colors group">
+    <div className="stat-card hover:border-ceitnot-border-2 transition-colors group">
       <div className="flex items-center justify-between mb-3">
         <span className="stat-label">{label}</span>
-        <div className="p-2 rounded-lg bg-aura-gold/10 text-aura-gold group-hover:bg-aura-gold/20 transition-colors">
+        <div className="p-2 rounded-lg bg-ceitnot-gold/10 text-ceitnot-gold group-hover:bg-ceitnot-gold/20 transition-colors">
           <Icon size={14} />
         </div>
       </div>
       <div className="stat-value">{value}</div>
-      {sub && <div className="text-xs text-aura-muted mt-0.5">{sub}</div>}
+      {sub && <div className="text-xs text-ceitnot-muted mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -36,9 +36,9 @@ export default function DashboardPage() {
     <div className="page-container">
       {/* Protocol alerts */}
       {(paused || emergencyShutdown) && (
-        <div className="mb-6 p-4 rounded-xl border border-aura-danger/40 bg-aura-danger/10 flex items-center gap-3">
-          <Activity size={18} className="text-aura-danger shrink-0" />
-          <p className="text-sm text-aura-danger font-medium">
+        <div className="mb-6 p-4 rounded-xl border border-ceitnot-danger/40 bg-ceitnot-danger/10 flex items-center gap-3">
+          <Activity size={18} className="text-ceitnot-danger shrink-0" />
+          <p className="text-sm text-ceitnot-danger font-medium">
             {emergencyShutdown ? 'Emergency shutdown active — borrows disabled.' : 'Protocol is paused.'}
           </p>
         </div>
@@ -46,11 +46,11 @@ export default function DashboardPage() {
 
       {/* Config missing banner */}
       {!configured && (
-        <div className="mb-6 p-4 rounded-xl border border-aura-warning/30 bg-aura-warning/8">
-          <p className="text-sm text-aura-warning font-medium mb-1">Contract addresses not configured</p>
-          <p className="text-xs text-aura-muted">
-            Set <code className="font-mono text-aura-warning/80">VITE_ENGINE_ADDRESS</code> and{' '}
-            <code className="font-mono text-aura-warning/80">VITE_REGISTRY_ADDRESS</code> in your <code className="font-mono">.env</code> file.
+        <div className="mb-6 p-4 rounded-xl border border-ceitnot-warning/30 bg-ceitnot-warning/8">
+          <p className="text-sm text-ceitnot-warning font-medium mb-1">Contract addresses not configured</p>
+          <p className="text-xs text-ceitnot-muted">
+            Set <code className="font-mono text-ceitnot-warning/80">VITE_ENGINE_ADDRESS</code> and{' '}
+            <code className="font-mono text-ceitnot-warning/80">VITE_REGISTRY_ADDRESS</code> in your <code className="font-mono">.env</code> file.
           </p>
         </div>
       )}
@@ -58,11 +58,11 @@ export default function DashboardPage() {
       {/* Hero */}
       <div className="mb-10">
         <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-aura-gold to-aura-accent">
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-ceitnot-gold to-ceitnot-accent">
             Yield-Backed Credit
           </span>
         </h1>
-        <p className="text-aura-muted-2 text-lg mt-3 max-w-2xl">
+        <p className="text-ceitnot-muted-2 text-lg mt-3 max-w-2xl">
           Deposit ERC-4626 vault shares as collateral and borrow against them across isolated markets — without selling your yield.
         </p>
         <div className="flex flex-wrap gap-3 mt-6">
@@ -85,20 +85,20 @@ export default function DashboardPage() {
 
       {/* Markets preview */}
       <div className="card">
-        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-aura-border">
+        <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-ceitnot-border">
           <h2 className="font-semibold text-lg">Markets</h2>
-          <Link to="/markets" className="flex items-center gap-1 text-sm text-aura-gold hover:text-aura-gold-bright transition-colors">
+          <Link to="/markets" className="flex items-center gap-1 text-sm text-ceitnot-gold hover:text-ceitnot-gold-bright transition-colors">
             View all <ArrowRight size={14} />
           </Link>
         </div>
 
         {isLoading && (
-          <div className="p-8 text-center text-aura-muted text-sm">Loading markets…</div>
+          <div className="p-8 text-center text-ceitnot-muted text-sm">Loading markets…</div>
         )}
 
         {!isLoading && markets.length === 0 && (
           <div className="p-8 text-center">
-            <p className="text-aura-muted text-sm">
+            <p className="text-ceitnot-muted text-sm">
               {configured ? 'No markets found. Check your registry address.' : 'Configure contract addresses to see markets.'}
             </p>
           </div>
@@ -121,16 +121,16 @@ export default function DashboardPage() {
                   <td className="table-td">
                     <div>
                       <span className="font-medium">{m.vaultSymbol ?? `Market #${m.id}`}</span>
-                      <span className="ml-2 text-xs text-aura-muted">#{m.id}</span>
+                      <span className="ml-2 text-xs text-ceitnot-muted">#{m.id}</span>
                     </div>
-                    <div className="text-xs text-aura-muted font-mono mt-0.5">
+                    <div className="text-xs text-ceitnot-muted font-mono mt-0.5">
                       {formatAddress(m.config.vault)}
                     </div>
                   </td>
-                  <td className="table-td hidden sm:table-cell text-aura-muted-2 font-mono">
+                  <td className="table-td hidden sm:table-cell text-ceitnot-muted-2 font-mono">
                     {formatBps(m.config.ltvBps)}
                   </td>
-                  <td className="table-td hidden md:table-cell text-aura-muted-2 font-mono">
+                  <td className="table-td hidden md:table-cell text-ceitnot-muted-2 font-mono">
                     {formatBps(m.config.liquidationThresholdBps)}
                   </td>
                   <td className="table-td text-right font-mono text-sm">
@@ -151,22 +151,22 @@ export default function DashboardPage() {
       </div>
 
       {/* Footer info */}
-      <div className="mt-8 grid sm:grid-cols-3 gap-4 text-xs text-aura-muted">
+      <div className="mt-8 grid sm:grid-cols-3 gap-4 text-xs text-ceitnot-muted">
         {engine && (
           <div>
-            <span className="text-aura-muted-2 uppercase tracking-wider">Engine</span>
+            <span className="text-ceitnot-muted-2 uppercase tracking-wider">Engine</span>
             <p className="font-mono mt-0.5">{formatAddress(engine)}</p>
           </div>
         )}
         {registry && (
           <div>
-            <span className="text-aura-muted-2 uppercase tracking-wider">Registry</span>
+            <span className="text-ceitnot-muted-2 uppercase tracking-wider">Registry</span>
             <p className="font-mono mt-0.5">{formatAddress(registry)}</p>
           </div>
         )}
         {debtToken && (
           <div>
-            <span className="text-aura-muted-2 uppercase tracking-wider">Debt Token</span>
+            <span className="text-ceitnot-muted-2 uppercase tracking-wider">Debt Token</span>
             <p className="font-mono mt-0.5">{formatAddress(debtToken)}</p>
           </div>
         )}

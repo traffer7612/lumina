@@ -88,13 +88,13 @@ function LineChartSvg() {
         </linearGradient>
       </defs>
       {/* Ось Y: линия и подписи по одной вертикали */}
-      <line x1={PADDING.left} y1={PADDING.top} x2={PADDING.left} y2={PADDING.top + PLOT_H} className="stroke-aura-border" strokeWidth="1" />
+      <line x1={PADDING.left} y1={PADDING.top} x2={PADDING.left} y2={PADDING.top + PLOT_H} className="stroke-ceitnot-border" strokeWidth="1" />
       {yTicks.map((tick) => {
         const y = PADDING.top + PLOT_H - (tick / 100) * PLOT_H;
         return (
           <g key={tick}>
-            <line x1={PADDING.left} y1={y} x2={PADDING.left + PLOT_W} y2={y} className="stroke-aura-border/50" strokeWidth="0.5" strokeDasharray="4 4" strokeLinecap="round" />
-            <text x={PADDING.left - 10} y={y} textAnchor="end" dominantBaseline="middle" className="lp-axis-text fill-aura-muted-2" fontSize="11">
+            <line x1={PADDING.left} y1={y} x2={PADDING.left + PLOT_W} y2={y} className="stroke-ceitnot-border/50" strokeWidth="0.5" strokeDasharray="4 4" strokeLinecap="round" />
+            <text x={PADDING.left - 10} y={y} textAnchor="end" dominantBaseline="middle" className="lp-axis-text fill-ceitnot-muted-2" fontSize="11">
               {tick}%
             </text>
           </g>
@@ -102,7 +102,7 @@ function LineChartSvg() {
       })}
       {/* X-axis labels */}
       {points.map((p, i) => (
-        <text key={`x-${i}`} x={p.x} y={CHART_HEIGHT - 4} textAnchor="middle" className="lp-axis-text fill-aura-muted" fontSize="9">
+        <text key={`x-${i}`} x={p.x} y={CHART_HEIGHT - 4} textAnchor="middle" className="lp-axis-text fill-ceitnot-muted" fontSize="9">
           {xLabels[i]}
         </text>
       ))}
@@ -115,8 +115,8 @@ function LineChartSvg() {
         const labelY = labelAbove ? p.y - 10 : p.y + 14;
         return (
           <g key={`v-${version}-${i}`}>
-            <circle cx={p.x} cy={p.y} r="4" className="fill-aura-gold stroke-aura-bg stroke-[2]" />
-            <text x={p.x} y={labelY} textAnchor="middle" className="lp-value-text fill-aura-gold" fontSize="11" fontWeight="600">
+            <circle cx={p.x} cy={p.y} r="4" className="fill-ceitnot-gold stroke-ceitnot-bg stroke-[2]" />
+            <text x={p.x} y={labelY} textAnchor="middle" className="lp-value-text fill-ceitnot-gold" fontSize="11" fontWeight="600">
               {p.value}
             </text>
           </g>
@@ -131,32 +131,32 @@ export default function LandingPage() {
     <div className="min-h-screen text-white landing-pg">
       {/* Hero — анимация появления */}
       <section className="relative px-4 pt-24 pb-20 sm:pt-32 sm:pb-28 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-aura-gold/5 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-ceitnot-gold/5 to-transparent pointer-events-none" />
         <div className="max-w-3xl mx-auto text-center relative z-10">
           <h1 className="lp-hero-title text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6">
             DeFi lending.
             <br />
-            <span className="text-aura-gold">On your terms.</span>
+            <span className="text-ceitnot-gold">On your terms.</span>
           </h1>
-          <p className="lp-hero-sub text-lg text-aura-muted-2 mb-10 max-w-xl mx-auto leading-relaxed">
+          <p className="lp-hero-sub text-lg text-ceitnot-muted-2 mb-10 max-w-xl mx-auto leading-relaxed">
             Deposit collateral. Borrow stablecoins. Everything on-chain, non-custodial.
           </p>
           <Link
             to="/dashboard"
-            className="lp-hero-cta inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-aura-gold text-aura-bg hover:bg-aura-gold-bright transition-all hover:shadow-lg hover:shadow-aura-gold/20"
+            className="lp-hero-cta inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-ceitnot-gold text-ceitnot-bg hover:bg-ceitnot-gold-bright transition-all hover:shadow-lg hover:shadow-ceitnot-gold/20"
           >
             Open app
             <ArrowRight size={18} />
           </Link>
         </div>
-        <p className="lp-hero-badge text-center text-aura-muted text-sm mt-10">Arbitrum · Base · Sepolia testnet</p>
+        <p className="lp-hero-badge text-center text-ceitnot-muted text-sm mt-10">Arbitrum · Base · Sepolia testnet</p>
       </section>
 
       {/* Графики — столбцы + линия */}
-      <section className="px-4 py-16 sm:py-20 border-t border-aura-border">
+      <section className="px-4 py-16 sm:py-20 border-t border-ceitnot-border">
         <div className="max-w-4xl mx-auto">
           <h2 className="lp-fade text-xl font-bold text-center mb-1">Protocol metrics</h2>
-          <p className="lp-fade text-aura-muted text-sm text-center mb-10">TVL & growth</p>
+          <p className="lp-fade text-ceitnot-muted text-sm text-center mb-10">TVL & growth</p>
           <div className="lp-chart-row group flex items-end justify-center gap-2 h-40 mb-14">
             {CHART_BARS.map((h, i) => (
               <div
@@ -165,7 +165,7 @@ export default function LandingPage() {
                 style={{ height: `${h}%`, animationDelay: `${0.05 * i}s` }}
                 title={`${h}%`}
               >
-                <span className="lp-bar-value absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 rounded text-xs font-medium bg-aura-gold text-aura-bg whitespace-nowrap">
+                <span className="lp-bar-value absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 rounded text-xs font-medium bg-ceitnot-gold text-ceitnot-bg whitespace-nowrap">
                   {h}%
                 </span>
               </div>
@@ -178,7 +178,7 @@ export default function LandingPage() {
       </section>
 
       {/* How it works — карточки с анимацией */}
-      <section className="px-4 py-20 border-t border-aura-border">
+      <section className="px-4 py-20 border-t border-ceitnot-border">
         <div className="max-w-5xl mx-auto">
           <h2 className="lp-fade text-2xl font-bold text-center mb-12">How it works</h2>
           <div className="grid sm:grid-cols-3 gap-8">
@@ -188,11 +188,11 @@ export default function LandingPage() {
               { Icon: Shield, title: '3. Manage', text: 'Repay, add collateral, or withdraw. Smart contract enforces the rules.' },
             ].map((item, i) => (
               <div key={item.title} className="lp-step text-center" style={{ animationDelay: `${0.12 * i}s` }}>
-                <div className="w-14 h-14 rounded-2xl bg-aura-gold/10 flex items-center justify-center text-aura-gold mx-auto mb-4">
+                <div className="w-14 h-14 rounded-2xl bg-ceitnot-gold/10 flex items-center justify-center text-ceitnot-gold mx-auto mb-4">
                   <item.Icon size={28} />
                 </div>
                 <h3 className="font-semibold text-white mb-2">{item.title}</h3>
-                <p className="text-sm text-aura-muted-2 leading-relaxed">{item.text}</p>
+                <p className="text-sm text-ceitnot-muted-2 leading-relaxed">{item.text}</p>
               </div>
             ))}
           </div>
@@ -200,16 +200,16 @@ export default function LandingPage() {
       </section>
 
       {/* Trust */}
-      <section className="lp-fade px-4 py-12 border-t border-aura-border bg-aura-surface/40">
-        <div className="max-w-3xl mx-auto flex flex-wrap justify-center gap-x-12 gap-y-4 text-aura-muted-2 text-sm">
-          <span className="flex items-center gap-2"><Lock size={16} className="text-aura-gold" /> Non-custodial</span>
-          <span className="flex items-center gap-2"><Shield size={16} className="text-aura-gold" /> On-chain execution</span>
+      <section className="lp-fade px-4 py-12 border-t border-ceitnot-border bg-ceitnot-surface/40">
+        <div className="max-w-3xl mx-auto flex flex-wrap justify-center gap-x-12 gap-y-4 text-ceitnot-muted-2 text-sm">
+          <span className="flex items-center gap-2"><Lock size={16} className="text-ceitnot-gold" /> Non-custodial</span>
+          <span className="flex items-center gap-2"><Shield size={16} className="text-ceitnot-gold" /> On-chain execution</span>
         </div>
         {TIMELOCK_ENV && (
-          <p className="max-w-xl mx-auto mt-8 text-center text-xs sm:text-sm text-aura-muted-2 leading-relaxed px-2">
+          <p className="max-w-xl mx-auto mt-8 text-center text-xs sm:text-sm text-ceitnot-muted-2 leading-relaxed px-2">
             Protocol administration is handled by the{' '}
             <span className="text-white/90 font-medium">Timelock</span> contract (not a personal EOA). Changes go through{' '}
-            <Link to="/governance" className="text-aura-gold hover:underline font-medium">
+            <Link to="/governance" className="text-ceitnot-gold hover:underline font-medium">
               governance
             </Link>
             {blockExplorerAddressUrl(TARGET_CHAIN_ID, TIMELOCK_ENV) && (
@@ -219,7 +219,7 @@ export default function LandingPage() {
                   href={blockExplorerAddressUrl(TARGET_CHAIN_ID, TIMELOCK_ENV)!}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-aura-gold hover:underline font-medium"
+                  className="inline-flex items-center gap-1 text-ceitnot-gold hover:underline font-medium"
                 >
                   Timelock on explorer
                   <ExternalLink size={12} className="opacity-80 shrink-0" aria-hidden />
@@ -229,52 +229,52 @@ export default function LandingPage() {
             .
           </p>
         )}
-        <p className="max-w-xl mx-auto mt-6 text-center text-xs text-aura-muted px-2">
+        <p className="max-w-xl mx-auto mt-6 text-center text-xs text-ceitnot-muted px-2">
           <a
             href={DOCS_TREE_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 text-aura-gold hover:underline font-medium"
+            className="inline-flex items-center gap-1 text-ceitnot-gold hover:underline font-medium"
           >
             Documentation
             <ExternalLink size={12} className="opacity-80 shrink-0" aria-hidden />
           </a>
-          <span className="text-aura-border mx-2">·</span>
+          <span className="text-ceitnot-border mx-2">·</span>
           <a
             href={DOC_TOKENOMICS_CHECKLIST_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-aura-gold hover:underline font-medium"
+            className="text-ceitnot-gold hover:underline font-medium"
           >
             Go-live checklist
           </a>
-          <span className="text-aura-border mx-2">·</span>
+          <span className="text-ceitnot-border mx-2">·</span>
           <a
             href={DOC_PRODUCTION_ADDRESSES_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-aura-gold hover:underline font-medium"
+            className="text-ceitnot-gold hover:underline font-medium"
           >
             Arbitrum contracts
           </a>
         </p>
       </section>
 
-      {/* LUMINA token */}
-      <section className="px-4 py-20 border-t border-aura-border">
+      {/* CEITNOT token */}
+      <section className="px-4 py-20 border-t border-ceitnot-border">
         <div className="max-w-4xl mx-auto">
-          <h2 className="lp-fade text-2xl font-bold text-center mb-3">LUMINA token</h2>
-          <p className="lp-fade text-aura-muted-2 text-center text-sm mb-12 max-w-md mx-auto">Governance and revenue sharing. Lock LUMINA → veLUMINA → vote and earn.</p>
+          <h2 className="lp-fade text-2xl font-bold text-center mb-3">CEITNOT token</h2>
+          <p className="lp-fade text-ceitnot-muted-2 text-center text-sm mb-12 max-w-md mx-auto">Governance and revenue sharing. Lock CEITNOT → veCEITNOT → vote and earn.</p>
           <div className="grid sm:grid-cols-3 gap-6">
             {[
-              { Icon: Vote, title: 'Governance', text: 'Vote on proposals with veLUMINA.' },
+              { Icon: Vote, title: 'Governance', text: 'Vote on proposals with veCEITNOT.' },
               { Icon: Coins, title: 'Revenue share', text: 'Earn from protocol fees.' },
-              { Icon: Lock, title: 'Lock & stake', text: 'Lock LUMINA for voting power.' },
+              { Icon: Lock, title: 'Lock & stake', text: 'Lock CEITNOT for voting power.' },
             ].map((item, i) => (
-              <div key={item.title} className="lp-token p-5 rounded-2xl bg-aura-surface border border-aura-border hover:border-aura-gold/25 transition-colors" style={{ animationDelay: `${0.1 * i}s` }}>
-                <item.Icon size={22} className="text-aura-gold mb-3" />
+              <div key={item.title} className="lp-token p-5 rounded-2xl bg-ceitnot-surface border border-ceitnot-border hover:border-ceitnot-gold/25 transition-colors" style={{ animationDelay: `${0.1 * i}s` }}>
+                <item.Icon size={22} className="text-ceitnot-gold mb-3" />
                 <h3 className="font-semibold text-white mb-1">{item.title}</h3>
-                <p className="text-xs text-aura-muted-2">{item.text}</p>
+                <p className="text-xs text-ceitnot-muted-2">{item.text}</p>
               </div>
             ))}
           </div>
@@ -282,10 +282,10 @@ export default function LandingPage() {
       </section>
 
       {/* CTA */}
-      <section className="px-4 py-24 border-t border-aura-border">
+      <section className="px-4 py-24 border-t border-ceitnot-border">
         <div className="max-w-xl mx-auto text-center">
-          <p className="lp-fade text-aura-muted-2 mb-6">Ready to use the protocol?</p>
-          <Link to="/dashboard" className="lp-fade inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-aura-gold text-aura-bg hover:bg-aura-gold-bright transition-all hover:shadow-lg hover:shadow-aura-gold/20">
+          <p className="lp-fade text-ceitnot-muted-2 mb-6">Ready to use the protocol?</p>
+          <Link to="/dashboard" className="lp-fade inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-ceitnot-gold text-ceitnot-bg hover:bg-ceitnot-gold-bright transition-all hover:shadow-lg hover:shadow-ceitnot-gold/20">
             Open app
             <ArrowRight size={18} />
           </Link>

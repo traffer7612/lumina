@@ -3,10 +3,10 @@ pragma solidity ^0.8.20;
 
 import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-import { IAuraUSD } from "./interfaces/IAuraUSD.sol";
+import { ICeitnotUSD } from "./interfaces/ICeitnotUSD.sol";
 
 /**
- * @title  AuraPSM
+ * @title  CeitnotPSM
  * @author Sanzhik(traffer7612)
  * @notice Peg Stability Module — allows 1:1 swaps between aUSD and a pegged stable
  *         (e.g. USDC or DAI) with independent buy/sell fees (tin / tout).
@@ -23,13 +23,13 @@ import { IAuraUSD } from "./interfaces/IAuraUSD.sol";
  *         (net of burns through the PSM). 0 = unlimited.
  *
  * @dev Phase 9 implementation.
- *      PSM must be registered as a minter in `AuraUSD`.
+ *      PSM must be registered as a minter in `CeitnotUSD`.
  *
  *      Pegged token decimals are read at deploy time (e.g. USDC = 6 on Arbitrum).
  *      aUSD is always 18 decimals; amounts are scaled so 1 unit of pegged nominal
  *      matches 1e18 wei aUSD (1:1 dollar peg before fees).
  */
-contract AuraPSM {
+contract CeitnotPSM {
     // ------------------------------- Errors
     error PSM__Unauthorized();
     error PSM__ZeroAddress();
@@ -51,7 +51,7 @@ contract AuraPSM {
     event AdminTransferred(address indexed prev, address indexed next);
 
     // ------------------------------- Immutables
-    /// @notice AuraUSD contract address.
+    /// @notice CeitnotUSD contract address.
     address public immutable ausd;
     /// @notice The pegged stable token (USDC / DAI / USDT).
     address public immutable peggedToken;
@@ -129,7 +129,7 @@ contract AuraPSM {
 
         // Interactions
         _transferIn(peggedToken, msg.sender, amount);
-        IAuraUSD(ausd).mint(msg.sender, ausdOut);
+        ICeitnotUSD(ausd).mint(msg.sender, ausdOut);
 
         emit SwapIn(msg.sender, amount, ausdOut, feePeg);
     }
@@ -161,7 +161,7 @@ contract AuraPSM {
         }
 
         // Interactions
-        IAuraUSD(ausd).burnFrom(msg.sender, amount);
+        ICeitnotUSD(ausd).burnFrom(msg.sender, amount);
         _transferOut(peggedToken, msg.sender, stableOut);
 
         emit SwapOut(msg.sender, amount, stableOut, feePeg);

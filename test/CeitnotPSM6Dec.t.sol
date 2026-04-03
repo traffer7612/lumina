@@ -2,23 +2,23 @@
 pragma solidity ^0.8.20;
 
 import { Test } from "forge-std/Test.sol";
-import { AuraUSD } from "../src/AuraUSD.sol";
-import { AuraPSM } from "../src/AuraPSM.sol";
+import { CeitnotUSD } from "../src/CeitnotUSD.sol";
+import { CeitnotPSM } from "../src/CeitnotPSM.sol";
 import { MockERC20 } from "./mocks/MockERC20.sol";
 
 /// @notice PSM with 6-decimal pegged token (Arbitrum native USDC style).
-contract AuraPSM6DecTest is Test {
-    AuraUSD public ausd;
-    AuraPSM public psm;
+contract CeitnotPSM6DecTest is Test {
+    CeitnotUSD public ausd;
+    CeitnotPSM public psm;
     MockERC20 public usdc6;
 
     address admin = address(this);
     address alice = address(0xA11CE);
 
     function setUp() public {
-        ausd = new AuraUSD(admin);
+        ausd = new CeitnotUSD(admin);
         usdc6 = new MockERC20("USDC", "USDC", 6);
-        psm = new AuraPSM(address(ausd), address(usdc6), admin, 10, 10);
+        psm = new CeitnotPSM(address(ausd), address(usdc6), admin, 10, 10);
         ausd.addMinter(address(psm));
     }
 
@@ -88,7 +88,7 @@ contract AuraPSM6DecTest is Test {
         vm.stopPrank();
 
         uint256 pool = oneUsdc - psm.feeReserves();
-        vm.expectRevert(AuraPSM.PSM__InsufficientReserves.selector);
+        vm.expectRevert(CeitnotPSM.PSM__InsufficientReserves.selector);
         psm.withdrawLiquidity(address(0xBEEF), pool + 1);
     }
 }

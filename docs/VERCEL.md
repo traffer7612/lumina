@@ -1,4 +1,4 @@
-# Деплой фронтенда Lumina на Vercel
+# Деплой фронтенда Ceitnot на Vercel
 
 ## Вариант 1: Через Vercel CLI
 
@@ -32,19 +32,19 @@
 4. В разделе **Environment Variables** добавьте переменные из списка выше.
 5. Нажмите **Deploy**.
 
-## Кнопка «Получить 1000 тестовых LUMINA» на продакшене
+## Кнопка «Получить 1000 тестовых CEITNOT» на продакшене
 
-На Vercel нет бэкенда, поэтому запрос на `/api/faucet/aura` с сайта не сработает. Чтобы кнопка работала:
+На Vercel нет бэкенда, поэтому запрос на `/api/faucet/mint-governance` с сайта не сработает. Чтобы кнопка работала:
 
-1. **Поднимите бэкенд отдельно** (Railway, Render, Fly.io, VPS и т.д.). В его `.env` должны быть `AURA_TOKEN_ADDRESS` (адрес токена LUMINA), `FAUCET_PRIVATE_KEY`, для Sepolia — `RPC_URL`.
+1. **Поднимите бэкенд отдельно** (Railway, Render, Fly.io, VPS и т.д.). В его `.env` должны быть `GOVERNANCE_TOKEN_ADDRESS` (адрес токена CEITNOT), `FAUCET_PRIVATE_KEY`, для Sepolia — `RPC_URL`.
 2. В **Vercel** → проект → **Settings** → **Environment Variables** добавьте:
    - **Name:** `VITE_API_URL`
-   - **Value:** URL бэкенда **без** слэша в конце, например `https://lumina-backend.railway.app`
+   - **Value:** URL бэкенда **без** слэша в конце, например `https://ceitnot-backend.railway.app`
 3. **Пересоберите и задеплойте** фронт (Redeploy в Vercel или новый коммит). Переменные `VITE_*` подставляются при сборке, поэтому после добавления `VITE_API_URL` нужен новый деплой.
 
-После этого кнопка на странице Governance будет отправлять запрос на `VITE_API_URL + /api/faucet/aura`.
+После этого кнопка на странице Governance будет отправлять запрос на `VITE_API_URL + /api/faucet/mint-governance`.
 
 ## Важно
 
 - На Vercel деплоится только **фронтенд**. Бэкенд (`/api/config/contracts`, фаусет и т.д.) на Vercel не поднимается. Контракты подставляются из `VITE_ENGINE_ADDRESS` и `VITE_REGISTRY_ADDRESS`.
-- Если бэкенд на другом домене — задайте `VITE_API_URL` в Vercel (см. выше), иначе кнопка «Получить 1000 тестовых LUMINA» и другие вызовы `/api/...` будут уходить на тот же домен (Vercel) и давать 404.
+- Если бэкенд на другом домене — задайте `VITE_API_URL` в Vercel (см. выше), иначе кнопка «Получить 1000 тестовых CEITNOT» и другие вызовы `/api/...` будут уходить на тот же домен (Vercel) и давать 404.

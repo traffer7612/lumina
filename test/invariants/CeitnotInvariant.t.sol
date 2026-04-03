@@ -2,17 +2,17 @@
 pragma solidity ^0.8.20;
 
 import { Test }              from "forge-std/Test.sol";
-import { AuraEngine }        from "../../src/AuraEngine.sol";
-import { AuraProxy }         from "../../src/AuraProxy.sol";
-import { AuraMarketRegistry } from "../../src/AuraMarketRegistry.sol";
+import { CeitnotEngine }        from "../../src/CeitnotEngine.sol";
+import { CeitnotProxy }         from "../../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry } from "../../src/CeitnotMarketRegistry.sol";
 import { MockERC20 }         from "../mocks/MockERC20.sol";
 import { MockVault4626 }     from "../mocks/MockVault4626.sol";
 import { MockOracle }        from "../mocks/MockOracle.sol";
-import { AuraInvariantHandler } from "./AuraInvariantHandler.sol";
+import { CeitnotInvariantHandler } from "./CeitnotInvariantHandler.sol";
 
 /**
- * @title  AuraInvariantTest
- * @notice Foundry invariant test suite for AuraEngine.
+ * @title  CeitnotInvariantTest
+ * @notice Foundry invariant test suite for CeitnotEngine.
  *
  * Invariants verified after every random action sequence:
  *   1. Vault balance accounting  — vault.balanceOf(engine) equals the sum of
@@ -30,7 +30,7 @@ import { AuraInvariantHandler } from "./AuraInvariantHandler.sol";
  *   depth          = 50
  *   fail_on_revert = false   ← correctly-reverting operations are ignored
  */
-contract AuraInvariantTest is Test {
+contract CeitnotInvariantTest is Test {
 
     // ---- Constants
     uint256 constant WAD       = 1e18;
@@ -38,14 +38,14 @@ contract AuraInvariantTest is Test {
     uint256 constant MARKET_ID = 0;
 
     // ---- Contracts
-    AuraEngine           public engine;
-    AuraProxy            public proxy;
-    AuraMarketRegistry   public registry;
+    CeitnotEngine           public engine;
+    CeitnotProxy            public proxy;
+    CeitnotMarketRegistry   public registry;
     MockERC20            public assetToken;
     MockERC20            public debtToken;
     MockVault4626        public vault;
     MockOracle           public oracle;
-    AuraInvariantHandler public handler;
+    CeitnotInvariantHandler public handler;
 
     // ---- Actors
     address public actor0 = address(0xA001);
@@ -56,11 +56,11 @@ contract AuraInvariantTest is Test {
         // ---- Deploy mocks
         assetToken = new MockERC20("Wrapped stETH", "wstETH", 18);
         debtToken  = new MockERC20("USD Stablecoin", "USDC", 18);
-        vault      = new MockVault4626(address(assetToken), "Aura wstETH Vault", "avwstETH");
+        vault      = new MockVault4626(address(assetToken), "Ceitnot wstETH Vault", "avwstETH");
         oracle     = new MockOracle();           // price = 1e18 by default
 
         // ---- Deploy registry with market 0
-        registry = new AuraMarketRegistry(address(this));
+        registry = new CeitnotMarketRegistry(address(this));
         registry.addMarket(
             address(vault),
             address(oracle),
@@ -74,13 +74,13 @@ contract AuraInvariantTest is Test {
         );
 
         // ---- Deploy engine (legacy mode — no mintableDebtToken)
-        AuraEngine impl = new AuraEngine();
+        CeitnotEngine impl = new CeitnotEngine();
         bytes memory initData = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(debtToken), address(registry), 1 days, 2 days)
         );
-        proxy  = new AuraProxy(address(impl), initData);
-        engine = AuraEngine(address(proxy));
+        proxy  = new CeitnotProxy(address(impl), initData);
+        engine = CeitnotEngine(address(proxy));
         registry.setEngine(address(proxy));
 
         // ---- Fund engine with debt tokens for lending
@@ -104,7 +104,7 @@ contract AuraInvariantTest is Test {
         }
 
         // ---- Deploy handler
-        handler = new AuraInvariantHandler(
+        handler = new CeitnotInvariantHandler(
             engine,
             vault,
             debtToken,

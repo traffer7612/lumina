@@ -1,11 +1,11 @@
-# Lumina tokenomics, mint permissions, and fee routing
+# Ceitnot tokenomics, mint permissions, and fee routing
 
 Companion to [`TOKENOMICS-PROD-CHECKLIST.md`](TOKENOMICS-PROD-CHECKLIST.md). **Numeric token supply, vesting, and treasury balances must be filled by the team** when ready for public disclosure; mechanics below are fixed by code and governance.
 
 ## 1. Supply policy (governance + disclosure)
 
-- **LUMINA (governance token, `AuraToken`)**: single `minter` address; inflation only through that minter. **Publish**: intended max supply or emissions schedule, and current `minter` (should be Timelock).
-- **aUSD (`AuraUSD`)**: no public mint except through registered **minters**; optional **global debt ceiling** (`globalDebtCeiling`, 0 = unlimited). **Publish**: ceiling value if non-zero, and total supply snapshot for launch comms.
+- **CEITNOT (governance token, `CeitnotToken`)**: single `minter` address; inflation only through that minter. **Publish**: intended max supply or emissions schedule, and current `minter` (should be Timelock).
+- **aUSD (`CeitnotUSD`)**: no public mint except through registered **minters**; optional **global debt ceiling** (`globalDebtCeiling`, 0 = unlimited). **Publish**: ceiling value if non-zero, and total supply snapshot for launch comms.
 
 **Action**: Replace TBD rows in your external factsheet with on-chain reads at launch date.
 
@@ -13,12 +13,12 @@ Companion to [`TOKENOMICS-PROD-CHECKLIST.md`](TOKENOMICS-PROD-CHECKLIST.md). **N
 
 | Asset | Who can mint | Contract path | Admin / control |
 |-------|----------------|---------------|-----------------|
-| **aUSD** | Registered minters only | `AuraUSD.mint` / `burn` | `addMinter` / `removeMinter` / `transferAdmin` — `AuraUSD.admin` must be Timelock in production. |
-| **aUSD via CDP** | `AuraEngine` (proxy) | Engine calls `mint` when user borrows; `burn` on repay/liquidation | Engine is a minter; Engine admin params via timelocked governance. |
-| **aUSD via PSM** | `AuraPSM` | `swapIn` mints aUSD; `swapOut` burns | Each PSM deployment must be added as minter via governance. |
-| **LUMINA** | Current `AuraToken.minter` | `AuraToken.mint` | `transferMinter` callable only by current minter → route to Timelock. |
+| **aUSD** | Registered minters only | `CeitnotUSD.mint` / `burn` | `addMinter` / `removeMinter` / `transferAdmin` — `CeitnotUSD.admin` must be Timelock in production. |
+| **aUSD via CDP** | `CeitnotEngine` (proxy) | Engine calls `mint` when user borrows; `burn` on repay/liquidation | Engine is a minter; Engine admin params via timelocked governance. |
+| **aUSD via PSM** | `CeitnotPSM` | `swapIn` mints aUSD; `swapOut` burns | Each PSM deployment must be added as minter via governance. |
+| **CEITNOT** | Current `CeitnotToken.minter` | `CeitnotToken.mint` | `transferMinter` callable only by current minter → route to Timelock. |
 
-**Hidden mint path check**: There is no alternate ERC-20 mint on `AuraUSD` outside `minters`; `AuraToken` has no mint except through `minter`. Verify on Arbiscan: `AuraUSD.admin`, `AuraToken.minter`, and `minters(engine)`, `minters(psm)`.
+**Hidden mint path check**: There is no alternate ERC-20 mint on `CeitnotUSD` outside `minters`; `CeitnotToken` has no mint except through `minter`. Verify on Arbiscan: `CeitnotUSD.admin`, `CeitnotToken.minter`, and `minters(engine)`, `minters(psm)`.
 
 ## 3. Vesting and unlock calendar
 
@@ -28,9 +28,9 @@ Companion to [`TOKENOMICS-PROD-CHECKLIST.md`](TOKENOMICS-PROD-CHECKLIST.md). **N
 - Monthly unlock amounts post-cliff  
 - Addresses holding vesting (EOA vs contract)
 
-## 4. veLUMINA (lock mechanics summary)
+## 4. veCEITNOT (lock mechanics summary)
 
-From `VeAura` (see also governance UI):
+From `VeCeitnot` (see also governance UI):
 
 - **Max lock**: 4 years (`MAX_LOCK_DURATION`).  
 - **Epoch alignment**: unlock times align to weekly boundaries (`EPOCH`).  
@@ -54,8 +54,8 @@ From `VeAura` (see also governance UI):
 | Stream | Code-level destination | Operational note |
 |--------|------------------------|------------------|
 | PSM fees | `feeReserves` on PSM; `withdrawFeeReserves` to admin (Timelock) | Publish **who** moves funds to treasury and **how often**. |
-| ve revenue | `VeAura.distributeRevenue` (admin-only) pushes reward-per-token; users `claimRevenue` | **Cadence**: each distribution is an on-chain tx; publish intended schedule (e.g. weekly). |
-| Treasury / multisig | `AuraTreasury` and governance executors | Publish treasury address policy (see below). |
+| ve revenue | `VeCeitnot.distributeRevenue` (admin-only) pushes reward-per-token; users `claimRevenue` | **Cadence**: each distribution is an on-chain tx; publish intended schedule (e.g. weekly). |
+| Treasury / multisig | `CeitnotTreasury` and governance executors | Publish treasury address policy (see below). |
 
 **TBD for prod comms**: exact percentage split if multiple destinations, buyback/burn if any, and reserves top-up rules.
 
@@ -68,7 +68,7 @@ From `VeAura` (see also governance UI):
 
 ## 8. Governance anti-capture (operational)
 
-- **Thresholds**: read from `AuraGovernor` on-chain (`proposalThreshold`, `quorumNumerator`, `votingDelay`, `votingPeriod`).  
+- **Thresholds**: read from `CeitnotGovernor` on-chain (`proposalThreshold`, `quorumNumerator`, `votingDelay`, `votingPeriod`).  
 - **Expectations**: publish target voter turnout and how the DAO will react to chronic low participation (e.g. parameter reviews, public campaigns).  
 - **Emergency**: `pause`, `emergencyShutdown` on engine are high-impact; document who proposes and evidence requirements — see [`INCIDENT-ROLLBACK-RUNBOOK.md`](INCIDENT-ROLLBACK-RUNBOOK.md) and [`PSM-ORACLE-MARKET-RISK.md`](PSM-ORACLE-MARKET-RISK.md).
 
@@ -79,7 +79,7 @@ Fill quarterly for investors and checklist §7.
 | Category | Examples | Notes |
 |----------|-----------|--------|
 | Stables | USDC, USDT, DAI | Treasury + PSM operational buffers |
-| Volatile / strategic | ETH, LUMINA | Mark-to-market policy |
+| Volatile / strategic | ETH, CEITNOT | Mark-to-market policy |
 | LP / protocol-owned liquidity | Pair addresses | IL and unwind rules |
 | Monthly burn | Salaries, infra, audits, grants | Round to nearest $1k in public doc |
 | Runway | months of burn at current spend | Assumptions stated explicitly |
@@ -89,5 +89,5 @@ Fill quarterly for investors and checklist §7.
 
 ## 10. Fee / treasury monitoring (checklist alignment)
 
-- Tag in block explorer watchlists: `AuraUSD`, engine proxy, active PSM, `VeAura`, `AuraTreasury`, Timelock, Governor.  
+- Tag in block explorer watchlists: `CeitnotUSD`, engine proxy, active PSM, `VeCeitnot`, `CeitnotTreasury`, Timelock, Governor.  
 - Alert on: `MinterAdded`, `MinterRemoved`, `AdminTransferred`, large `Transfer` from PSM/treasury, `Paused`, governance `ProposalExecuted` to protocol addresses.

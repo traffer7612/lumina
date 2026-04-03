@@ -37,9 +37,9 @@ export default function PositionPage() {
     return (
       <div className="page-container flex items-center justify-center min-h-[60vh]">
         <div className="text-center max-w-sm w-full flex flex-col items-center">
-          <Wallet size={48} className="text-aura-muted mb-4" />
+          <Wallet size={48} className="text-ceitnot-muted mb-4" />
           <h2 className="text-xl font-semibold mb-2">Connect your wallet</h2>
-          <p className="text-aura-muted text-sm mb-6">Connect to view and manage your positions.</p>
+          <p className="text-ceitnot-muted text-sm mb-6">Connect to view and manage your positions.</p>
           <div className="w-full flex justify-center [&>div]:flex [&>div]:justify-center">
             <ConnectButton />
           </div>
@@ -53,7 +53,7 @@ export default function PositionPage() {
       <div className="page-header flex items-end justify-between">
         <div>
           <h1 className="page-title">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-aura-gold to-aura-accent">Position</span>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-ceitnot-gold to-ceitnot-accent">Position</span>
           </h1>
           <p className="page-subtitle text-xs font-mono">{address?.slice(0, 6)}…{address?.slice(-4)}</p>
         </div>
@@ -67,35 +67,35 @@ export default function PositionPage() {
         <div className="relative mb-6">
           <button
             onClick={() => setSelectorOpen(!selectorOpen)}
-            className="card px-5 py-3 flex items-center justify-between w-full hover:border-aura-border-2 transition-colors"
+            className="card px-5 py-3 flex items-center justify-between w-full hover:border-ceitnot-border-2 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <span className="text-xs text-aura-muted">Market:</span>
+              <span className="text-xs text-ceitnot-muted">Market:</span>
               {selectedMarketId === null ? (
                 <span className="font-medium">All Markets</span>
               ) : (
                 <div className="flex items-center gap-2">
-                  <div className="w-6 h-6 rounded bg-aura-gold/15 flex items-center justify-center text-aura-gold text-xs font-bold">
+                  <div className="w-6 h-6 rounded bg-ceitnot-gold/15 flex items-center justify-center text-ceitnot-gold text-xs font-bold">
                     {selectedMarketId}
                   </div>
                   <span className="font-medium">
                     {markets.find(m => m.id === selectedMarketId)?.vaultSymbol ?? `Market #${selectedMarketId}`}
                   </span>
-                  <span className="text-xs text-aura-muted font-mono">
+                  <span className="text-xs text-ceitnot-muted font-mono">
                     {formatAddress(markets.find(m => m.id === selectedMarketId)?.config.vault ?? '')}
                   </span>
                 </div>
               )}
             </div>
-            <ChevronDown size={16} className={`text-aura-muted transition-transform ${selectorOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown size={16} className={`text-ceitnot-muted transition-transform ${selectorOpen ? 'rotate-180' : ''}`} />
           </button>
 
           {selectorOpen && (
-            <div className="absolute z-20 top-full left-0 right-0 mt-1 card border border-aura-border shadow-xl max-h-64 overflow-y-auto">
+            <div className="absolute z-20 top-full left-0 right-0 mt-1 card border border-ceitnot-border shadow-xl max-h-64 overflow-y-auto">
               <button
                 onClick={() => { setSelectedMarketId(null); setSelectorOpen(false); }}
                 className={`w-full px-5 py-3 text-left text-sm hover:bg-white/[0.03] transition-colors ${
-                  selectedMarketId === null ? 'text-aura-gold' : ''
+                  selectedMarketId === null ? 'text-ceitnot-gold' : ''
                 }`}
               >
                 All Markets
@@ -107,17 +107,17 @@ export default function PositionPage() {
                     key={m.id}
                     onClick={() => { setSelectedMarketId(m.id); setSelectorOpen(false); }}
                     className={`w-full px-5 py-3 flex items-center justify-between hover:bg-white/[0.03] transition-colors ${
-                      selectedMarketId === m.id ? 'text-aura-gold' : ''
+                      selectedMarketId === m.id ? 'text-ceitnot-gold' : ''
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded bg-aura-gold/15 flex items-center justify-center text-aura-gold text-xs font-bold">
+                      <div className="w-6 h-6 rounded bg-ceitnot-gold/15 flex items-center justify-center text-ceitnot-gold text-xs font-bold">
                         {m.id}
                       </div>
                       <span className="text-sm font-medium">{m.vaultSymbol ?? `Market #${m.id}`}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      {hasPos && <span className="text-[10px] bg-aura-gold/20 text-aura-gold px-1.5 py-0.5 rounded">Has position</span>}
+                      {hasPos && <span className="text-[10px] bg-ceitnot-gold/20 text-ceitnot-gold px-1.5 py-0.5 rounded">Has position</span>}
                       {m.config.isActive
                         ? <span className="badge-active text-[10px]">Active</span>
                         : <span className="badge-inactive text-[10px]">Inactive</span>}
@@ -138,13 +138,13 @@ export default function PositionPage() {
             {formatHf(healthFactor)}
           </span>
         </div>
-        <div className="h-2 bg-aura-border rounded-full overflow-hidden">
+        <div className="h-2 bg-ceitnot-border rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all duration-700 ${hfBarColor(hf)}`}
             style={{ width: `${hfPct}%` }}
           />
         </div>
-        <div className="flex justify-between text-xs text-aura-muted mt-1.5">
+        <div className="flex justify-between text-xs text-ceitnot-muted mt-1.5">
           <span>Liquidation</span>
           <span>1.0</span>
           <span>1.5</span>
@@ -158,11 +158,11 @@ export default function PositionPage() {
         if (!m) return null;
         return (
           <div className="card p-8 text-center mb-4">
-            <div className="w-12 h-12 rounded-xl bg-aura-gold/15 flex items-center justify-center text-aura-gold text-lg font-bold mx-auto mb-3">
+            <div className="w-12 h-12 rounded-xl bg-ceitnot-gold/15 flex items-center justify-center text-ceitnot-gold text-lg font-bold mx-auto mb-3">
               {m.id}
             </div>
             <h3 className="font-semibold text-lg">{m.vaultSymbol ?? `Market #${m.id}`}</h3>
-            <p className="text-aura-muted text-sm mt-1">No position in this market yet. Deposit collateral to open one.</p>
+            <p className="text-ceitnot-muted text-sm mt-1">No position in this market yet. Deposit collateral to open one.</p>
             <div className="flex justify-center gap-3 mt-5">
               <button onClick={() => openMint(m.id, m.config.vault)} className="btn-secondary text-sm flex items-center gap-2">
                 <Coins size={14} /> Get Shares
@@ -178,8 +178,8 @@ export default function PositionPage() {
       {/* No positions at all */}
       {positions.length === 0 && selectedMarketId === null && (
         <div className="card p-10 text-center">
-          <p className="text-aura-muted">No active positions found.</p>
-          <p className="text-xs text-aura-muted mt-1">Select a market above or deposit collateral to open a position.</p>
+          <p className="text-ceitnot-muted">No active positions found.</p>
+          <p className="text-xs text-ceitnot-muted mt-1">Select a market above or deposit collateral to open a position.</p>
           <div className="flex justify-center gap-3 mt-5 flex-wrap">
             {markets.slice(0, 3).map(m => (
               <div key={m.id} className="flex gap-2">
@@ -227,12 +227,12 @@ export default function PositionPage() {
             return (
               <div key={pos.marketId} className="card p-0 overflow-hidden">
                 {/* Position header */}
-                <div className="px-5 py-4 border-b border-aura-border flex items-center justify-between">
+                <div className="px-5 py-4 border-b border-ceitnot-border flex items-center justify-between">
                   <div>
                     <h3 className="font-semibold">
                       {market?.vaultSymbol ?? `Market #${pos.marketId}`}
                     </h3>
-                    <span className="text-xs text-aura-muted">Market #{pos.marketId}</span>
+                    <span className="text-xs text-ceitnot-muted">Market #{pos.marketId}</span>
                   </div>
                   <div>
                     {market?.config.isFrozen
@@ -245,15 +245,15 @@ export default function PositionPage() {
 
                 {/* Utilization bar */}
                 {!!maxBorrow && maxBorrow > 0n && (
-                  <div className="px-5 py-3 border-b border-aura-border">
-                    <div className="flex justify-between text-xs text-aura-muted mb-1">
+                  <div className="px-5 py-3 border-b border-ceitnot-border">
+                    <div className="flex justify-between text-xs text-ceitnot-muted mb-1">
                       <span>LTV utilization</span>
-                      <span className="font-mono text-white">{utilPct.toFixed(1)}%  <span className="text-aura-muted">of {ltv?.toFixed(0)}% max</span></span>
+                      <span className="font-mono text-white">{utilPct.toFixed(1)}%  <span className="text-ceitnot-muted">of {ltv?.toFixed(0)}% max</span></span>
                     </div>
-                    <div className="h-1.5 bg-aura-border rounded-full overflow-hidden">
+                    <div className="h-1.5 bg-ceitnot-border rounded-full overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${
-                          utilPct > 90 ? 'bg-aura-danger' : utilPct > 70 ? 'bg-aura-warning' : 'bg-aura-gold'
+                          utilPct > 90 ? 'bg-ceitnot-danger' : utilPct > 70 ? 'bg-ceitnot-warning' : 'bg-ceitnot-gold'
                         }`}
                         style={{ width: `${utilPct}%` }}
                       />
@@ -262,7 +262,7 @@ export default function PositionPage() {
                 )}
 
                 {/* Stats */}
-                <div className="px-5 py-4 grid grid-cols-3 gap-4 text-sm border-b border-aura-border">
+                <div className="px-5 py-4 grid grid-cols-3 gap-4 text-sm border-b border-ceitnot-border">
                   <div>
                     <p className="stat-label">Collateral Shares</p>
                     <p className="font-mono text-white mt-1">{formatWad(pos.shares, 4)}</p>
@@ -273,7 +273,7 @@ export default function PositionPage() {
                   </div>
                   <div>
                     <p className="stat-label">Outstanding Debt</p>
-                    <p className={`font-mono mt-1 ${pos.debt > 0n ? 'text-aura-warning' : 'text-aura-success'}`}>
+                    <p className={`font-mono mt-1 ${pos.debt > 0n ? 'text-ceitnot-warning' : 'text-ceitnot-success'}`}>
                       {formatWad(pos.debt, 4)}
                     </p>
                   </div>
@@ -283,7 +283,7 @@ export default function PositionPage() {
                 <div className="px-5 py-3 flex flex-wrap gap-2">
                   <button
                     onClick={() => market?.config.vault && openMint(pos.marketId, market.config.vault)}
-                    className="btn-ghost text-xs flex items-center gap-1.5 py-2 border border-aura-border"
+                    className="btn-ghost text-xs flex items-center gap-1.5 py-2 border border-ceitnot-border"
                   >
                     <Coins size={13} /> Get Shares
                   </button>

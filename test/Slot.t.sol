@@ -2,13 +2,11 @@
 pragma solidity ^0.8.20;
 
 import { Test } from "forge-std/Test.sol";
-import { console } from "forge-std/console.sol";
+import { CeitnotStorage } from "../src/CeitnotStorage.sol";
 
 contract SlotTest is Test {
-    function testAuraSlot() public view {
-        bytes32 s = keccak256(abi.encode(uint256(keccak256("com.aura.engine.v1")) - 1))
-            & ~bytes32(uint256(0xff));
-        console.log("Slot:");
-        console.logBytes32(s);
+    function testEngineStorageSlot() public view {
+        bytes32 s = CeitnotStorage.getStorageSlot();
+        assertEq(s, bytes32(uint256(0x183a6125c38840424c4a85fa12bab2ab606c4b6d0e7cc73c0c06ba5300eab500)));
     }
 }

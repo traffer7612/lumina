@@ -6,26 +6,51 @@ import {
   Vote, Lock, Unlock, Plus, Clock, Users, Gift,
   CheckCircle, AlertCircle, Loader2, RefreshCw, ExternalLink,
 } from 'lucide-react';
-import { erc20Abi, veAuraAbi, governorAbi, auraRegistryAbi } from '../abi/auraEngine';
+import { erc20Abi, veLockAbi, governorAbi, marketRegistryAbi } from '../abi/ceitnotEngine';
 import { gasFor, TARGET_CHAIN_ID, useContractAddresses } from '../lib/contracts';
 import { formatWad, formatAddress } from '../lib/utils';
 import { blockExplorerAddressUrl } from '../lib/explorer';
 
-const VE_AURA   = import.meta.env.VITE_VE_AURA_ADDRESS as Address | undefined;
-const AURA_TOKEN = import.meta.env.VITE_AURA_TOKEN_ADDRESS as Address | undefined;
+const VE_TOKEN = import.meta.env.VITE_VE_TOKEN_ADDRESS as Address | undefined;
+const GOV_TOKEN = import.meta.env.VITE_GOVERNANCE_TOKEN_ADDRESS as Address | undefined;
 const GOVERNOR = import.meta.env.VITE_GOVERNOR_ADDRESS as Address | undefined;
 const TIMELOCK = import.meta.env.VITE_TIMELOCK_ADDRESS as Address | undefined;
 const AUSD     = import.meta.env.VITE_AUSD_ADDRESS as Address | undefined;
 const TALLY_URL = import.meta.env.VITE_TALLY_URL as string | undefined;
 
-/** Minimal ABI for governance calldata to AuraUSD */
+/** Minimal ABI for governance calldata to CeitnotUSD (aUSD) */
 const ausdGovAbi = [
   { type: 'function', name: 'addMinter', stateMutability: 'nonpayable', inputs: [{ name: 'minter', type: 'address' }], outputs: [] },
 ] as const;
 
 const WEEK = 7 * 24 * 3600;
-const FEED_WINDOW_SECONDS = 10 * 24 * 3600; // 10 days
+/** Max age of proposals shown in "Recent" (by block timestamp). */
+const FEED_WINDOW_SECONDS = 90 * 24 * 3600; // 90 days — was 10d; short window hid older active votes
 const ACTIVITY_INITIAL_COUNT = 5;
+
+/**
+ * `getLogs` block span: on Arbitrum/Base blocks are seconds apart, so 300k blocks is only ~1–2 days
+ * and ProposalCreated disappears from the feed. Use chain-aware lookback.
+ */
+function governanceLogsFromBlock(latestBlock: bigint, chainId: number): bigint {
+  const spanByChain: Record<number, bigint> = {
+    42161: 18_000_000n,   // Arbitrum One — ~weeks of history at typical L2 cadence
+    8453: 6_000_000n,     // Base
+    11155111: 400_000n,   // Sepolia ~12s blocks → ~8 weeks
+  };
+  const span = spanByChain[chainId] ?? 500_000n;
+  return latestBlock > span ? latestBlock - span : 0n;
+}
+
+function governanceLogsDeepFromBlock(latestBlock: bigint, chainId: number): bigint {
+  const spanByChain: Record<number, bigint> = {
+    42161: 30_000_000n,
+    8453: 12_000_000n,
+    11155111: 800_000n,
+  };
+  const span = spanByChain[chainId] ?? 1_000_000n;
+  return latestBlock > span ? latestBlock - span : 0n;
+}
 
 /** Duration presets in weeks */
 const DURATIONS = [
@@ -114,20 +139,20 @@ export default function GovernancePage() {
 
   // ── read contract data ──
   const { data: readData, refetch } = useReadContracts({
-    contracts: (address && VE_AURA && AURA_TOKEN) ? [
-      { address: AURA_TOKEN, abi: erc20Abi,  functionName: 'balanceOf',  args: [address], chainId: TARGET_CHAIN_ID },
-      { address: AURA_TOKEN, abi: erc20Abi,  functionName: 'allowance',  args: [address, VE_AURA], chainId: TARGET_CHAIN_ID },
-      { address: VE_AURA,    abi: veAuraAbi, functionName: 'locks',      args: [address], chainId: TARGET_CHAIN_ID },
-      { address: VE_AURA,    abi: veAuraAbi, functionName: 'getVotes',   args: [address], chainId: TARGET_CHAIN_ID },
-      { address: VE_AURA,    abi: veAuraAbi, functionName: 'delegates',  args: [address], chainId: TARGET_CHAIN_ID },
-      { address: VE_AURA,    abi: veAuraAbi, functionName: 'totalLocked',                 chainId: TARGET_CHAIN_ID },
-      { address: VE_AURA,    abi: veAuraAbi, functionName: 'pendingRevenue', args: [address], chainId: TARGET_CHAIN_ID },
-      { address: AURA_TOKEN, abi: erc20Abi,  functionName: 'symbol',                       chainId: TARGET_CHAIN_ID },
+    contracts: (address && VE_TOKEN && GOV_TOKEN) ? [
+      { address: GOV_TOKEN, abi: erc20Abi,  functionName: 'balanceOf',  args: [address], chainId: TARGET_CHAIN_ID },
+      { address: GOV_TOKEN, abi: erc20Abi,  functionName: 'allowance',  args: [address, VE_TOKEN], chainId: TARGET_CHAIN_ID },
+      { address: VE_TOKEN,    abi: veLockAbi, functionName: 'locks',      args: [address], chainId: TARGET_CHAIN_ID },
+      { address: VE_TOKEN,    abi: veLockAbi, functionName: 'getVotes',   args: [address], chainId: TARGET_CHAIN_ID },
+      { address: VE_TOKEN,    abi: veLockAbi, functionName: 'delegates',  args: [address], chainId: TARGET_CHAIN_ID },
+      { address: VE_TOKEN,    abi: veLockAbi, functionName: 'totalLocked',                 chainId: TARGET_CHAIN_ID },
+      { address: VE_TOKEN,    abi: veLockAbi, functionName: 'pendingRevenue', args: [address], chainId: TARGET_CHAIN_ID },
+      { address: GOV_TOKEN, abi: erc20Abi,  functionName: 'symbol',                       chainId: TARGET_CHAIN_ID },
     ] : [],
-    query: { enabled: !!address && !!VE_AURA && !!AURA_TOKEN },
+    query: { enabled: !!address && !!VE_TOKEN && !!GOV_TOKEN },
   });
 
-  const auraBalance   = (readData?.[0]?.result as bigint | undefined) ?? 0n;
+  const govTokenBalance = (readData?.[0]?.result as bigint | undefined) ?? 0n;
   const allowance     = (readData?.[1]?.result as bigint | undefined) ?? 0n;
   const lockData      = readData?.[2]?.result as [bigint, bigint] | undefined;
   const lockedAmount  = lockData?.[0] ?? 0n;
@@ -136,15 +161,15 @@ export default function GovernancePage() {
   const currentDelegate = (readData?.[4]?.result as Address | undefined);
   const totalLocked   = (readData?.[5]?.result as bigint | undefined) ?? 0n;
   const pendingRev    = (readData?.[6]?.result as bigint | undefined) ?? 0n;
-  const tokenSymbol   = (readData?.[7]?.result as string | undefined) ?? 'LUMINA';
-  const displaySymbol = tokenSymbol === 'AURA' ? 'LUMINA' : tokenSymbol; // UI branding
+  const tokenSymbol   = (readData?.[7]?.result as string | undefined) ?? 'CEITNOT';
+  const displaySymbol = tokenSymbol === 'AURA' || tokenSymbol === 'CEITNOT' ? 'CEITNOT' : tokenSymbol;
 
   const proposalId = proposalIdInput.trim() ? BigInt(proposalIdInput.trim()) : undefined;
   const hasGovConfig = !!GOVERNOR && (!!registry || !!AUSD);
   const marketCalldata =
     GOVERNOR && registry
       ? encodeFunctionData({
-        abi: auraRegistryAbi,
+        abi: marketRegistryAbi,
         functionName: 'updateMarketRiskParams',
         args: [
           BigInt(marketId || '0'),
@@ -241,18 +266,18 @@ export default function GovernancePage() {
   const parseAmt = (v: string) => { try { return v ? parseUnits(v, 18) : 0n; } catch { return 0n; } };
 
   async function approve() {
-    if (!AURA_TOKEN || !VE_AURA) return;
+    if (!GOV_TOKEN || !VE_TOKEN) return;
     setStep('approving');
     const h = await writeContractAsync({
-      address: AURA_TOKEN, abi: erc20Abi, functionName: 'approve',
-      args: [VE_AURA, 2n ** 256n - 1n], ...gas,
+      address: GOV_TOKEN, abi: erc20Abi, functionName: 'approve',
+      args: [VE_TOKEN, 2n ** 256n - 1n], ...gas,
     });
     setHash(h);
   }
 
   // ── LOCK ──
   async function handleLock() {
-    if (!VE_AURA || !address) return;
+    if (!VE_TOKEN || !address) return;
     const raw = parseAmt(lockAmount);
     if (raw === 0n) return;
     setActiveAction('lock');
@@ -261,7 +286,7 @@ export default function GovernancePage() {
       setStep('writing');
       const unlock = BigInt(Math.floor((nowSec + durationWeeks * WEEK) / WEEK) * WEEK);
       const h = await writeContractAsync({
-        address: VE_AURA, abi: veAuraAbi, functionName: 'lock',
+        address: VE_TOKEN, abi: veLockAbi, functionName: 'lock',
         args: [raw, unlock], ...gas,
       });
       setHash(h);
@@ -273,7 +298,7 @@ export default function GovernancePage() {
 
   // ── INCREASE ──
   async function handleIncrease() {
-    if (!VE_AURA) return;
+    if (!VE_TOKEN) return;
     const raw = parseAmt(extraAmount);
     if (raw === 0n) return;
     setActiveAction('increase');
@@ -281,7 +306,7 @@ export default function GovernancePage() {
       if (allowance < raw) { await approve(); return; }
       setStep('writing');
       const h = await writeContractAsync({
-        address: VE_AURA, abi: veAuraAbi, functionName: 'increaseAmount',
+        address: VE_TOKEN, abi: veLockAbi, functionName: 'increaseAmount',
         args: [raw], ...gas,
       });
       setHash(h);
@@ -293,13 +318,13 @@ export default function GovernancePage() {
 
   // ── EXTEND ──
   async function handleExtend() {
-    if (!VE_AURA) return;
+    if (!VE_TOKEN) return;
     setActiveAction('extend');
     try {
       setStep('writing');
       const newUnlock = BigInt(Math.floor((nowSec + extendWeeks * WEEK) / WEEK) * WEEK);
       const h = await writeContractAsync({
-        address: VE_AURA, abi: veAuraAbi, functionName: 'extendLock',
+        address: VE_TOKEN, abi: veLockAbi, functionName: 'extendLock',
         args: [newUnlock], ...gas,
       });
       setHash(h);
@@ -311,12 +336,12 @@ export default function GovernancePage() {
 
   // ── WITHDRAW ──
   async function handleWithdraw() {
-    if (!VE_AURA) return;
+    if (!VE_TOKEN) return;
     setActiveAction('withdraw');
     try {
       setStep('writing');
       const h = await writeContractAsync({
-        address: VE_AURA, abi: veAuraAbi, functionName: 'withdraw', ...gas,
+        address: VE_TOKEN, abi: veLockAbi, functionName: 'withdraw', ...gas,
       });
       setHash(h);
     } catch (e: unknown) {
@@ -327,12 +352,12 @@ export default function GovernancePage() {
 
   // ── CLAIM REVENUE ──
   async function handleClaim() {
-    if (!VE_AURA) return;
+    if (!VE_TOKEN) return;
     setActiveAction('claim');
     try {
       setStep('writing');
       const h = await writeContractAsync({
-        address: VE_AURA, abi: veAuraAbi, functionName: 'claimRevenue', ...gas,
+        address: VE_TOKEN, abi: veLockAbi, functionName: 'claimRevenue', ...gas,
       });
       setHash(h);
     } catch (e: unknown) {
@@ -343,12 +368,12 @@ export default function GovernancePage() {
 
   // ── DELEGATE ──
   async function handleDelegate() {
-    if (!VE_AURA || !delegateTo) return;
+    if (!VE_TOKEN || !delegateTo) return;
     setActiveAction('delegate');
     try {
       setStep('writing');
       const h = await writeContractAsync({
-        address: VE_AURA, abi: veAuraAbi, functionName: 'delegate',
+        address: VE_TOKEN, abi: veLockAbi, functionName: 'delegate',
         args: [delegateTo as Address], ...gas,
       });
       setHash(h);
@@ -397,7 +422,7 @@ export default function GovernancePage() {
       const latestBlock = await publicClient.getBlockNumber();
       const latest = await publicClient.getBlock({ blockNumber: latestBlock });
       const minTs = BigInt(Math.max(0, Number(latest.timestamp) - FEED_WINDOW_SECONDS));
-      const fromBlock = latestBlock > 300_000n ? latestBlock - 300_000n : 0n;
+      const fromBlock = governanceLogsFromBlock(latestBlock, TARGET_CHAIN_ID);
       const [createdLogs, voteLogs, queuedLogs, executedLogs] = await Promise.all([
         publicClient.getLogs({
           address: GOVERNOR,
@@ -525,7 +550,7 @@ export default function GovernancePage() {
       }
       const missingTitleIds = [...stateIds].filter((id) => !titles[id.toString()]);
       if (missingTitleIds.length > 0) {
-        const deepFromBlock = latestBlock > 3_000_000n ? latestBlock - 3_000_000n : 0n;
+        const deepFromBlock = governanceLogsDeepFromBlock(latestBlock, TARGET_CHAIN_ID);
         const deepCreatedLogs = await publicClient.getLogs({
           address: GOVERNOR,
           event: proposalCreatedEvent,
@@ -707,9 +732,9 @@ export default function GovernancePage() {
     return (
       <div className="page-container flex items-center justify-center min-h-[60vh]">
         <div className="text-center max-w-sm w-full flex flex-col items-center">
-          <Vote size={48} className="text-aura-muted mb-4" />
+          <Vote size={48} className="text-ceitnot-muted mb-4" />
           <h2 className="text-xl font-semibold mb-2">Connect your wallet</h2>
-          <p className="text-aura-muted text-sm mb-6">Connect to lock LUMINA and participate in governance.</p>
+          <p className="text-ceitnot-muted text-sm mb-6">Connect to lock CEITNOT and participate in governance.</p>
           <div className="w-full flex justify-center [&>div]:flex [&>div]:justify-center">
             <ConnectButton />
           </div>
@@ -719,14 +744,14 @@ export default function GovernancePage() {
   }
 
   // ── Not configured ──
-  if (!VE_AURA || !AURA_TOKEN) {
+  if (!VE_TOKEN || !GOV_TOKEN) {
     return (
       <div className="page-container">
         <div className="card p-8 text-center">
-          <p className="text-aura-warning font-medium">Governance contracts not configured</p>
-          <p className="text-aura-muted text-sm mt-2">
-            Set <code className="font-mono text-aura-warning/80">VITE_AURA_TOKEN_ADDRESS</code> and{' '}
-            <code className="font-mono text-aura-warning/80">VITE_VE_AURA_ADDRESS</code> (governance token) in your <code>.env</code>.
+          <p className="text-ceitnot-warning font-medium">Governance contracts not configured</p>
+          <p className="text-ceitnot-muted text-sm mt-2">
+            Set <code className="font-mono text-ceitnot-warning/80">VITE_GOVERNANCE_TOKEN_ADDRESS</code> and{' '}
+            <code className="font-mono text-ceitnot-warning/80">VITE_VE_TOKEN_ADDRESS</code> (vote-escrow) in your <code>.env</code>.
           </p>
         </div>
       </div>
@@ -739,11 +764,11 @@ export default function GovernancePage() {
       <div className="page-header flex items-end justify-between">
         <div>
           <h1 className="page-title">
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-aura-gold to-aura-accent">
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-ceitnot-gold to-ceitnot-accent">
               Governance
             </span>
           </h1>
-          <p className="page-subtitle">Lock LUMINA → get veLUMINA → vote &amp; earn revenue</p>
+          <p className="page-subtitle">Lock CEITNOT → get veCEITNOT → vote &amp; earn revenue</p>
         </div>
         <div className="flex items-center gap-2">
           {TALLY_URL && (
@@ -764,12 +789,12 @@ export default function GovernancePage() {
 
       <div className="card p-4 mb-6 text-sm">
         <p className="font-medium text-white">How Governance Works</p>
-        <p className="text-aura-muted mt-1">
-          Buy or receive <span className="text-white">LUMINA</span>, lock it to receive <span className="text-white">veLUMINA</span>,
+        <p className="text-ceitnot-muted mt-1">
+          Buy or receive <span className="text-white">CEITNOT</span>, lock it to receive <span className="text-white">veCEITNOT</span>,
           then use your voting power to participate in proposals. While locked, you can also claim protocol
           revenue shown in <span className="text-white">Pending Revenue</span>.
         </p>
-        <p className="text-aura-muted mt-2">
+        <p className="text-ceitnot-muted mt-2">
           On-chain flow: <span className="text-white">Create</span> → <span className="text-white">Vote</span> →{' '}
           <span className="text-white">Queue</span> → <span className="text-white">Execute</span>.
         </p>
@@ -777,24 +802,24 @@ export default function GovernancePage() {
 
       {/* Success / Error overlay */}
       {step === 'success' && (
-        <div className="card p-6 mb-6 border-aura-success/30 bg-aura-success/5">
+        <div className="card p-6 mb-6 border-ceitnot-success/30 bg-ceitnot-success/5">
           <div className="flex items-center gap-3">
-            <CheckCircle size={24} className="text-aura-success" />
+            <CheckCircle size={24} className="text-ceitnot-success" />
             <div>
               <p className="font-semibold">Transaction confirmed!</p>
-              {hash && <p className="text-xs text-aura-muted font-mono mt-1">tx: {hash.slice(0, 10)}…{hash.slice(-8)}</p>}
+              {hash && <p className="text-xs text-ceitnot-muted font-mono mt-1">tx: {hash.slice(0, 10)}…{hash.slice(-8)}</p>}
             </div>
             <button className="ml-auto btn-secondary text-sm" onClick={reset}>Dismiss</button>
           </div>
         </div>
       )}
       {step === 'error' && (
-        <div className="card p-6 mb-6 border-aura-danger/30 bg-aura-danger/5">
+        <div className="card p-6 mb-6 border-ceitnot-danger/30 bg-ceitnot-danger/5">
           <div className="flex items-center gap-3">
-            <AlertCircle size={24} className="text-aura-danger" />
+            <AlertCircle size={24} className="text-ceitnot-danger" />
             <div>
-              <p className="font-semibold text-aura-danger">Transaction failed</p>
-              <p className="text-xs text-aura-muted mt-1">{errMsg}</p>
+              <p className="font-semibold text-ceitnot-danger">Transaction failed</p>
+              <p className="text-xs text-ceitnot-muted mt-1">{errMsg}</p>
             </div>
             <button className="ml-auto btn-secondary text-sm" onClick={reset}>Dismiss</button>
           </div>
@@ -804,11 +829,11 @@ export default function GovernancePage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <div className="stat-card">
-          <span className="stat-label">Your LUMINA Balance</span>
-          <p className="stat-value font-mono">{formatWad(auraBalance, 2)}</p>
+          <span className="stat-label">Your CEITNOT Balance</span>
+          <p className="stat-value font-mono">{formatWad(govTokenBalance, 2)}</p>
         </div>
         <div className="stat-card">
-          <span className="stat-label">Your Locked LUMINA</span>
+          <span className="stat-label">Your Locked CEITNOT</span>
           <p className="stat-value font-mono">{formatWad(lockedAmount, 2)}</p>
         </div>
         <div className="stat-card">
@@ -825,21 +850,24 @@ export default function GovernancePage() {
       <div className="card p-5 mb-6">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-semibold text-lg">Recent Proposals</h2>
-          {isFeedLoading && <p className="text-xs text-aura-muted">Loading...</p>}
+          {isFeedLoading && <p className="text-xs text-ceitnot-muted">Loading...</p>}
         </div>
-        {feedErr && <p className="text-xs text-aura-danger mb-3">{feedErr}</p>}
+        {feedErr && <p className="text-xs text-ceitnot-danger mb-3">{feedErr}</p>}
         {proposalFeed.length === 0 ? (
-          <p className="text-sm text-aura-muted">No recent ProposalCreated events found in scanned block range.</p>
+          <p className="text-sm text-ceitnot-muted">
+            No proposals found in the last scan window (chain-specific block range + up to 90 days by time).
+            On fast L2s older UIs used a tiny block window — if this persists, confirm <code className="text-ceitnot-muted-2">VITE_GOVERNOR_ADDRESS</code> and check the Governor on the explorer.
+          </p>
         ) : (
           <div className="space-y-3">
             {proposalFeed.map((p) => (
-              <div key={p.proposalId.toString()} className="rounded-xl border border-aura-border p-3 bg-aura-bg">
+              <div key={p.proposalId.toString()} className="rounded-xl border border-ceitnot-border p-3 bg-ceitnot-bg">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-xs text-aura-muted">#{p.proposalId.toString()}</p>
+                    <p className="text-xs text-ceitnot-muted">#{p.proposalId.toString()}</p>
                     <p className="text-sm text-white mt-1 break-words">{humanizeProposalDescription(p.description)}</p>
                     {p.description && (
-                      <p className="text-xs text-aura-muted mt-1 break-words">Raw: {p.description}</p>
+                      <p className="text-xs text-ceitnot-muted mt-1 break-words">Raw: {p.description}</p>
                     )}
                   </div>
                   <button
@@ -851,18 +879,18 @@ export default function GovernancePage() {
                   </button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mt-3 text-xs">
-                  <p className="text-aura-muted">State: <span className="text-aura-gold">{proposalStateLabel(p.state)}</span></p>
-                  <p className="text-aura-muted">Start: <span className="text-white">{formatUnix(p.voteStart)}</span></p>
-                  <p className="text-aura-muted">End: <span className="text-white">{formatUnix(p.voteEnd)}</span></p>
+                  <p className="text-ceitnot-muted">State: <span className="text-ceitnot-gold">{proposalStateLabel(p.state)}</span></p>
+                  <p className="text-ceitnot-muted">Start: <span className="text-white">{formatUnix(p.voteStart)}</span></p>
+                  <p className="text-ceitnot-muted">End: <span className="text-white">{formatUnix(p.voteEnd)}</span></p>
                 </div>
                 <div className="flex items-center justify-between mt-2 text-xs">
-                  <p className="text-aura-muted">Proposer: <span className="font-mono text-white">{formatAddress(p.proposer)}</span></p>
+                  <p className="text-ceitnot-muted">Proposer: <span className="font-mono text-white">{formatAddress(p.proposer)}</span></p>
                   {p.txHash && blockExplorerTxUrl(p.txHash) && (
                     <a
                       href={blockExplorerTxUrl(p.txHash) ?? undefined}
                       target="_blank"
                       rel="noreferrer"
-                      className="text-aura-gold hover:underline flex items-center gap-1"
+                      className="text-ceitnot-gold hover:underline flex items-center gap-1"
                     >
                       Tx <ExternalLink size={12} />
                     </a>
@@ -878,11 +906,11 @@ export default function GovernancePage() {
       <div className="card p-5 mb-6">
         <h2 className="font-semibold text-lg mb-3">Recent Governance Activity</h2>
         {activityFeed.length === 0 ? (
-          <p className="text-sm text-aura-muted">No recent governance events found.</p>
+          <p className="text-sm text-ceitnot-muted">No recent governance events found.</p>
         ) : (
           <div className="space-y-2">
             {(activityExpanded ? activityFeed : activityFeed.slice(0, ACTIVITY_INITIAL_COUNT)).map((a, idx) => (
-              <div key={`${a.kind}-${a.proposalId.toString()}-${a.txHash ?? idx}-${idx}`} className="rounded-xl border border-aura-border p-3 bg-aura-bg text-xs">
+              <div key={`${a.kind}-${a.proposalId.toString()}-${a.txHash ?? idx}-${idx}`} className="rounded-xl border border-ceitnot-border p-3 bg-ceitnot-bg text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-white">
                     {a.kind === 'proposed' && 'Proposal created'}
@@ -899,18 +927,18 @@ export default function GovernancePage() {
                     Use in Vote
                   </button>
                 </div>
-                <div className="flex items-center justify-between gap-2 mt-2 text-aura-muted">
+                <div className="flex items-center justify-between gap-2 mt-2 text-ceitnot-muted">
                   <p>
                     {a.actor ? <>Actor: <span className="font-mono text-white">{formatAddress(a.actor)}</span></> : ' '}
                     {a.weight !== undefined ? <> · Weight: <span className="text-white">{formatWad(a.weight, 2)}</span></> : ' '}
                   </p>
                   {a.txHash && blockExplorerTxUrl(a.txHash) && (
-                    <a href={blockExplorerTxUrl(a.txHash) ?? undefined} target="_blank" rel="noreferrer" className="text-aura-gold hover:underline flex items-center gap-1">
+                    <a href={blockExplorerTxUrl(a.txHash) ?? undefined} target="_blank" rel="noreferrer" className="text-ceitnot-gold hover:underline flex items-center gap-1">
                       Tx <ExternalLink size={12} />
                     </a>
                   )}
                 </div>
-                <p className="text-xs text-aura-muted mt-2">
+                <p className="text-xs text-ceitnot-muted mt-2">
                   {(proposalTitleMap[a.proposalId.toString()] ?? 'Governance proposal action')}
                   {' '}· id: <span className="font-mono text-white">{a.proposalId.toString()}</span>
                 </p>
@@ -935,24 +963,24 @@ export default function GovernancePage() {
           {hasLock && (
             <div className="card p-5">
               <h2 className="font-semibold text-lg flex items-center gap-2 mb-4">
-                <Lock size={18} className="text-aura-gold" /> Your Lock
+                <Lock size={18} className="text-ceitnot-gold" /> Your Lock
               </h2>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <p className="text-aura-muted">Amount Locked</p>
+                  <p className="text-ceitnot-muted">Amount Locked</p>
                   <p className="font-mono text-white mt-1">{formatWad(lockedAmount, 4)} {displaySymbol}</p>
                 </div>
                 <div>
-                  <p className="text-aura-muted">Unlock Date</p>
+                  <p className="text-ceitnot-muted">Unlock Date</p>
                   <p className="font-mono text-white mt-1">{unlockDate}</p>
                 </div>
                 <div>
-                  <p className="text-aura-muted">Time Remaining</p>
-                  <p className={`font-mono mt-1 ${lockExpired ? 'text-aura-success' : 'text-white'}`}>{timeLeft}</p>
+                  <p className="text-ceitnot-muted">Time Remaining</p>
+                  <p className={`font-mono mt-1 ${lockExpired ? 'text-ceitnot-success' : 'text-white'}`}>{timeLeft}</p>
                 </div>
                 <div>
-                  <p className="text-aura-muted">Voting Power</p>
-                  <p className="font-mono text-aura-gold mt-1">{formatWad(votingPower, 4)}</p>
+                  <p className="text-ceitnot-muted">Voting Power</p>
+                  <p className="font-mono text-ceitnot-gold mt-1">{formatWad(votingPower, 4)}</p>
                 </div>
               </div>
 
@@ -974,11 +1002,11 @@ export default function GovernancePage() {
           {!hasLock && (
             <div className="card p-5">
               <h2 className="font-semibold text-lg flex items-center gap-2 mb-4">
-                <Lock size={18} className="text-aura-gold" /> Lock LUMINA
+                <Lock size={18} className="text-ceitnot-gold" /> Lock CEITNOT
               </h2>
 
               <div className="mb-4">
-                <label className="block text-sm text-aura-muted mb-2">Amount</label>
+                <label className="block text-sm text-ceitnot-muted mb-2">Amount</label>
                 <div className="flex gap-2">
                   <input
                     type="number" min="0" value={lockAmount}
@@ -987,18 +1015,18 @@ export default function GovernancePage() {
                   />
                   <button
                     type="button"
-                    onClick={() => auraBalance > 0n && setLockAmount(formatUnits(auraBalance, 18))}
-                    className="px-3 py-2 rounded-xl text-sm font-medium bg-aura-gold/15 text-aura-gold hover:bg-aura-gold/25 transition-colors"
-                    disabled={isPending || auraBalance === 0n}
+                    onClick={() => govTokenBalance > 0n && setLockAmount(formatUnits(govTokenBalance, 18))}
+                    className="px-3 py-2 rounded-xl text-sm font-medium bg-ceitnot-gold/15 text-ceitnot-gold hover:bg-ceitnot-gold/25 transition-colors"
+                    disabled={isPending || govTokenBalance === 0n}
                   >Max</button>
                 </div>
-                <p className="text-xs text-aura-muted mt-1">
-                  Balance: <span className="text-white font-mono">{formatWad(auraBalance, 2)} {displaySymbol}</span>
+                <p className="text-xs text-ceitnot-muted mt-1">
+                  Balance: <span className="text-white font-mono">{formatWad(govTokenBalance, 2)} {displaySymbol}</span>
                 </p>
               </div>
 
               <div className="mb-5">
-                <label className="block text-sm text-aura-muted mb-2">Lock Duration</label>
+                <label className="block text-sm text-ceitnot-muted mb-2">Lock Duration</label>
                 <div className="grid grid-cols-3 gap-2">
                   {DURATIONS.map(d => (
                     <button
@@ -1006,8 +1034,8 @@ export default function GovernancePage() {
                       onClick={() => setDurationWeeks(d.weeks)}
                       className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
                         durationWeeks === d.weeks
-                          ? 'bg-aura-gold/20 text-aura-gold border border-aura-gold/30'
-                          : 'bg-aura-surface-2 text-aura-muted-2 hover:text-white border border-transparent'
+                          ? 'bg-ceitnot-gold/20 text-ceitnot-gold border border-ceitnot-gold/30'
+                          : 'bg-ceitnot-surface-2 text-ceitnot-muted-2 hover:text-white border border-transparent'
                       }`}
                     >{d.label}</button>
                   ))}
@@ -1029,7 +1057,7 @@ export default function GovernancePage() {
           {hasLock && !lockExpired && (
             <div className="card p-5">
               <h2 className="font-semibold text-lg flex items-center gap-2 mb-4">
-                <Plus size={18} className="text-aura-gold" /> Increase Lock
+                <Plus size={18} className="text-ceitnot-gold" /> Increase Lock
               </h2>
               <div className="mb-4">
                 <div className="flex gap-2">
@@ -1040,9 +1068,9 @@ export default function GovernancePage() {
                   />
                   <button
                     type="button"
-                    onClick={() => auraBalance > 0n && setExtraAmount(formatUnits(auraBalance, 18))}
-                    className="px-3 py-2 rounded-xl text-sm font-medium bg-aura-gold/15 text-aura-gold hover:bg-aura-gold/25 transition-colors"
-                    disabled={isPending || auraBalance === 0n}
+                    onClick={() => govTokenBalance > 0n && setExtraAmount(formatUnits(govTokenBalance, 18))}
+                    className="px-3 py-2 rounded-xl text-sm font-medium bg-ceitnot-gold/15 text-ceitnot-gold hover:bg-ceitnot-gold/25 transition-colors"
+                    disabled={isPending || govTokenBalance === 0n}
                   >Max</button>
                 </div>
               </div>
@@ -1052,7 +1080,7 @@ export default function GovernancePage() {
                 className="btn-primary w-full flex items-center justify-center gap-2"
               >
                 {isPending && activeAction === 'increase' && <Loader2 size={16} className="animate-spin" />}
-                {step === 'approving' && activeAction === 'increase' ? 'Approving…' : 'Add LUMINA to Lock'}
+                {step === 'approving' && activeAction === 'increase' ? 'Approving…' : 'Add CEITNOT to Lock'}
               </button>
             </div>
           )}
@@ -1061,10 +1089,10 @@ export default function GovernancePage() {
           {hasLock && !lockExpired && (
             <div className="card p-5">
               <h2 className="font-semibold text-lg flex items-center gap-2 mb-4">
-                <Clock size={18} className="text-aura-gold" /> Extend Lock
+                <Clock size={18} className="text-ceitnot-gold" /> Extend Lock
               </h2>
               <div className="mb-4">
-                <label className="block text-sm text-aura-muted mb-2">New Duration (from now)</label>
+                <label className="block text-sm text-ceitnot-muted mb-2">New Duration (from now)</label>
                 <div className="grid grid-cols-3 gap-2">
                   {DURATIONS.map(d => (
                     <button
@@ -1072,8 +1100,8 @@ export default function GovernancePage() {
                       onClick={() => setExtendWeeks(d.weeks)}
                       className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors ${
                         extendWeeks === d.weeks
-                          ? 'bg-aura-gold/20 text-aura-gold border border-aura-gold/30'
-                          : 'bg-aura-surface-2 text-aura-muted-2 hover:text-white border border-transparent'
+                          ? 'bg-ceitnot-gold/20 text-ceitnot-gold border border-ceitnot-gold/30'
+                          : 'bg-ceitnot-surface-2 text-ceitnot-muted-2 hover:text-white border border-transparent'
                       }`}
                     >{d.label}</button>
                   ))}
@@ -1096,12 +1124,12 @@ export default function GovernancePage() {
           {/* Revenue */}
           <div className="card p-5">
             <h2 className="font-semibold text-lg flex items-center gap-2 mb-4">
-              <Gift size={18} className="text-aura-gold" /> Revenue
+              <Gift size={18} className="text-ceitnot-gold" /> Revenue
             </h2>
-            <div className="p-4 bg-aura-bg rounded-xl mb-4">
-              <p className="text-aura-muted text-sm">Pending Revenue</p>
+            <div className="p-4 bg-ceitnot-bg rounded-xl mb-4">
+              <p className="text-ceitnot-muted text-sm">Pending Revenue</p>
               <p className="text-2xl font-bold font-mono text-white mt-1">{formatWad(pendingRev, 6)}</p>
-              <p className="text-xs text-aura-muted mt-1">Earned from protocol fees, proportional to your locked LUMINA</p>
+              <p className="text-xs text-ceitnot-muted mt-1">Earned from protocol fees, proportional to your locked CEITNOT</p>
             </div>
             <button
               onClick={handleClaim}
@@ -1116,18 +1144,18 @@ export default function GovernancePage() {
           {/* Delegate */}
           <div className="card p-5">
             <h2 className="font-semibold text-lg flex items-center gap-2 mb-4">
-              <Users size={18} className="text-aura-gold" /> Delegate Votes
+              <Users size={18} className="text-ceitnot-gold" /> Delegate Votes
             </h2>
             {currentDelegate && (
-              <div className="p-3 bg-aura-bg rounded-xl mb-4">
-                <p className="text-aura-muted text-xs">Currently delegated to</p>
+              <div className="p-3 bg-ceitnot-bg rounded-xl mb-4">
+                <p className="text-ceitnot-muted text-xs">Currently delegated to</p>
                 <p className="text-white font-mono text-sm mt-1">
                   {currentDelegate === address ? 'Yourself' : formatAddress(currentDelegate)}
                 </p>
               </div>
             )}
             <div className="mb-4">
-              <label className="block text-sm text-aura-muted mb-2">Delegate to address</label>
+              <label className="block text-sm text-ceitnot-muted mb-2">Delegate to address</label>
               <input
                 type="text"
                 value={delegateTo}
@@ -1140,7 +1168,7 @@ export default function GovernancePage() {
             <div className="flex gap-2">
               <button
                 onClick={() => address && setDelegateTo(address)}
-                className="btn-ghost text-sm flex-1 border border-aura-border"
+                className="btn-ghost text-sm flex-1 border border-ceitnot-border"
                 disabled={isPending}
               >Self</button>
               <button
@@ -1156,11 +1184,11 @@ export default function GovernancePage() {
 
           <div className="card p-5">
             <h2 className="font-semibold text-lg flex items-center gap-2 mb-4">
-              <Vote size={18} className="text-aura-gold" /> Production Governance Actions
+              <Vote size={18} className="text-ceitnot-gold" /> Production Governance Actions
             </h2>
 
             {!GOVERNOR || !hasGovConfig ? (
-              <div className="text-sm text-aura-muted">
+              <div className="text-sm text-ceitnot-muted">
                 Set <code className="font-mono">VITE_GOVERNOR_ADDRESS</code> and at least one of{' '}
                 <code className="font-mono">VITE_REGISTRY_ADDRESS</code> (market risk) or{' '}
                 <code className="font-mono">VITE_AUSD_ADDRESS</code> (add PSM minter).
@@ -1168,20 +1196,20 @@ export default function GovernancePage() {
             ) : (
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-3 text-xs">
-                  <div className="p-3 rounded-xl bg-aura-bg">
-                    <p className="text-aura-muted">Voting Delay</p>
+                  <div className="p-3 rounded-xl bg-ceitnot-bg">
+                    <p className="text-ceitnot-muted">Voting Delay</p>
                     <p className="font-mono mt-1">{govVotingDelay.toString()}</p>
                   </div>
-                  <div className="p-3 rounded-xl bg-aura-bg">
-                    <p className="text-aura-muted">Voting Period</p>
+                  <div className="p-3 rounded-xl bg-ceitnot-bg">
+                    <p className="text-ceitnot-muted">Voting Period</p>
                     <p className="font-mono mt-1">{govVotingPeriod.toString()}</p>
                   </div>
-                  <div className="p-3 rounded-xl bg-aura-bg">
-                    <p className="text-aura-muted">Proposal Threshold</p>
+                  <div className="p-3 rounded-xl bg-ceitnot-bg">
+                    <p className="text-ceitnot-muted">Proposal Threshold</p>
                     <p className="font-mono mt-1">{formatWad(govProposalThreshold, 2)}</p>
                   </div>
-                  <div className="p-3 rounded-xl bg-aura-bg">
-                    <p className="text-aura-muted">Quorum (current)</p>
+                  <div className="p-3 rounded-xl bg-ceitnot-bg">
+                    <p className="text-ceitnot-muted">Quorum (current)</p>
                     <p className="font-mono mt-1">{formatWad(govQuorumNow, 2)}</p>
                   </div>
                 </div>
@@ -1190,25 +1218,25 @@ export default function GovernancePage() {
                   <button
                     type="button"
                     onClick={() => setGovProposalKind('market')}
-                    className={`btn-secondary text-xs ${govProposalKind === 'market' ? 'ring-1 ring-aura-gold' : ''}`}
+                    className={`btn-secondary text-xs ${govProposalKind === 'market' ? 'ring-1 ring-ceitnot-gold' : ''}`}
                     disabled={isPending || !registry}
                   >Market risk</button>
                   <button
                     type="button"
                     onClick={() => setGovProposalKind('addPsmMinter')}
-                    className={`btn-secondary text-xs ${govProposalKind === 'addPsmMinter' ? 'ring-1 ring-aura-gold' : ''}`}
+                    className={`btn-secondary text-xs ${govProposalKind === 'addPsmMinter' ? 'ring-1 ring-ceitnot-gold' : ''}`}
                     disabled={isPending || !AUSD}
                   >aUSD add PSM minter</button>
                 </div>
                 {!registry && govProposalKind === 'market' && (
-                  <p className="text-xs text-aura-danger">Registry address missing — switch template or set <code className="font-mono">VITE_REGISTRY_ADDRESS</code>.</p>
+                  <p className="text-xs text-ceitnot-danger">Registry address missing — switch template or set <code className="font-mono">VITE_REGISTRY_ADDRESS</code>.</p>
                 )}
                 {!AUSD && govProposalKind === 'addPsmMinter' && (
-                  <p className="text-xs text-aura-danger">Set <code className="font-mono">VITE_AUSD_ADDRESS</code> in <code className="font-mono">.env</code>.</p>
+                  <p className="text-xs text-ceitnot-danger">Set <code className="font-mono">VITE_AUSD_ADDRESS</code> in <code className="font-mono">.env</code>.</p>
                 )}
 
                 <div className="space-y-2">
-                  <p className="text-xs text-aura-muted uppercase tracking-wider">
+                  <p className="text-xs text-ceitnot-muted uppercase tracking-wider">
                     1) Create proposal ({govProposalKind === 'market' ? 'market risk' : 'aUSD addMinter'})
                   </p>
                   {govProposalKind === 'market' ? (
@@ -1222,7 +1250,7 @@ export default function GovernancePage() {
                     </>
                   ) : (
                     <div>
-                      <label className="block text-xs text-aura-muted mb-1">New PSM contract address</label>
+                      <label className="block text-xs text-ceitnot-muted mb-1">New PSM contract address</label>
                       <input
                         type="text"
                         value={newPsmMinterAddress}
@@ -1231,11 +1259,11 @@ export default function GovernancePage() {
                         className="input-field w-full font-mono text-xs"
                         disabled={isPending}
                       />
-                      <p className="text-xs text-aura-muted mt-1">Calls <code className="font-mono">AuraUSD.addMinter(psm)</code> via Timelock after vote.</p>
+                      <p className="text-xs text-ceitnot-muted mt-1">Calls <code className="font-mono">CeitnotUSD.addMinter(psm)</code> via Timelock after vote.</p>
                     </div>
                   )}
                   <input type="text" value={govDescription} onChange={e => setGovDescription(e.target.value)} placeholder="Proposal description" className="input-field w-full" disabled={isPending} />
-                  <p className="text-xs text-aura-muted">
+                  <p className="text-xs text-ceitnot-muted">
                     After creating a proposal, keep the same template, fields, and description text for Queue / Execute.
                   </p>
                   <button onClick={handleProposeRiskUpdate} disabled={isPending || !govDescription.trim() || !canCreateGovProposal} className="btn-primary w-full flex items-center justify-center gap-2">
@@ -1245,12 +1273,12 @@ export default function GovernancePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs text-aura-muted uppercase tracking-wider">2) Vote on proposalId</p>
+                  <p className="text-xs text-ceitnot-muted uppercase tracking-wider">2) Vote on proposalId</p>
                   <input type="text" value={proposalIdInput} onChange={e => setProposalIdInput(e.target.value)} placeholder="Proposal ID (uint256)" className="input-field w-full" disabled={isPending} />
                   <div className="grid grid-cols-3 gap-2">
-                    <button onClick={() => setVoteSupport('0')} className={`btn-secondary text-xs ${voteSupport === '0' ? 'ring-1 ring-aura-gold' : ''}`} disabled={isPending}>Against</button>
-                    <button onClick={() => setVoteSupport('1')} className={`btn-secondary text-xs ${voteSupport === '1' ? 'ring-1 ring-aura-gold' : ''}`} disabled={isPending}>For</button>
-                    <button onClick={() => setVoteSupport('2')} className={`btn-secondary text-xs ${voteSupport === '2' ? 'ring-1 ring-aura-gold' : ''}`} disabled={isPending}>Abstain</button>
+                    <button onClick={() => setVoteSupport('0')} className={`btn-secondary text-xs ${voteSupport === '0' ? 'ring-1 ring-ceitnot-gold' : ''}`} disabled={isPending}>Against</button>
+                    <button onClick={() => setVoteSupport('1')} className={`btn-secondary text-xs ${voteSupport === '1' ? 'ring-1 ring-ceitnot-gold' : ''}`} disabled={isPending}>For</button>
+                    <button onClick={() => setVoteSupport('2')} className={`btn-secondary text-xs ${voteSupport === '2' ? 'ring-1 ring-ceitnot-gold' : ''}`} disabled={isPending}>Abstain</button>
                   </div>
                   <button onClick={handleVote} disabled={isPending || proposalId === undefined} className="btn-primary w-full flex items-center justify-center gap-2">
                     {isPending && activeAction === 'vote' && <Loader2 size={14} className="animate-spin" />}
@@ -1259,7 +1287,7 @@ export default function GovernancePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <p className="text-xs text-aura-muted uppercase tracking-wider">3) Queue and 4) Execute</p>
+                  <p className="text-xs text-ceitnot-muted uppercase tracking-wider">3) Queue and 4) Execute</p>
                   <button onClick={handleQueue} disabled={isPending || !govDescription.trim() || govCalldatas.length === 0} className="btn-secondary w-full flex items-center justify-center gap-2">
                     {isPending && activeAction === 'queue' && <Loader2 size={14} className="animate-spin" />}
                     Queue Proposal
@@ -1271,8 +1299,8 @@ export default function GovernancePage() {
                 </div>
 
                 {proposalId !== undefined && (
-                  <div className="p-3 rounded-xl bg-aura-bg text-xs font-mono space-y-1">
-                    <p>State: <span className="text-aura-gold">{proposalStateLabel(proposalState)}</span></p>
+                  <div className="p-3 rounded-xl bg-ceitnot-bg text-xs font-mono space-y-1">
+                    <p>State: <span className="text-ceitnot-gold">{proposalStateLabel(proposalState)}</span></p>
                     {proposalSnapshot !== undefined && <p>Snapshot: {proposalSnapshot.toString()}</p>}
                     {proposalDeadline !== undefined && <p>Deadline: {proposalDeadline.toString()}</p>}
                     {hasVoted !== undefined && address && <p>Has voted ({formatAddress(address)}): {hasVoted ? 'yes' : 'no'}</p>}
@@ -1284,8 +1312,8 @@ export default function GovernancePage() {
 
           {/* Investor-facing: admin is the Timelock contract, not an EOA */}
           {TIMELOCK && GOVERNOR && (
-            <div className="mb-5 rounded-xl border border-aura-gold/25 bg-aura-gold/5 p-4 text-sm text-aura-muted-2 leading-relaxed">
-              <p className="text-xs font-semibold uppercase tracking-wider text-aura-gold/90 mb-2">
+            <div className="mb-5 rounded-xl border border-ceitnot-gold/25 bg-ceitnot-gold/5 p-4 text-sm text-ceitnot-muted-2 leading-relaxed">
+              <p className="text-xs font-semibold uppercase tracking-wider text-ceitnot-gold/90 mb-2">
                 For investors: who &quot;owns&quot; the protocol
               </p>
               <p className="mb-2">
@@ -1301,7 +1329,7 @@ export default function GovernancePage() {
                     href={blockExplorerAddressUrl(explorerChainId, TIMELOCK)!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-aura-gold hover:underline"
+                    className="inline-flex items-center gap-1 text-ceitnot-gold hover:underline"
                   >
                     Timelock on explorer
                     <ExternalLink size={12} className="opacity-80" aria-hidden />
@@ -1312,7 +1340,7 @@ export default function GovernancePage() {
                     href={blockExplorerAddressUrl(explorerChainId, GOVERNOR)!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-aura-gold hover:underline"
+                    className="inline-flex items-center gap-1 text-ceitnot-gold hover:underline"
                   >
                     Governor on explorer
                     <ExternalLink size={12} className="opacity-80" aria-hidden />
@@ -1323,25 +1351,25 @@ export default function GovernancePage() {
           )}
 
           {/* Contract info */}
-          <div className="text-xs text-aura-muted space-y-1">
+          <div className="text-xs text-ceitnot-muted space-y-1">
             <p>
-              <span className="text-aura-muted-2 uppercase tracking-wider">LUMINA Token:</span>{' '}
-              <span className="font-mono">{formatAddress(AURA_TOKEN)}</span>
+              <span className="text-ceitnot-muted-2 uppercase tracking-wider">CEITNOT Token:</span>{' '}
+              <span className="font-mono">{formatAddress(GOV_TOKEN)}</span>
             </p>
             <p>
-              <span className="text-aura-muted-2 uppercase tracking-wider">veLUMINA:</span>{' '}
-              <span className="font-mono">{formatAddress(VE_AURA)}</span>
+              <span className="text-ceitnot-muted-2 uppercase tracking-wider">veCEITNOT:</span>{' '}
+              <span className="font-mono">{formatAddress(VE_TOKEN)}</span>
             </p>
             {GOVERNOR && (
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="text-aura-muted-2 uppercase tracking-wider">Governor:</span>{' '}
+                <span className="text-ceitnot-muted-2 uppercase tracking-wider">Governor:</span>{' '}
                 <span className="font-mono">{formatAddress(GOVERNOR)}</span>
                 {blockExplorerAddressUrl(explorerChainId, GOVERNOR) && (
                   <a
                     href={blockExplorerAddressUrl(explorerChainId, GOVERNOR)!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-0.5 text-aura-gold hover:underline shrink-0"
+                    className="inline-flex items-center gap-0.5 text-ceitnot-gold hover:underline shrink-0"
                     title="Open in block explorer"
                   >
                     <ExternalLink size={12} aria-hidden />
@@ -1351,14 +1379,14 @@ export default function GovernancePage() {
             )}
             {TIMELOCK && (
               <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                <span className="text-aura-muted-2 uppercase tracking-wider">Timelock (on-chain admin):</span>{' '}
+                <span className="text-ceitnot-muted-2 uppercase tracking-wider">Timelock (on-chain admin):</span>{' '}
                 <span className="font-mono">{formatAddress(TIMELOCK)}</span>
                 {blockExplorerAddressUrl(explorerChainId, TIMELOCK) && (
                   <a
                     href={blockExplorerAddressUrl(explorerChainId, TIMELOCK)!}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-0.5 text-aura-gold hover:underline shrink-0"
+                    className="inline-flex items-center gap-0.5 text-ceitnot-gold hover:underline shrink-0"
                     title="Open in block explorer"
                   >
                     <ExternalLink size={12} aria-hidden />
@@ -1367,8 +1395,8 @@ export default function GovernancePage() {
               </p>
             )}
             {(chainId === 31337 || chainId === 11155111 || chainId === 42161) && (
-              <p className="pt-2 text-aura-gold/80">
-                Testnet LUMINA: on a full deploy, 10M tokens are minted to the deployer address (DeployFullSepolia /
+              <p className="pt-2 text-ceitnot-gold/80">
+                Testnet CEITNOT: on a full deploy, 10M tokens are minted to the deployer address (DeployFullSepolia /
                 DeployFullArbitrum or local stack).
               </p>
             )}
@@ -1378,7 +1406,7 @@ export default function GovernancePage() {
 
       {/* Tx hash */}
       {hash && step !== 'success' && step !== 'error' && (
-        <p className="text-xs text-aura-muted mt-4 text-center font-mono">
+        <p className="text-xs text-ceitnot-muted mt-4 text-center font-mono">
           tx: {hash.slice(0, 10)}…{hash.slice(-8)}
         </p>
       )}

@@ -1,4 +1,4 @@
-# Roadmap Lumina Protocol
+# Roadmap Ceitnot Protocol
 
 Живой план развития и выхода в стабильный **production**. Детальный релиз-гейт — в [`TOKENOMICS-PROD-CHECKLIST.md`](TOKENOMICS-PROD-CHECKLIST.md); адреса Arbitrum — в [`PRODUCTION-ADDRESSES-ARBITRUM.md`](PRODUCTION-ADDRESSES-ARBITRUM.md).
 
@@ -12,7 +12,7 @@
 
 | Задача | Критерий готовности |
 |--------|---------------------|
-| Миграция PSM | Timelock исполнил `AuraUSD.addMinter(newPSM)`; на Arbiscan `minters(newPSM) == true`; ликвидность в новом PSM; затем governance `removeMinter(oldPSM)` после переноса резервов. |
+| Миграция PSM | Timelock исполнил `CeitnotUSD.addMinter(newPSM)`; на Arbiscan `minters(newPSM) == true`; ликвидность в новом PSM; затем governance `removeMinter(oldPSM)` после переноса резервов. |
 | Публичный smoke | На прод-деплое: connect wallet, список рынков, governance, swap quote **и** успешный swap (tx в Evidence Log). |
 | Tokenomics disclosure | Circulating / FDV, политика supply, vesting + unlock-календарь (или явная ссылка на cap table). |
 | Fee & treasury | Конкретные назначения потоков комиссий, каденс `distributeRevenue`, адрес(а) treasury / лимиты трат. |

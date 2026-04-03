@@ -3,9 +3,9 @@ pragma solidity ^0.8.20;
 
 import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
-import { AuraEngine }         from "../src/AuraEngine.sol";
-import { AuraProxy }          from "../src/AuraProxy.sol";
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotEngine }         from "../src/CeitnotEngine.sol";
+import { CeitnotProxy }          from "../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 import { OracleRelay }        from "../src/OracleRelay.sol";
 
 /**
@@ -35,7 +35,7 @@ contract DeployProduction is Script {
         OracleRelay oracle = new OracleRelay(chainlinkFeed, fallbackFeed, twapPeriod);
 
         // 1. Registry + first market
-        AuraMarketRegistry registry = new AuraMarketRegistry(msg.sender);
+        CeitnotMarketRegistry registry = new CeitnotMarketRegistry(msg.sender);
         registry.addMarket(
             collateralVault,
             address(oracle),
@@ -46,19 +46,19 @@ contract DeployProduction is Script {
         );
 
         // 2. Engine
-        AuraEngine implementation = new AuraEngine();
+        CeitnotEngine implementation = new CeitnotEngine();
         bytes memory initData = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (usdc, address(registry), uint256(1 days), uint256(2 days))
         );
-        AuraProxy proxyContract = new AuraProxy(address(implementation), initData);
+        CeitnotProxy proxyContract = new CeitnotProxy(address(implementation), initData);
         proxy = address(proxyContract);
         registry.setEngine(proxy);
 
         vm.stopBroadcast();
 
-        console.log("AURA_ENGINE_ADDRESS=%s", proxy);
-        console.log("AURA_REGISTRY_ADDRESS=%s", address(registry));
+        console.log("CEITNOT_ENGINE_ADDRESS=%s", proxy);
+        console.log("CEITNOT_REGISTRY_ADDRESS=%s", address(registry));
         console.log("ORACLE_RELAY_ADDRESS=%s", address(oracle));
         console.log("Next: transfer USDC to the engine so users can borrow.");
     }

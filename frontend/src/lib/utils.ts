@@ -54,20 +54,20 @@ export function formatHf(v: bigint | undefined): string {
 
 /** Tailwind text color class for a health factor number */
 export function hfColor(hf: number): string {
-  if (!isFinite(hf) || hf >= 2.0) return 'text-aura-success';
+  if (!isFinite(hf) || hf >= 2.0) return 'text-ceitnot-success';
   if (hf >= 1.5)                   return 'text-emerald-400';
-  if (hf >= 1.2)                   return 'text-aura-warning';
+  if (hf >= 1.2)                   return 'text-ceitnot-warning';
   if (hf >= 1.0)                   return 'text-orange-400';
-  return 'text-aura-danger';
+  return 'text-ceitnot-danger';
 }
 
 /** Tailwind bg color class for HF bar fill */
 export function hfBarColor(hf: number): string {
-  if (!isFinite(hf) || hf >= 2.0) return 'bg-aura-success';
+  if (!isFinite(hf) || hf >= 2.0) return 'bg-ceitnot-success';
   if (hf >= 1.5)                   return 'bg-emerald-400';
-  if (hf >= 1.2)                   return 'bg-aura-warning';
+  if (hf >= 1.2)                   return 'bg-ceitnot-warning';
   if (hf >= 1.0)                   return 'bg-orange-400';
-  return 'bg-aura-danger';
+  return 'bg-ceitnot-danger';
 }
 
 /** Clamp HF to [0..3] and map to a 0–100% bar width */

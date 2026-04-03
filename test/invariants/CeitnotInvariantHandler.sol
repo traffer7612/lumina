@@ -2,13 +2,13 @@
 pragma solidity ^0.8.20;
 
 import { Test } from "forge-std/Test.sol";
-import { AuraEngine }    from "../../src/AuraEngine.sol";
+import { CeitnotEngine }    from "../../src/CeitnotEngine.sol";
 import { MockVault4626 } from "../mocks/MockVault4626.sol";
 import { MockERC20 }     from "../mocks/MockERC20.sol";
 
 /**
- * @title  AuraInvariantHandler
- * @notice Stateful fuzzing handler for AuraEngine invariant tests.
+ * @title  CeitnotInvariantHandler
+ * @notice Stateful fuzzing handler for CeitnotEngine invariant tests.
  *         Each public function is a possible state-machine action that
  *         Foundry's invariant runner randomly selects and calls.
  *
@@ -20,7 +20,7 @@ import { MockERC20 }     from "../mocks/MockERC20.sol";
  *     ignores operations that correctly revert (e.g. borrow > LTV).
  *   - Ghost counters let the invariant contract assert the handler was exercised.
  */
-contract AuraInvariantHandler is Test {
+contract CeitnotInvariantHandler is Test {
 
     // ---- Constants
     uint256 public constant WAD       = 1e18;
@@ -29,7 +29,7 @@ contract AuraInvariantHandler is Test {
     uint256 public constant MAX_BORROW = 380 * 1e18;   // well below 80% LTV on 500-share collateral
 
     // ---- Protocol references (set in constructor)
-    AuraEngine    public engine;
+    CeitnotEngine    public engine;
     MockVault4626 public vault;
     MockERC20     public debtToken;
 
@@ -47,7 +47,7 @@ contract AuraInvariantHandler is Test {
 
     // ---- Constructor
     constructor(
-        AuraEngine    engine_,
+        CeitnotEngine    engine_,
         MockVault4626 vault_,
         MockERC20     debtToken_,
         address       actor0_,

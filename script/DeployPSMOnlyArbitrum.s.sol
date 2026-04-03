@@ -6,15 +6,15 @@ import { console } from "forge-std/console.sol";
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { AuraPSM } from "../src/AuraPSM.sol";
-import { AuraUSD } from "../src/AuraUSD.sol";
+import { CeitnotPSM } from "../src/CeitnotPSM.sol";
+import { CeitnotUSD } from "../src/CeitnotUSD.sol";
 
 /**
  * @title  DeployPSMOnlyArbitrum
- * @notice Deploy a fresh `AuraPSM` (decimals-aware) on Arbitrum; optionally `addMinter` and seed USDC.
+ * @notice Deploy a fresh `CeitnotPSM` (decimals-aware) on Arbitrum; optionally `addMinter` and seed USDC.
  *
  * Env (required unless noted):
- *   AUSD_ADDRESS       - AuraUSD
+ *   AUSD_ADDRESS       - CeitnotUSD
  *   PSM_ADMIN_ADDRESS  - usually Timelock (who controls fees / liquidity withdrawal)
  *
  * Optional:
@@ -43,13 +43,13 @@ contract DeployPSMOnlyArbitrum is Script {
 
         vm.startBroadcast();
 
-        AuraPSM psm = new AuraPSM(ausdAddr, pegged, psmAdmin, tinBps, toutBps);
-        console.log("AuraPSM:", address(psm));
+        CeitnotPSM psm = new CeitnotPSM(ausdAddr, pegged, psmAdmin, tinBps, toutBps);
+        console.log("CeitnotPSM:", address(psm));
         console.log("peggedToken:", pegged);
         console.log("admin:", psmAdmin);
 
         if (tryAddMinter) {
-            try AuraUSD(ausdAddr).addMinter(address(psm)) {
+            try CeitnotUSD(ausdAddr).addMinter(address(psm)) {
                 console.log("ausd.addMinter(psm) OK");
             } catch {
                 console.log("ausd.addMinter(psm) FAILED - run as aUSD admin or via Timelock proposal");

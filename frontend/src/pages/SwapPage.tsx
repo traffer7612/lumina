@@ -3,8 +3,8 @@ import { useAccount, useReadContract, useReadContracts, useWriteContract, useWai
 import { parseUnits, formatUnits, type Address, type Hash } from 'viem';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { ArrowDownUp, Loader2, CheckCircle, Wallet, RefreshCw, Info } from 'lucide-react';
-import { auraPsmAbi } from '../abi/auraPSM';
-import { erc20Abi } from '../abi/auraEngine';
+import { ceitnotPsmAbi } from '../abi/ceitnotEngine';
+import { erc20Abi } from '../abi/ceitnotEngine';
 import { TARGET_CHAIN_ID, gasFor } from '../lib/contracts';
 import { formatWad, formatToken } from '../lib/utils';
 
@@ -33,7 +33,7 @@ export default function SwapPage() {
 
   const { data: peggedDecimalsRaw } = useReadContract({
     address: PSM,
-    abi: auraPsmAbi,
+    abi: ceitnotPsmAbi,
     functionName: 'peggedDecimals',
     chainId: TARGET_CHAIN_ID,
     query: { enabled: !!PSM },
@@ -44,12 +44,12 @@ export default function SwapPage() {
   /* ── On-chain reads ─── */
   const { data, refetch } = useReadContracts({
     contracts: [
-      { address: PSM!, abi: auraPsmAbi, functionName: 'tinBps',           chainId: TARGET_CHAIN_ID },
-      { address: PSM!, abi: auraPsmAbi, functionName: 'toutBps',          chainId: TARGET_CHAIN_ID },
-      { address: PSM!, abi: auraPsmAbi, functionName: 'availableReserves', chainId: TARGET_CHAIN_ID },
-      { address: PSM!, abi: auraPsmAbi, functionName: 'ceiling',          chainId: TARGET_CHAIN_ID },
-      { address: PSM!, abi: auraPsmAbi, functionName: 'mintedViaPsm',     chainId: TARGET_CHAIN_ID },
-      { address: PSM!, abi: auraPsmAbi, functionName: 'feeReserves',      chainId: TARGET_CHAIN_ID },
+      { address: PSM!, abi: ceitnotPsmAbi, functionName: 'tinBps',           chainId: TARGET_CHAIN_ID },
+      { address: PSM!, abi: ceitnotPsmAbi, functionName: 'toutBps',          chainId: TARGET_CHAIN_ID },
+      { address: PSM!, abi: ceitnotPsmAbi, functionName: 'availableReserves', chainId: TARGET_CHAIN_ID },
+      { address: PSM!, abi: ceitnotPsmAbi, functionName: 'ceiling',          chainId: TARGET_CHAIN_ID },
+      { address: PSM!, abi: ceitnotPsmAbi, functionName: 'mintedViaPsm',     chainId: TARGET_CHAIN_ID },
+      { address: PSM!, abi: ceitnotPsmAbi, functionName: 'feeReserves',      chainId: TARGET_CHAIN_ID },
       // User balances
       { address: USDC!, abi: erc20Abi, functionName: 'balanceOf', args: [address!], chainId: TARGET_CHAIN_ID },
       { address: AUSD!, abi: erc20Abi, functionName: 'balanceOf', args: [address!], chainId: TARGET_CHAIN_ID },
@@ -146,7 +146,7 @@ export default function SwapPage() {
     try {
       const h = await writeContractAsync({
         address: PSM,
-        abi: auraPsmAbi,
+        abi: ceitnotPsmAbi,
         functionName: direction === 'in' ? 'swapIn' : 'swapOut',
         args: [parsedAmount],
         ...gas,
@@ -176,9 +176,9 @@ export default function SwapPage() {
     return (
       <div className="page-container flex items-center justify-center min-h-[60vh]">
         <div className="text-center max-w-sm w-full flex flex-col items-center">
-          <Wallet size={48} className="text-aura-muted mb-4" />
+          <Wallet size={48} className="text-ceitnot-muted mb-4" />
           <h2 className="text-xl font-semibold mb-2">Connect your wallet</h2>
-          <p className="text-aura-muted text-sm mb-6">Connect to swap aUSD ↔ USDC via the Peg Stability Module.</p>
+          <p className="text-ceitnot-muted text-sm mb-6">Connect to swap aUSD ↔ USDC via the Peg Stability Module.</p>
           <div className="w-full flex justify-center [&>div]:flex [&>div]:justify-center">
             <ConnectButton />
           </div>
@@ -190,7 +190,7 @@ export default function SwapPage() {
   if (!PSM || !USDC || !AUSD) {
     return (
       <div className="page-container flex items-center justify-center min-h-[60vh]">
-        <p className="text-aura-muted">PSM not configured. Missing environment variables.</p>
+        <p className="text-ceitnot-muted">PSM not configured. Missing environment variables.</p>
       </div>
     );
   }
@@ -200,7 +200,7 @@ export default function SwapPage() {
     <div className="page-container max-w-lg mx-auto">
       <div className="page-header text-center">
         <h1 className="page-title">
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-aura-gold to-aura-accent">Swap</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-ceitnot-gold to-ceitnot-accent">Swap</span>
         </h1>
         <p className="page-subtitle">Exchange aUSD ↔ USDC at 1:1 via the Peg Stability Module</p>
       </div>
@@ -210,12 +210,12 @@ export default function SwapPage() {
         {/* From */}
         <div className="mb-2">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-aura-muted">From</span>
-            <button onClick={handleMax} className="text-xs text-aura-gold hover:underline">
+            <span className="text-xs text-ceitnot-muted">From</span>
+            <button onClick={handleMax} className="text-xs text-ceitnot-gold hover:underline">
               Balance: {balance !== undefined ? (direction === 'in' ? formatToken(balance, peggedDec, 4) : formatWad(balance, 4)) : '—'} {inputToken}
             </button>
           </div>
-          <div className="flex items-center gap-3 bg-aura-surface rounded-xl p-3 border border-aura-border">
+          <div className="flex items-center gap-3 bg-ceitnot-surface rounded-xl p-3 border border-ceitnot-border">
             <input
               type="number"
               value={amount}
@@ -223,9 +223,9 @@ export default function SwapPage() {
               placeholder="0.0"
               className="bg-transparent text-xl font-mono flex-1 outline-none w-0"
             />
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-aura-card border border-aura-border shrink-0">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-ceitnot-card border border-ceitnot-border shrink-0">
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                direction === 'in' ? 'bg-blue-500/20 text-blue-400' : 'bg-aura-gold/20 text-aura-gold'
+                direction === 'in' ? 'bg-blue-500/20 text-blue-400' : 'bg-ceitnot-gold/20 text-ceitnot-gold'
               }`}>
                 {direction === 'in' ? '$' : 'a'}
               </div>
@@ -238,7 +238,7 @@ export default function SwapPage() {
         <div className="flex justify-center -my-1 relative z-10">
           <button
             onClick={flipDirection}
-            className="w-9 h-9 rounded-full border-2 border-aura-border bg-aura-card flex items-center justify-center hover:border-aura-gold/50 hover:text-aura-gold transition-colors"
+            className="w-9 h-9 rounded-full border-2 border-ceitnot-border bg-ceitnot-card flex items-center justify-center hover:border-ceitnot-gold/50 hover:text-ceitnot-gold transition-colors"
           >
             <ArrowDownUp size={16} />
           </button>
@@ -247,20 +247,20 @@ export default function SwapPage() {
         {/* To */}
         <div className="mt-2">
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-xs text-aura-muted">To (estimated)</span>
-            <span className="text-xs text-aura-muted">
+            <span className="text-xs text-ceitnot-muted">To (estimated)</span>
+            <span className="text-xs text-ceitnot-muted">
               Balance: {direction === 'in' ? formatWad(ausdBalance, 4) : formatToken(usdcBalance, peggedDec, 4)} {outputToken}
             </span>
           </div>
-          <div className="flex items-center gap-3 bg-aura-surface rounded-xl p-3 border border-aura-border">
-            <span className="text-xl font-mono flex-1 text-aura-muted-2">
+          <div className="flex items-center gap-3 bg-ceitnot-surface rounded-xl p-3 border border-ceitnot-border">
+            <span className="text-xl font-mono flex-1 text-ceitnot-muted-2">
               {estimatedOutWei > 0n
                 ? Number(formatUnits(estimatedOutWei, direction === 'in' ? 18 : peggedDec)).toLocaleString(undefined, { maximumFractionDigits: 4 })
                 : '0.0'}
             </span>
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-aura-card border border-aura-border shrink-0">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-ceitnot-card border border-ceitnot-border shrink-0">
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                direction === 'out' ? 'bg-blue-500/20 text-blue-400' : 'bg-aura-gold/20 text-aura-gold'
+                direction === 'out' ? 'bg-blue-500/20 text-blue-400' : 'bg-ceitnot-gold/20 text-ceitnot-gold'
               }`}>
                 {direction === 'out' ? '$' : 'a'}
               </div>
@@ -271,20 +271,20 @@ export default function SwapPage() {
 
         {/* Details */}
         {parsedAmount > 0n && (
-          <div className="mt-4 p-3 rounded-lg bg-aura-surface/50 border border-aura-border space-y-1.5 text-xs">
+          <div className="mt-4 p-3 rounded-lg bg-ceitnot-surface/50 border border-ceitnot-border space-y-1.5 text-xs">
             <div className="flex justify-between">
-              <span className="text-aura-muted">Rate</span>
+              <span className="text-ceitnot-muted">Rate</span>
               <span>1 {inputToken} = 1 {outputToken}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-aura-muted">Fee ({feePct}%)</span>
-              <span className="text-aura-warning">
+              <span className="text-ceitnot-muted">Fee ({feePct}%)</span>
+              <span className="text-ceitnot-warning">
                 −{Number(formatUnits(feeAmount, inputDecimals)).toLocaleString(undefined, { maximumFractionDigits: 6 })} {inputToken}
               </span>
             </div>
             <div className="flex justify-between font-medium">
-              <span className="text-aura-muted">You receive</span>
-              <span className="text-aura-success">
+              <span className="text-ceitnot-muted">You receive</span>
+              <span className="text-ceitnot-success">
                 {Number(formatUnits(estimatedOutWei, direction === 'in' ? 18 : peggedDec)).toLocaleString(undefined, { maximumFractionDigits: 4 })} {outputToken}
               </span>
             </div>
@@ -300,7 +300,7 @@ export default function SwapPage() {
               className="btn-secondary w-full flex items-center justify-center gap-2"
             >
               {isPending && approveHash ? <Loader2 size={14} className="animate-spin" /> : null}
-              {approveConfirmed ? <><CheckCircle size={14} className="text-aura-success" /> Approved</> : `Approve ${inputToken}`}
+              {approveConfirmed ? <><CheckCircle size={14} className="text-ceitnot-success" /> Approved</> : `Approve ${inputToken}`}
             </button>
           )}
           <button
@@ -315,15 +315,15 @@ export default function SwapPage() {
 
         {/* Status */}
         {hash && !swapConfirmed && (
-          <p className="text-xs text-center text-aura-muted font-mono mt-3">Pending: {hash.slice(0, 10)}…</p>
+          <p className="text-xs text-center text-ceitnot-muted font-mono mt-3">Pending: {hash.slice(0, 10)}…</p>
         )}
         {swapConfirmed && hash && (
-          <p className="text-xs text-center text-aura-success font-mono mt-3 flex items-center justify-center gap-1">
+          <p className="text-xs text-center text-ceitnot-success font-mono mt-3 flex items-center justify-center gap-1">
             <CheckCircle size={12} /> Swap confirmed!
           </p>
         )}
         {errMsg && (
-          <p className="text-xs text-aura-danger bg-aura-danger/10 p-3 rounded-lg mt-3 break-all">{errMsg}</p>
+          <p className="text-xs text-ceitnot-danger bg-ceitnot-danger/10 p-3 rounded-lg mt-3 break-all">{errMsg}</p>
         )}
       </div>
 
@@ -331,7 +331,7 @@ export default function SwapPage() {
       <div className="card p-5 mt-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Info size={16} className="text-aura-gold" />
+            <Info size={16} className="text-ceitnot-gold" />
             <h2 className="font-semibold text-sm">PSM Stats</h2>
           </div>
           <button onClick={() => refetch()} className="btn-ghost p-1">

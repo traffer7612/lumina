@@ -7,16 +7,16 @@ import { ERC20Votes }  from "@openzeppelin/contracts/token/ERC20/extensions/ERC2
 import { Nonces }      from "@openzeppelin/contracts/utils/Nonces.sol";
 
 /**
- * @title  AuraToken
+ * @title  CeitnotToken
  * @author Sanzhik(traffer7612)
- * @notice Governance token of the Aura Protocol.
+ * @notice Governance token of the Ceitnot Protocol.
  *         ERC-20 with ERC20Votes (snapshot-based voting power) and ERC20Permit (gasless approvals).
- *         Uses timestamp-based clock (EIP-6372) for compatibility with veAURA and Governor.
+ *         Uses timestamp-based clock (EIP-6372) for compatibility with VeCeitnot and Governor.
  * @dev    Phase 7 implementation.
- *         Supply cap: 100,000,000 AURA.
+ *         Supply cap: 100,000,000 CEITNOT.
  *         Minting is controlled by a single `minter` address (initially deployer, then governance).
  */
-contract AuraToken is ERC20, ERC20Permit, ERC20Votes {
+contract CeitnotToken is ERC20, ERC20Permit, ERC20Votes {
     // ------------------------------- Errors
     error Token__SupplyCapExceeded();
     error Token__Unauthorized();
@@ -26,13 +26,13 @@ contract AuraToken is ERC20, ERC20Permit, ERC20Votes {
     event MinterUpdated(address indexed previous, address indexed next);
 
     // ------------------------------- Constants
-    uint256 public constant SUPPLY_CAP = 100_000_000 * 1e18; // 100M AURA
+    uint256 public constant SUPPLY_CAP = 100_000_000 * 1e18; // 100M CEITNOT
 
     // ------------------------------- State
     address public minter;
 
     // ------------------------------- Constructor
-    constructor(address minter_) ERC20("Aura", "AURA") ERC20Permit("Aura") {
+    constructor(address minter_) ERC20("Ceitnot", "CEITNOT") ERC20Permit("Ceitnot") {
         if (minter_ == address(0)) revert Token__ZeroAddress();
         minter = minter_;
         emit MinterUpdated(address(0), minter_);
@@ -40,7 +40,7 @@ contract AuraToken is ERC20, ERC20Permit, ERC20Votes {
 
     // ------------------------------- Minting
     /**
-     * @notice Mint AURA tokens. Only callable by the current `minter`.
+     * @notice Mint CEITNOT tokens. Only callable by the current `minter`.
      * @param to     Recipient address
      * @param amount Amount to mint (WAD)
      */
@@ -63,7 +63,7 @@ contract AuraToken is ERC20, ERC20Permit, ERC20Votes {
 
     // ------------------------------- EIP-6372: timestamp clock
     /**
-     * @dev Use block.timestamp as the clock for compatibility with veAURA and Governor.
+     * @dev Use block.timestamp as the clock for compatibility with VeCeitnot and Governor.
      */
     function clock() public view override returns (uint48) {
         return uint48(block.timestamp);

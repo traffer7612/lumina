@@ -1,29 +1,29 @@
-# Changelog — Lumina Protocol
+# Changelog — Ceitnot Protocol
 
-Все изменения по фазам разработки. В списках ниже **AuraRouter**, **AuraEngine** и т.п. — **имена смарт-контрактов** в репозитории; публичный бренд — **Lumina** ([BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md)).
+Все изменения по фазам разработки. В списках ниже **CeitnotRouter**, **CeitnotEngine** и т.п. — **имена смарт-контрактов** в репозитории; публичный бренд — **Ceitnot** ([BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md)).
 
 ---
 
 ## Phase 10 — DX & Composability
-- **AuraRouter** — stateless маршрутизатор: `depositCollateral`, `depositAndBorrow`, `repayAndWithdraw`, `leverageUp/Down` + EIP-2612 permit flows
-- **Delegate system** — `setDelegate(address, bool)` в AuraEngine: позволяет внешним контрактам (Router) действовать от имени пользователя
+- **CeitnotRouter** — stateless маршрутизатор: `depositCollateral`, `depositAndBorrow`, `repayAndWithdraw`, `leverageUp/Down` + EIP-2612 permit flows
+- **Delegate system** — `setDelegate(address, bool)` в CeitnotEngine: позволяет внешним контрактам (Router) действовать от имени пользователя
 - **Multicall** — батч-вызовы через `delegatecall` для атомарных admin-операций
 - **EIP-2612 permit** — gasless approve для vault tokens и aUSD через Router
 
 ## Phase 9 — CDP Mode & PSM
-- **AuraUSD** — mintable стейблкоин: minter management, global debt ceiling, EIP-2612 permit, custom ERC-20 (без OZ зависимости)
-- **CDP mode** в AuraEngine — `borrow` минтит aUSD (вместо transfer USDC), `repay`/`liquidate` сжигают aUSD, per-market debt ceiling
-- **AuraPSM** — Peg Stability Module: 1:1 свопы aUSD ↔ pegged stable (USDC/DAI), настраиваемые комиссии tin/tout, ceiling, fee reserves
+- **CeitnotUSD** — mintable стейблкоин: minter management, global debt ceiling, EIP-2612 permit, custom ERC-20 (без OZ зависимости)
+- **CDP mode** в CeitnotEngine — `borrow` минтит aUSD (вместо transfer USDC), `repay`/`liquidate` сжигают aUSD, per-market debt ceiling
+- **CeitnotPSM** — Peg Stability Module: 1:1 свопы aUSD ↔ pegged stable (USDC/DAI), настраиваемые комиссии tin/tout, ceiling, fee reserves
 
 ## Phase 8 — Oracle V2
 - **OracleRelayV2** — multi-source median oracle (до 8 feeds), circuit breaker (maxDeviationBps), L2 sequencer uptime feed с grace period
 - Per-market oracle: каждый рынок указывает на свой OracleRelayV2
 
 ## Phase 7 — Governance
-- **AuraToken** — ERC-20 + ERC20Votes, timestamp-based clock (EIP-6372)
-- **VeAura** — Vote-Escrow: lock governance token (до 4 лет), линейное затухание voting power, delegation, revenue distribution (reward-per-token)
-- **AuraGovernor** — OpenZeppelin Governor + TimelockControl + VotesQuorumFraction
-- **AuraTreasury** — казначейство: deposit, withdraw, batch distribute
+- **CeitnotToken** — ERC-20 + ERC20Votes, timestamp-based clock (EIP-6372)
+- **VeCeitnot** — Vote-Escrow: lock governance token (до 4 лет), линейное затухание voting power, delegation, revenue distribution (reward-per-token)
+- **CeitnotGovernor** — OpenZeppelin Governor + TimelockControl + VotesQuorumFraction
+- **CeitnotTreasury** — казначейство: deposit, withdraw, batch distribute
 
 ## Phase 6 — Advanced Liquidation
 - **Dutch-аукцион** — линейный рост эффективного penalty от 0 до `liquidationPenaltyBps` за `auctionDuration` (после `initiateLiquidation`)
@@ -45,7 +45,7 @@
 - Reserve factor: часть начисленных процентов → протокол
 
 ## Phase 3 — Multi-Market & Isolation
-- **AuraMarketRegistry** — standalone реестр рынков
+- **CeitnotMarketRegistry** — standalone реестр рынков
 - Multi-market: пользователь может иметь позиции в нескольких рынках
 - **Isolation mode** — изолированные рынки с отдельным borrowCap
 - Supply/borrow caps per market
@@ -59,24 +59,24 @@
 - **Flash loans** — ERC-3156 с configurable fee
 
 ## Phase 1 — Core
-- **AuraEngine** — deposit/withdraw collateral, borrow/repay
-- **AuraProxy** — UUPS proxy (EIP-1822) с EIP-1967 storage slot
-- **AuraStorage** — EIP-7201 namespaced storage
+- **CeitnotEngine** — deposit/withdraw collateral, borrow/repay
+- **CeitnotProxy** — UUPS proxy (EIP-1822) с EIP-1967 storage slot
+- **CeitnotStorage** — EIP-7201 namespaced storage
 - **OracleRelay** — Chainlink primary + fallback, staleness check, TWAP
 - **FixedPoint** — WAD/RAY математика
-- **AuraVault4626** — ERC-4626 view adapter
+- **CeitnotVault4626** — ERC-4626 view adapter
 
 ---
 
 ## Security Fixes (post-Slither audit)
-- **AuraRouter**: проверка return value `transferFrom`/`approve` (8 мест) + error `Router__TransferFailed`
-- **AuraPSM**: CEI pattern в `swapIn`/`swapOut` — state updates до external calls
-- **VeAura**: CEI pattern в `lock`/`increaseAmount`/`distributeRevenue` — `_transferIn` после state updates
-- **AuraMarketRegistry**: zero-address check в `setEngine()`
-- **AuraProxy**: zero-address check в конструкторе (`Proxy__ZeroImplementation`)
-- **AuraVault4626**: zero-address check в конструкторе (`Vault4626__ZeroAddress`)
+- **CeitnotRouter**: проверка return value `transferFrom`/`approve` (8 мест) + error `Router__TransferFailed`
+- **CeitnotPSM**: CEI pattern в `swapIn`/`swapOut` — state updates до external calls
+- **VeCeitnot**: CEI pattern в `lock`/`increaseAmount`/`distributeRevenue` — `_transferIn` после state updates
+- **CeitnotMarketRegistry**: zero-address check в `setEngine()`
+- **CeitnotProxy**: zero-address check в конструкторе (`Proxy__ZeroImplementation`)
+- **CeitnotVault4626**: zero-address check в конструкторе (`Vault4626__ZeroAddress`)
 - **OracleRelay**: zero-address check для `primaryFeed` (`OracleRelay__ZeroPrimaryFeed`)
-- **VeAura**: zero-address check в `setRevenueToken()`
+- **VeCeitnot**: zero-address check в `setRevenueToken()`
 
 ---
 

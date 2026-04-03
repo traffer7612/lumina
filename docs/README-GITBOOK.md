@@ -1,8 +1,8 @@
-# Документация Lumina (docs.lumina.finance)
+# Документация Ceitnot (docs.ceitnot.finance)
 
-Эту папку можно использовать как источник для **GitBook** (docs.lumina.finance): подключите репозиторий к GitBook и укажите папку `docs/` или скопируйте файлы.
+Эту папку можно использовать как источник для **GitBook** (docs.ceitnot.finance): подключите репозиторий к GitBook и укажите папку `docs/` или скопируйте файлы.
 
-**Имена:** в текстах для людей используется бренд **Lumina**; имена контрактов в Solidity (**`AuraEngine`**, **`AuraUSD`**, …) оставляем как в коде и на эксплорере — см. [BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md).
+**Имена:** в текстах для людей используется бренд **Ceitnot**; имена контрактов в Solidity (**`CeitnotEngine`**, **`CeitnotUSD`**, …) оставляем как в коде и на эксплорере — см. [BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md).
 
 ## Содержание
 
@@ -18,12 +18,12 @@
 | [VERCEL.md](VERCEL.md) | Деплой фронта на Vercel. |
 | [ROADMAP.md](ROADMAP.md) | Дорожная карта продукта и фазы выхода в production. |
 | [TOKENOMICS-PROD-CHECKLIST.md](TOKENOMICS-PROD-CHECKLIST.md) | Чеклист токеномики и go-live перед публичным продом. |
-| [BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md) | Lumina vs имена контрактов Aura* в коде и на чейне. |
+| [BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md) | Ceitnot vs имена контрактов Ceitnot* в коде и на чейне. |
 
 ## Настройка GitBook
 
 1. Создайте пространство на [gitbook.com](https://www.gitbook.com) и привяжите репозиторий (GitHub/GitLab).
 2. Root path укажите как `docs` или выберите только нужные файлы.
-3. Домен docs.lumina.finance настройте в настройках GitBook (Custom domain).
+3. Домен docs.ceitnot.finance настройте в настройках GitBook (Custom domain).
 
 Альтернатива: экспорт Markdown в статический сайт (MkDocs, Docusaurus) и хостинг на том же домене.

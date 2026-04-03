@@ -1,4 +1,4 @@
-# Lumina: Architecture & Death-Spiral Handling
+# Ceitnot: Architecture & Death-Spiral Handling
 
 ## 1. Yield-Distribution Algorithm (Stream-Settlement)
 
@@ -32,7 +32,7 @@ These choices prevent attackers from exploiting rounding to underpay debt or ove
 
 **“Death spiral”:** Collateral value falls faster than yield can repay debt, so the position becomes underwater (debt > collateral value) without a market-based correction.
 
-### How Lumina Handles It
+### How Ceitnot Handles It
 
 1. **Liquidation threshold**  
    Positions are liquidatable when health factor &lt; 1, where  
@@ -69,7 +69,7 @@ These choices prevent attackers from exploiting rounding to underpay debt or ove
 ## 4. ERC-4626 Compatibility
 
 - The engine accepts **any ERC-4626 vault** as `collateralVault`. Collateral is deposited and held as **vault shares**; we use `convertToAssets` / `convertToShares` for valuation and accounting.
-- A Lumina **`AuraVault4626`** view adapter exposes `totalAssets()`, `convertToAssets`, and `convertToShares` backed by the engine’s total collateral, so 4626-based integrators can read engine state without holding a position.
+- A Ceitnot **`CeitnotVault4626`** view adapter exposes `totalAssets()`, `convertToAssets`, and `convertToShares` backed by the engine’s total collateral, so 4626-based integrators can read engine state without holding a position.
 
 ---
 

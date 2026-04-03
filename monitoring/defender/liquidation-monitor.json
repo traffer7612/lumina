@@ -46,7 +46,7 @@
   "notifyConfig": {
     "timeoutMs": 0,
     "messageSubject": "[AURA ALERT] Large Liquidation / Bad Debt",
-    "message": "A large liquidation or bad debt event was detected on AuraEngine.\n\nTransaction: {{transaction.hash}}\nFrom: {{transaction.from}}\nBlock: {{transaction.blockNumber}}\n\nCheck the Aura dashboard and assess protocol health.",
+    "message": "A large liquidation or bad debt event was detected on CeitnotEngine.\n\nTransaction: {{transaction.hash}}\nFrom: {{transaction.from}}\nBlock: {{transaction.blockNumber}}\n\nCheck the Aura dashboard and assess protocol health.",
     "channels": ["${DEFENDER_NOTIFICATION_CHANNEL_ID}"]
   }
 }

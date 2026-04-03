@@ -2,10 +2,10 @@
 pragma solidity ^0.8.20;
 
 import { Test }               from "forge-std/Test.sol";
-import { AuraEngine }         from "../src/AuraEngine.sol";
-import { AuraProxy }          from "../src/AuraProxy.sol";
-import { AuraStorage }        from "../src/AuraStorage.sol";
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotEngine }         from "../src/CeitnotEngine.sol";
+import { CeitnotProxy }          from "../src/CeitnotProxy.sol";
+import { CeitnotStorage }        from "../src/CeitnotStorage.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 import { MockERC20 }          from "./mocks/MockERC20.sol";
 import { MockVault4626 }      from "./mocks/MockVault4626.sol";
 import { ControllableOracle } from "./mocks/ControllableOracle.sol";
@@ -15,12 +15,12 @@ import { ControllableVault }  from "./mocks/ControllableVault.sol";
 
 /// @notice Attempts reentrancy via vault.transfer callback during withdrawCollateral
 contract ReentrantWithdrawAttacker {
-    AuraEngine public engine;
+    CeitnotEngine public engine;
     uint256 public marketId;
     uint256 public attackCount;
 
     function setup(address engine_, uint256 marketId_) external {
-        engine   = AuraEngine(engine_);
+        engine   = CeitnotEngine(engine_);
         marketId = marketId_;
     }
 
@@ -38,12 +38,12 @@ contract ReentrantWithdrawAttacker {
 
 /// @notice Attempts to exploit borrow by immediately liquidating in same block
 contract FlashLoanAttacker {
-    AuraEngine public engine;
+    CeitnotEngine public engine;
     address public victim;
     uint256 public marketId;
 
     function setup(address engine_, address victim_, uint256 marketId_) external {
-        engine   = AuraEngine(engine_);
+        engine   = CeitnotEngine(engine_);
         victim   = victim_;
         marketId = marketId_;
     }
@@ -56,10 +56,10 @@ contract FlashLoanAttacker {
 // ============ Main Security Test Suite ============
 
 contract SecurityTest is Test {
-    AuraEngine          public engine;
-    AuraProxy           public proxy;
-    AuraEngine          public impl;
-    AuraMarketRegistry  public registry;
+    CeitnotEngine          public engine;
+    CeitnotProxy           public proxy;
+    CeitnotEngine          public impl;
+    CeitnotMarketRegistry  public registry;
     MockERC20           public assetToken;
     MockERC20           public debtToken;
     MockVault4626       public vault;
@@ -77,23 +77,23 @@ contract SecurityTest is Test {
     function setUp() public {
         assetToken = new MockERC20("Wrapped stETH", "wstETH", 18);
         debtToken  = new MockERC20("USD Coin", "USDC", 18);
-        vault      = new MockVault4626(address(assetToken), "Aura wstETH Vault", "avWSTETH");
+        vault      = new MockVault4626(address(assetToken), "Ceitnot wstETH Vault", "avWSTETH");
         oracle     = new ControllableOracle(WAD);
 
-        registry = new AuraMarketRegistry(address(this));
+        registry = new CeitnotMarketRegistry(address(this));
         registry.addMarket(
             address(vault), address(oracle),
             uint16(8000), uint16(8500), uint16(500),
             0, 0, false, 0
         );
 
-        impl = new AuraEngine();
+        impl = new CeitnotEngine();
         bytes memory initData = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(debtToken), address(registry), uint256(1 days), uint256(2 days))
         );
-        proxy  = new AuraProxy(address(impl), initData);
-        engine = AuraEngine(address(proxy));
+        proxy  = new CeitnotProxy(address(impl), initData);
+        engine = CeitnotEngine(address(proxy));
         registry.setEngine(address(proxy));
 
         debtToken.mint(address(proxy), 10_000_000 * WAD);
@@ -135,7 +135,7 @@ contract SecurityTest is Test {
     function test_SEC_reentrancy_depositThenWithdrawSameBlock() public {
         vm.startPrank(alice);
         engine.depositCollateral(alice, MARKET_ID, 100 * WAD);
-        vm.expectRevert(AuraEngine.Aura__SameBlockInteraction.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__SameBlockInteraction.selector);
         engine.withdrawCollateral(alice, MARKET_ID, 50 * WAD);
         vm.stopPrank();
     }
@@ -144,7 +144,7 @@ contract SecurityTest is Test {
     function test_SEC_reentrancy_depositThenBorrowSameBlock() public {
         vm.startPrank(alice);
         engine.depositCollateral(alice, MARKET_ID, 1000 * WAD);
-        vm.expectRevert(AuraEngine.Aura__SameBlockInteraction.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__SameBlockInteraction.selector);
         engine.borrow(alice, MARKET_ID, 100 * WAD);
         vm.stopPrank();
     }
@@ -157,7 +157,7 @@ contract SecurityTest is Test {
 
         vm.startPrank(alice);
         engine.borrow(alice, MARKET_ID, 100 * WAD);
-        vm.expectRevert(AuraEngine.Aura__SameBlockInteraction.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__SameBlockInteraction.selector);
         engine.repay(alice, MARKET_ID, 50 * WAD);
         vm.stopPrank();
     }
@@ -166,7 +166,7 @@ contract SecurityTest is Test {
     function test_SEC_reentrancy_doubleDepositSameBlock() public {
         vm.startPrank(alice);
         engine.depositCollateral(alice, MARKET_ID, 100 * WAD);
-        vm.expectRevert(AuraEngine.Aura__SameBlockInteraction.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__SameBlockInteraction.selector);
         engine.depositCollateral(alice, MARKET_ID, 100 * WAD);
         vm.stopPrank();
     }
@@ -179,7 +179,7 @@ contract SecurityTest is Test {
     function test_SEC_flashLoan_depositBorrowWithdrawSameBlock() public {
         vm.startPrank(eve);
         engine.depositCollateral(eve, MARKET_ID, 10_000 * WAD);
-        vm.expectRevert(AuraEngine.Aura__SameBlockInteraction.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__SameBlockInteraction.selector);
         engine.borrow(eve, MARKET_ID, 7999 * WAD);
         vm.stopPrank();
     }
@@ -199,7 +199,7 @@ contract SecurityTest is Test {
         engine.liquidate(alice, MARKET_ID, 100 * WAD);
 
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__SameBlockInteraction.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__SameBlockInteraction.selector);
         engine.repay(alice, MARKET_ID, 100 * WAD);
     }
 
@@ -214,7 +214,7 @@ contract SecurityTest is Test {
         vm.roll(10);
         oracle.setPrice(0);
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__ExceedsLTV.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__ExceedsLTV.selector);
         engine.borrow(alice, MARKET_ID, 1 * WAD);
     }
 
@@ -243,7 +243,7 @@ contract SecurityTest is Test {
         assertEq(engine.getPositionDebt(alice, MARKET_ID), 80_000 * WAD);
         vm.roll(20);
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__ExceedsLTV.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__ExceedsLTV.selector);
         engine.borrow(alice, MARKET_ID, 1 * WAD);
     }
 
@@ -287,7 +287,7 @@ contract SecurityTest is Test {
         engine.borrow(alice, MARKET_ID, 100 * WAD);
         vm.roll(20);
         vm.prank(eve);
-        vm.expectRevert(AuraEngine.Aura__HealthFactorAboveOne.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__HealthFactorAboveOne.selector);
         engine.liquidate(alice, MARKET_ID, 10 * WAD);
     }
 
@@ -329,7 +329,7 @@ contract SecurityTest is Test {
         vm.roll(20);
         oracle.setPrice(WAD / 2);
         vm.prank(eve);
-        vm.expectRevert(AuraEngine.Aura__ZeroAmount.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__ZeroAmount.selector);
         engine.liquidate(alice, MARKET_ID, 0);
     }
 
@@ -358,25 +358,25 @@ contract SecurityTest is Test {
 
     function test_SEC_access_nonAdminCannotPause() public {
         vm.prank(eve);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.setPaused(true);
     }
 
     function test_SEC_access_nonAdminCannotShutdown() public {
         vm.prank(eve);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.setEmergencyShutdown(true);
     }
 
     function test_SEC_access_nonAdminCannotTransferAdmin() public {
         vm.prank(eve);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.proposeAdmin(eve);
     }
 
     function test_SEC_access_nonAdminCannotProposeParam() public {
         vm.prank(eve);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.proposeMarketParam(MARKET_ID, keccak256("ltvBps"), 9000);
     }
 
@@ -384,14 +384,14 @@ contract SecurityTest is Test {
         engine.proposeMarketParam(MARKET_ID, keccak256("ltvBps"), 7500);
         vm.warp(block.timestamp + 3 days);
         vm.prank(eve);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.executeMarketParam(MARKET_ID, keccak256("ltvBps"));
     }
 
     function test_SEC_access_nonAdminCannotUpgrade() public {
-        AuraEngine newImpl = new AuraEngine();
+        CeitnotEngine newImpl = new CeitnotEngine();
         vm.prank(eve);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.upgradeToAndCall(address(newImpl), "");
     }
 
@@ -400,7 +400,7 @@ contract SecurityTest is Test {
         engine.depositCollateral(alice, MARKET_ID, 1000 * WAD);
         vm.roll(10);
         vm.prank(eve);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.borrow(alice, MARKET_ID, 100 * WAD);
     }
 
@@ -409,7 +409,7 @@ contract SecurityTest is Test {
         engine.depositCollateral(alice, MARKET_ID, 1000 * WAD);
         vm.roll(10);
         vm.prank(eve);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.withdrawCollateral(alice, MARKET_ID, 100 * WAD);
     }
 
@@ -421,7 +421,7 @@ contract SecurityTest is Test {
         engine.borrow(alice, MARKET_ID, 100 * WAD);
         vm.roll(20);
         vm.prank(eve);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.repay(alice, MARKET_ID, 50 * WAD);
     }
 
@@ -430,18 +430,18 @@ contract SecurityTest is Test {
     // =====================================================================
 
     function test_SEC_proxy_reinitializeReverts() public {
-        vm.expectRevert(AuraEngine.Aura__AlreadyInitialized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__AlreadyInitialized.selector);
         engine.initialize(address(debtToken), address(registry), 1 days, 2 days);
     }
 
     function test_SEC_proxy_implementationLockedFromInit() public {
-        AuraEngine rawImpl = new AuraEngine();
-        vm.expectRevert(AuraEngine.Aura__AlreadyInitialized.selector);
+        CeitnotEngine rawImpl = new CeitnotEngine();
+        vm.expectRevert(CeitnotEngine.Ceitnot__AlreadyInitialized.selector);
         rawImpl.initialize(address(debtToken), address(registry), 1 days, 2 days);
     }
 
     function test_SEC_proxy_adminCanUpgrade() public {
-        AuraEngine newImpl = new AuraEngine();
+        CeitnotEngine newImpl = new CeitnotEngine();
         engine.upgradeToAndCall(address(newImpl), "");
         assertEq(engine.getMarket(MARKET_ID).ltvBps, 8000);
     }
@@ -453,7 +453,7 @@ contract SecurityTest is Test {
     function test_SEC_timelock_executeBeforeDelayReverts() public {
         engine.proposeMarketParam(MARKET_ID, keccak256("ltvBps"), 7500);
         vm.warp(block.timestamp + 1 days);
-        vm.expectRevert(AuraEngine.Aura__TimelockNotElapsed.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__TimelockNotElapsed.selector);
         engine.executeMarketParam(MARKET_ID, keccak256("ltvBps"));
     }
 
@@ -461,7 +461,7 @@ contract SecurityTest is Test {
         bytes32 paramId = keccak256("ltvBps");
         engine.proposeMarketParam(MARKET_ID, paramId, 9000);
         vm.warp(block.timestamp + 3 days);
-        vm.expectRevert(AuraEngine.Aura__InvalidParams.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__InvalidParams.selector);
         engine.executeMarketParam(MARKET_ID, paramId);
     }
 
@@ -469,7 +469,7 @@ contract SecurityTest is Test {
         bytes32 paramId = keccak256("liquidationThresholdBps");
         engine.proposeMarketParam(MARKET_ID, paramId, 5000);
         vm.warp(block.timestamp + 3 days);
-        vm.expectRevert(AuraEngine.Aura__InvalidParams.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__InvalidParams.selector);
         engine.executeMarketParam(MARKET_ID, paramId);
     }
 
@@ -477,7 +477,7 @@ contract SecurityTest is Test {
         bytes32 paramId = keccak256("nonExistentParam");
         engine.proposeMarketParam(MARKET_ID, paramId, 1000);
         vm.warp(block.timestamp + 3 days);
-        vm.expectRevert(AuraEngine.Aura__InvalidParams.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__InvalidParams.selector);
         engine.executeMarketParam(MARKET_ID, paramId);
     }
 
@@ -485,7 +485,7 @@ contract SecurityTest is Test {
         bytes32 paramId = keccak256("ltvBps");
         engine.proposeMarketParam(MARKET_ID, paramId, 10001);
         vm.warp(block.timestamp + 3 days);
-        vm.expectRevert(AuraEngine.Aura__InvalidParams.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__InvalidParams.selector);
         engine.executeMarketParam(MARKET_ID, paramId);
     }
 
@@ -502,20 +502,20 @@ contract SecurityTest is Test {
         engine.setPaused(true);
         vm.roll(20);
         vm.startPrank(alice);
-        vm.expectRevert(AuraEngine.Aura__Paused.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Paused.selector);
         engine.depositCollateral(alice, MARKET_ID, 100 * WAD);
-        vm.expectRevert(AuraEngine.Aura__Paused.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Paused.selector);
         engine.withdrawCollateral(alice, MARKET_ID, 50 * WAD);
-        vm.expectRevert(AuraEngine.Aura__Paused.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Paused.selector);
         engine.borrow(alice, MARKET_ID, 10 * WAD);
-        vm.expectRevert(AuraEngine.Aura__Paused.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Paused.selector);
         engine.repay(alice, MARKET_ID, 10 * WAD);
         vm.stopPrank();
-        vm.expectRevert(AuraEngine.Aura__Paused.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Paused.selector);
         engine.harvestYield(MARKET_ID);
         oracle.setPrice(WAD / 2);
         vm.prank(eve);
-        vm.expectRevert(AuraEngine.Aura__Paused.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Paused.selector);
         engine.liquidate(alice, MARKET_ID, 10 * WAD);
     }
 
@@ -528,11 +528,11 @@ contract SecurityTest is Test {
         engine.setEmergencyShutdown(true);
         vm.roll(20);
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__EmergencyShutdown.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__EmergencyShutdown.selector);
         engine.depositCollateral(alice, MARKET_ID, 100 * WAD);
         vm.roll(30);
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__EmergencyShutdown.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__EmergencyShutdown.selector);
         engine.borrow(alice, MARKET_ID, 10 * WAD);
         vm.roll(40);
         vm.prank(alice);
@@ -546,7 +546,7 @@ contract SecurityTest is Test {
     function test_SEC_shutdown_harvestBlocked() public {
         engine.setEmergencyShutdown(true);
         vm.warp(block.timestamp + 2 days);
-        vm.expectRevert(AuraEngine.Aura__EmergencyShutdown.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__EmergencyShutdown.selector);
         engine.harvestYield(MARKET_ID);
     }
 
@@ -560,7 +560,7 @@ contract SecurityTest is Test {
         oracle.setPrice(WAD / 2);
         vm.roll(20);
         vm.prank(eve);
-        vm.expectRevert(AuraEngine.Aura__EmergencyShutdown.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__EmergencyShutdown.selector);
         engine.liquidate(alice, MARKET_ID, 100 * WAD);
     }
 
@@ -582,7 +582,7 @@ contract SecurityTest is Test {
     function test_SEC_harvest_heartbeatProtection() public {
         vm.prank(alice);
         engine.depositCollateral(alice, MARKET_ID, 1000 * WAD);
-        vm.expectRevert(AuraEngine.Aura__HeartbeatNotElapsed.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__HeartbeatNotElapsed.selector);
         engine.harvestYield(MARKET_ID);
     }
 
@@ -592,22 +592,22 @@ contract SecurityTest is Test {
 
     /// @notice Initialize with zero debtToken reverts
     function test_SEC_init_zeroAddressReverts() public {
-        AuraEngine newImpl = new AuraEngine();
+        CeitnotEngine newImpl = new CeitnotEngine();
         // debtToken = address(0) → revert
-        vm.expectRevert(AuraEngine.Aura__InvalidParams.selector);
-        new AuraProxy(
+        vm.expectRevert(CeitnotEngine.Ceitnot__InvalidParams.selector);
+        new CeitnotProxy(
             address(newImpl),
             abi.encodeCall(
-                AuraEngine.initialize,
+                CeitnotEngine.initialize,
                 (address(0), address(registry), uint256(1 days), uint256(2 days))
             )
         );
         // marketRegistry = address(0) → revert
-        vm.expectRevert(AuraEngine.Aura__InvalidParams.selector);
-        new AuraProxy(
+        vm.expectRevert(CeitnotEngine.Ceitnot__InvalidParams.selector);
+        new CeitnotProxy(
             address(newImpl),
             abi.encodeCall(
-                AuraEngine.initialize,
+                CeitnotEngine.initialize,
                 (address(debtToken), address(0), uint256(1 days), uint256(2 days))
             )
         );
@@ -615,8 +615,8 @@ contract SecurityTest is Test {
 
     /// @notice Registry addMarket with LTV > liquidation threshold reverts
     function test_SEC_init_ltvGtLiqThresholdReverts() public {
-        AuraMarketRegistry badRegistry = new AuraMarketRegistry(address(this));
-        vm.expectRevert(AuraMarketRegistry.Registry__InvalidParams.selector);
+        CeitnotMarketRegistry badRegistry = new CeitnotMarketRegistry(address(this));
+        vm.expectRevert(CeitnotMarketRegistry.Registry__InvalidParams.selector);
         badRegistry.addMarket(
             address(vault), address(oracle),
             uint16(9000), uint16(8500), uint16(500),
@@ -626,8 +626,8 @@ contract SecurityTest is Test {
 
     /// @notice Registry addMarket with LTV > 100% reverts
     function test_SEC_init_ltvOver100Reverts() public {
-        AuraMarketRegistry badRegistry = new AuraMarketRegistry(address(this));
-        vm.expectRevert(AuraMarketRegistry.Registry__InvalidParams.selector);
+        CeitnotMarketRegistry badRegistry = new CeitnotMarketRegistry(address(this));
+        vm.expectRevert(CeitnotMarketRegistry.Registry__InvalidParams.selector);
         badRegistry.addMarket(
             address(vault), address(oracle),
             uint16(10001), uint16(10001), uint16(500),
@@ -641,18 +641,18 @@ contract SecurityTest is Test {
 
     function test_SEC_edge_zeroAmountsRevert() public {
         vm.startPrank(alice);
-        vm.expectRevert(AuraEngine.Aura__ZeroAmount.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__ZeroAmount.selector);
         engine.depositCollateral(alice, MARKET_ID, 0);
         vm.stopPrank();
         vm.prank(alice);
         engine.depositCollateral(alice, MARKET_ID, 100 * WAD);
         vm.roll(10);
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__ZeroAmount.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__ZeroAmount.selector);
         engine.withdrawCollateral(alice, MARKET_ID, 0);
         vm.roll(20);
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__ZeroAmount.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__ZeroAmount.selector);
         engine.borrow(alice, MARKET_ID, 0);
     }
 
@@ -661,7 +661,7 @@ contract SecurityTest is Test {
         engine.depositCollateral(alice, MARKET_ID, 100 * WAD);
         vm.roll(10);
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__InsufficientCollateral.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__InsufficientCollateral.selector);
         engine.withdrawCollateral(alice, MARKET_ID, 200 * WAD);
     }
 
@@ -698,21 +698,21 @@ contract SecurityTest is Test {
         ControllableVault cVault = new ControllableVault(address(assetToken));
         ControllableOracle cOracle = new ControllableOracle(WAD);
 
-        AuraMarketRegistry cRegistry = new AuraMarketRegistry(address(this));
+        CeitnotMarketRegistry cRegistry = new CeitnotMarketRegistry(address(this));
         cRegistry.addMarket(
             address(cVault), address(cOracle),
             uint16(8000), uint16(8500), uint16(500),
             0, 0, false, 0
         );
-        AuraEngine cImpl = new AuraEngine();
-        AuraProxy cProxy = new AuraProxy(
+        CeitnotEngine cImpl = new CeitnotEngine();
+        CeitnotProxy cProxy = new CeitnotProxy(
             address(cImpl),
             abi.encodeCall(
-                AuraEngine.initialize,
+                CeitnotEngine.initialize,
                 (address(debtToken), address(cRegistry), uint256(1 days), uint256(2 days))
             )
         );
-        AuraEngine cEngine = AuraEngine(address(cProxy));
+        CeitnotEngine cEngine = CeitnotEngine(address(cProxy));
         cRegistry.setEngine(address(cProxy));
         debtToken.mint(address(cProxy), 10_000_000 * WAD);
 
@@ -783,7 +783,7 @@ contract SecurityTest is Test {
         engine.borrow(alice, MARKET_ID, 700 * WAD);
         vm.roll(20);
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__HealthFactorBelowOne.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__HealthFactorBelowOne.selector);
         engine.withdrawCollateral(alice, MARKET_ID, 900 * WAD);
     }
 
@@ -820,7 +820,7 @@ contract SecurityTest is Test {
         vm.prank(alice);
         engine.acceptAdmin();
 
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.setPaused(true);
 
         // alice → bob (two-step)
@@ -830,7 +830,7 @@ contract SecurityTest is Test {
         engine.acceptAdmin();
 
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.setPaused(true);
 
         // bob can pause
@@ -840,7 +840,7 @@ contract SecurityTest is Test {
 
     /// @notice Cannot propose admin to zero address
     function test_SEC_admin_cannotSetZero() public {
-        vm.expectRevert(AuraEngine.Aura__InvalidParams.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__InvalidParams.selector);
         engine.proposeAdmin(address(0));
     }
 
@@ -852,21 +852,21 @@ contract SecurityTest is Test {
         ControllableVault cVault = new ControllableVault(address(assetToken));
         ControllableOracle cOracle = new ControllableOracle(WAD);
 
-        AuraMarketRegistry cRegistry = new AuraMarketRegistry(address(this));
+        CeitnotMarketRegistry cRegistry = new CeitnotMarketRegistry(address(this));
         cRegistry.addMarket(
             address(cVault), address(cOracle),
             uint16(8000), uint16(8500), uint16(500),
             0, 0, false, 0
         );
-        AuraEngine cImpl = new AuraEngine();
-        AuraProxy cProxy = new AuraProxy(
+        CeitnotEngine cImpl = new CeitnotEngine();
+        CeitnotProxy cProxy = new CeitnotProxy(
             address(cImpl),
             abi.encodeCall(
-                AuraEngine.initialize,
+                CeitnotEngine.initialize,
                 (address(debtToken), address(cRegistry), uint256(1 days), uint256(2 days))
             )
         );
-        AuraEngine cEngine = AuraEngine(address(cProxy));
+        CeitnotEngine cEngine = CeitnotEngine(address(cProxy));
         cRegistry.setEngine(address(cProxy));
         debtToken.mint(address(cProxy), 10_000_000 * WAD);
 
@@ -896,14 +896,14 @@ contract SecurityTest is Test {
     function test_SEC_edge_noPriorDepositCannotBorrow() public {
         address nobody = address(0xDEAD);
         vm.prank(nobody);
-        vm.expectRevert(AuraEngine.Aura__ExceedsLTV.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__ExceedsLTV.selector);
         engine.borrow(nobody, MARKET_ID, 1 * WAD);
     }
 
     function test_SEC_edge_noPriorDepositCannotWithdraw() public {
         address nobody = address(0xDEAD);
         vm.prank(nobody);
-        vm.expectRevert(AuraEngine.Aura__InsufficientCollateral.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__InsufficientCollateral.selector);
         engine.withdrawCollateral(nobody, MARKET_ID, 1 * WAD);
     }
 

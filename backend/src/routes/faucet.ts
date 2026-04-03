@@ -7,7 +7,7 @@ import { foundry, sepolia } from "viem/chains";
 export const faucetRouter = Router();
 
 const FAUCET_AMOUNT = parseEther("0.5");
-const AURA_FAUCET_AMOUNT = parseEther("1000"); // 1000 test AURA per request
+const GOVERNANCE_TOKEN_FAUCET_AMOUNT = parseEther("1000"); // per request (testnet)
 
 const anvilRpc = () => process.env.FAUCET_RPC_URL ?? process.env.RPC_URL ?? "http://127.0.0.1:8545";
 
@@ -17,7 +17,7 @@ function getRpc(chainId: number): string {
   return process.env.RPC_URL ?? "";
 }
 
-const AURA_TOKEN_MINT_ABI = [
+const ERC20_MINT_ABI = [
   { inputs: [{ name: "to", type: "address" }, { name: "amount", type: "uint256" }], name: "mint", outputs: [], stateMutability: "nonpayable", type: "function" },
 ] as const;
 
@@ -70,8 +70,8 @@ faucetRouter.post("/", async (req, res) => {
   }
 });
 
-// POST /api/faucet/aura — mint test AURA to address (minter key required; Sepolia or Anvil)
-faucetRouter.post("/aura", async (req, res) => {
+// POST /api/faucet/mint-governance — mint test CEITNOT to address (minter key required; Sepolia or Anvil)
+faucetRouter.post("/mint-governance", async (req, res) => {
   const address = req.body?.address as string | undefined;
   const chainId = Number(req.body?.chainId ?? 31337);
 
@@ -79,28 +79,28 @@ faucetRouter.post("/aura", async (req, res) => {
     return res.status(400).json({ error: "Missing or invalid address" });
   }
 
-  const auraTokenAddress = process.env.AURA_TOKEN_ADDRESS as `0x${string}` | undefined;
+  const tokenAddress = process.env.GOVERNANCE_TOKEN_ADDRESS as `0x${string}` | undefined;
   const pk = process.env.FAUCET_PRIVATE_KEY;
 
-  if (!auraTokenAddress) {
+  if (!tokenAddress) {
     return res.status(503).json({
-      error: "AURA faucet not configured. Set AURA_TOKEN_ADDRESS in backend .env.",
+      error: "Governance token faucet not configured. Set GOVERNANCE_TOKEN_ADDRESS in backend .env.",
     });
   }
   if (!pk) {
     return res.status(503).json({
-      error: "Faucet key not configured. Set FAUCET_PRIVATE_KEY (must be AuraToken minter on this chain).",
+      error: "Faucet key not configured. Set FAUCET_PRIVATE_KEY (must be token minter on this chain).",
     });
   }
 
   const rpc = getRpc(chainId);
   if (!rpc) {
-    return res.status(400).json({ error: "Unsupported chainId for AURA faucet (use 31337 or 11155111)" });
+    return res.status(400).json({ error: "Unsupported chainId (use 31337 or 11155111)" });
   }
 
   const chain = chainId === 11155111 ? sepolia : foundry;
   if (chainId !== 31337 && chainId !== 11155111) {
-    return res.status(400).json({ error: "AURA faucet only available for Anvil (31337) or Sepolia (11155111)" });
+    return res.status(400).json({ error: "Governance token faucet only available for Anvil (31337) or Sepolia (11155111)" });
   }
 
   try {
@@ -112,10 +112,10 @@ faucetRouter.post("/aura", async (req, res) => {
     });
     const publicClient = createPublicClient({ chain, transport: http(rpc) });
     const hash = await wallet.writeContract({
-      address: auraTokenAddress,
-      abi: AURA_TOKEN_MINT_ABI,
+      address: tokenAddress,
+      abi: ERC20_MINT_ABI,
       functionName: "mint",
-      args: [address as Address, AURA_FAUCET_AMOUNT],
+      args: [address as Address, GOVERNANCE_TOKEN_FAUCET_AMOUNT],
       gas: 200_000n,
       ...(chainId === 11155111
         ? { maxFeePerGas: 50_000_000_000n, maxPriorityFeePerGas: 2_000_000_000n }

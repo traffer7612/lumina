@@ -1,13 +1,12 @@
-# EIP-7201 Storage Map — Lumina Engine
+# EIP-7201 Storage Map — Ceitnot Engine
 
-## Namespace
+## Storage root slot
 
-- **Namespace ID:** `com.aura.engine.v1`
-- **Formula:** `erc7201(id) = keccak256(abi.encode(uint256(keccak256(bytes(id))) - 1)) & ~bytes32(uint256(0xff))`
-- **Storage root slot:**  
-  `keccak256(abi.encode(uint256(keccak256("com.aura.engine.v1")) - 1)) & ~bytes32(uint256(0xff))`
+The engine uses a **fixed** EIP-7201-style namespaced root (see `ENGINE_STORAGE_SLOT` in `src/CeitnotStorage.sol`). On-chain value:
 
-This ensures the layout is in a separate tree from the implementation contract and from other namespaces, with no collision risk across upgrades.
+`0x183a6125c38840424c4a85fa12bab2ab606c4b6d0e7cc73c0c06ba5300eab500`
+
+Call `CeitnotStorage.getStorageSlot()` to verify. Do **not** change this literal in production code without a migration plan — it anchors all proxy storage for `CeitnotEngine`.
 
 ## Layout (from root slot)
 

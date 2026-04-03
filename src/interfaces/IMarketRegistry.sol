@@ -2,7 +2,7 @@
 pragma solidity ^0.8.20;
 
 /// @title IMarketRegistry
-/// @notice Interface for the Aura Market Registry — read and update market configurations.
+/// @notice Interface for the Ceitnot Market Registry — read and update market configurations.
 interface IMarketRegistry {
     /// @notice Configuration for a single collateral market
     struct MarketConfig {

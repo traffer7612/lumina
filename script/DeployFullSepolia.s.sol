@@ -4,17 +4,17 @@ pragma solidity ^0.8.20;
 import { Script }  from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 
-import { AuraEngine }         from "../src/AuraEngine.sol";
-import { AuraProxy }          from "../src/AuraProxy.sol";
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotEngine }         from "../src/CeitnotEngine.sol";
+import { CeitnotProxy }          from "../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 import { OracleRelay }        from "../src/OracleRelay.sol";
-import { AuraUSD }            from "../src/AuraUSD.sol";
-import { AuraPSM }            from "../src/AuraPSM.sol";
-import { AuraRouter }         from "../src/AuraRouter.sol";
-import { AuraTreasury }       from "../src/AuraTreasury.sol";
-import { AuraToken }          from "../src/governance/AuraToken.sol";
-import { VeAura }             from "../src/governance/VeAura.sol";
-import { AuraGovernor }       from "../src/governance/AuraGovernor.sol";
+import { CeitnotUSD }            from "../src/CeitnotUSD.sol";
+import { CeitnotPSM }            from "../src/CeitnotPSM.sol";
+import { CeitnotRouter }         from "../src/CeitnotRouter.sol";
+import { CeitnotTreasury }       from "../src/CeitnotTreasury.sol";
+import { CeitnotToken }          from "../src/governance/CeitnotToken.sol";
+import { VeCeitnot }             from "../src/governance/VeCeitnot.sol";
+import { CeitnotGovernor }       from "../src/governance/CeitnotGovernor.sol";
 import { MockERC20 }          from "../test/mocks/MockERC20.sol";
 import { MockVault4626 }      from "../test/mocks/MockVault4626.sol";
 
@@ -25,11 +25,11 @@ import { TimelockController }  from "@openzeppelin/contracts/governance/Timelock
  * @title  DeployFullSepolia
  * @notice Full-stack Sepolia deploy:
  *         - Mock wstETH + Mock USDC + Real Chainlink ETH/USD oracle
- *         - AuraEngine (CDP mode) → borrow mints aUSD, repay burns aUSD
- *         - AuraUSD + AuraPSM (aUSD ↔ USDC 1:1)
- *         - AuraToken (10M initial to deployer) + VeAura
- *         - TimelockController + AuraGovernor
- *         - AuraTreasury + AuraRouter
+ *         - CeitnotEngine (CDP mode) → borrow mints aUSD, repay burns aUSD
+ *         - CeitnotUSD + CeitnotPSM (aUSD ↔ USDC 1:1)
+ *         - CeitnotToken (10M initial to deployer) + VeCeitnot
+ *         - TimelockController + CeitnotGovernor
+ *         - CeitnotTreasury + CeitnotRouter
  *
  * Usage:
  *   forge script script/DeployFullSepolia.s.sol:DeployFullSepolia \
@@ -47,14 +47,14 @@ contract DeployFullSepolia is Script {
         // ===================== 1. Mock tokens + Vault + Oracle =====================
         MockERC20     wstETH = new MockERC20("Wrapped stETH", "wstETH", 18);
         MockERC20     usdc   = new MockERC20("USD Coin", "USDC", 18);
-        MockVault4626 vault  = new MockVault4626(address(wstETH), "Aura wstETH Vault", "aWstETH");
+        MockVault4626 vault  = new MockVault4626(address(wstETH), "Ceitnot wstETH Vault", "aWstETH");
         OracleRelay   oracle = new OracleRelay(CHAINLINK_ETH_USD, address(0), 0);
 
-        // ===================== 2. AuraUSD (aUSD stablecoin) =====================
-        AuraUSD ausd = new AuraUSD(deployer);
+        // ===================== 2. CeitnotUSD (aUSD stablecoin) =====================
+        CeitnotUSD ausd = new CeitnotUSD(deployer);
 
         // ===================== 3. Registry + Market =====================
-        AuraMarketRegistry registry = new AuraMarketRegistry(deployer);
+        CeitnotMarketRegistry registry = new CeitnotMarketRegistry(deployer);
         uint256 marketId = registry.addMarket(
             address(vault),
             address(oracle),
@@ -66,25 +66,25 @@ contract DeployFullSepolia is Script {
         );
 
         // ===================== 4. Engine + Proxy (CDP mode with aUSD) =====================
-        AuraEngine implementation = new AuraEngine();
+        CeitnotEngine implementation = new CeitnotEngine();
         bytes memory initData = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(ausd), address(registry), 1 hours, 2 days)
         );
-        AuraProxy proxyContract = new AuraProxy(address(implementation), initData);
+        CeitnotProxy proxyContract = new CeitnotProxy(address(implementation), initData);
         address engine = address(proxyContract);
 
         // Wire up
         registry.setEngine(engine);
 
         // Enable CDP mode: borrow mints aUSD, repay burns aUSD
-        AuraEngine(engine).setMintableDebtToken(true);
+        CeitnotEngine(engine).setMintableDebtToken(true);
 
         // Register engine as aUSD minter
         ausd.addMinter(engine);
 
         // ===================== 5. PSM (aUSD ↔ USDC) =====================
-        AuraPSM psm = new AuraPSM(
+        CeitnotPSM psm = new CeitnotPSM(
             address(ausd),
             address(usdc),
             deployer,
@@ -97,19 +97,19 @@ contract DeployFullSepolia is Script {
         usdc.mint(address(psm), 1_000_000 * 1e18);
 
         // ===================== 6. Router =====================
-        AuraRouter router = new AuraRouter(engine, address(ausd));
+        CeitnotRouter router = new CeitnotRouter(engine, address(ausd));
 
         // ===================== 7. Treasury =====================
-        AuraTreasury treasury = new AuraTreasury(deployer);
+        CeitnotTreasury treasury = new CeitnotTreasury(deployer);
 
-        // ===================== 8. AuraToken (governance) =====================
-        AuraToken auraToken = new AuraToken(deployer);
-        // Mint 10M AURA to deployer (for testing governance)
-        auraToken.mint(deployer, 10_000_000 * 1e18);
+        // ===================== 8. CeitnotToken (governance) =====================
+        CeitnotToken govToken = new CeitnotToken(deployer);
+        // Mint 10M CEITNOT to deployer (for testing governance)
+        govToken.mint(deployer, 10_000_000 * 1e18);
 
-        // ===================== 9. VeAura (vote-escrow) =====================
-        VeAura veAura = new VeAura(
-            address(auraToken),
+        // ===================== 9. VeCeitnot (vote-escrow) =====================
+        VeCeitnot veLock = new VeCeitnot(
+            address(govToken),
             deployer,
             address(ausd)     // revenue token = aUSD
         );
@@ -127,8 +127,8 @@ contract DeployFullSepolia is Script {
             deployer      // admin (deployer initially, transfer to governor later)
         );
 
-        AuraGovernor governor = new AuraGovernor(
-            IVotes(address(veAura)),
+        CeitnotGovernor governor = new CeitnotGovernor(
+            IVotes(address(veLock)),
             timelock
         );
 
@@ -158,8 +158,8 @@ contract DeployFullSepolia is Script {
         console.log("TREASURY:           %s", address(treasury));
         console.log("");
         console.log("--- Governance ---");
-        console.log("AURA_TOKEN:         %s", address(auraToken));
-        console.log("VE_AURA:            %s", address(veAura));
+        console.log("CEITNOT_TOKEN:         %s", address(govToken));
+        console.log("CEITNOT_VE:            %s", address(veLock));
         console.log("GOVERNOR:           %s", address(governor));
         console.log("TIMELOCK:           %s", address(timelock));
         console.log("");

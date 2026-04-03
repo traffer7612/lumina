@@ -1,30 +1,30 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { IAuraUSD } from "./interfaces/IAuraUSD.sol";
+import { ICeitnotUSD } from "./interfaces/ICeitnotUSD.sol";
 
 /**
- * @title  AuraUSD
+ * @title  CeitnotUSD
  * @author Sanzhik(traffer7612)
- * @notice Mintable/burnable ERC-20 stablecoin (aUSD) for the Aura CDP protocol.
+ * @notice Mintable/burnable ERC-20 stablecoin (aUSD) for the Ceitnot CDP protocol.
  *         Converting the protocol from a lending-market (pre-funded debtToken) to a
  *         Collateralised Debt Position (CDP) model (à la MakerDAO DAI).
  *
- *         Minting is restricted to authorised minter addresses (AuraEngine, AuraPSM).
+ *         Minting is restricted to authorised minter addresses (CeitnotEngine, CeitnotPSM).
  *         A global debt ceiling caps the total supply; 0 = unlimited.
  *
  * @dev Phase 9 implementation. Pure custom ERC-20 — no OZ dependency, matching project style.
  */
-contract AuraUSD is IAuraUSD {
+contract CeitnotUSD is ICeitnotUSD {
     // ------------------------------- Errors
-    error AuraUSD__Unauthorized();
-    error AuraUSD__ZeroAddress();
-    error AuraUSD__DebtCeilingExceeded();
-    error AuraUSD__InsufficientBalance();
-    error AuraUSD__InsufficientAllowance();
+    error CeitnotUSD__Unauthorized();
+    error CeitnotUSD__ZeroAddress();
+    error CeitnotUSD__DebtCeilingExceeded();
+    error CeitnotUSD__InsufficientBalance();
+    error CeitnotUSD__InsufficientAllowance();
     // ---- Phase 10: EIP-2612
-    error AuraUSD__PermitExpired();
-    error AuraUSD__InvalidSignature();
+    error CeitnotUSD__PermitExpired();
+    error CeitnotUSD__InvalidSignature();
 
     // ------------------------------- Events
     event Transfer(address indexed from, address indexed to, uint256 value);
@@ -48,7 +48,7 @@ contract AuraUSD is IAuraUSD {
     mapping(address => uint256) public nonces;
 
     // ------------------------------- ERC-20 metadata
-    string public constant name     = "Aura USD";
+    string public constant name     = "Ceitnot USD";
     string public constant symbol   = "aUSD";
     uint8  public constant decimals = 18;
 
@@ -68,82 +68,82 @@ contract AuraUSD is IAuraUSD {
 
     // ------------------------------- Constructor
     constructor(address admin_) {
-        if (admin_ == address(0)) revert AuraUSD__ZeroAddress();
+        if (admin_ == address(0)) revert CeitnotUSD__ZeroAddress();
         admin = admin_;
     }
 
     // ------------------------------- Modifiers
     modifier onlyAdmin() {
-        if (msg.sender != admin) revert AuraUSD__Unauthorized();
+        if (msg.sender != admin) revert CeitnotUSD__Unauthorized();
         _;
     }
 
     modifier onlyMinter() {
-        if (!minters[msg.sender]) revert AuraUSD__Unauthorized();
+        if (!minters[msg.sender]) revert CeitnotUSD__Unauthorized();
         _;
     }
 
     // ------------------------------- Admin management
     function proposeAdmin(address newAdmin) external onlyAdmin {
-        if (newAdmin == address(0)) revert AuraUSD__ZeroAddress();
+        if (newAdmin == address(0)) revert CeitnotUSD__ZeroAddress();
         pendingAdmin = newAdmin;
         emit AdminProposed(admin, newAdmin);
     }
 
     function acceptAdmin() external {
-        if (msg.sender != pendingAdmin) revert AuraUSD__Unauthorized();
+        if (msg.sender != pendingAdmin) revert CeitnotUSD__Unauthorized();
         emit AdminTransferred(admin, msg.sender);
         admin        = msg.sender;
         pendingAdmin = address(0);
     }
 
     // ------------------------------- Minter management
-    /// @inheritdoc IAuraUSD
+    /// @inheritdoc ICeitnotUSD
     function addMinter(address minter) external onlyAdmin {
-        if (minter == address(0)) revert AuraUSD__ZeroAddress();
+        if (minter == address(0)) revert CeitnotUSD__ZeroAddress();
         minters[minter] = true;
         emit MinterAdded(minter);
     }
 
-    /// @inheritdoc IAuraUSD
+    /// @inheritdoc ICeitnotUSD
     function removeMinter(address minter) external onlyAdmin {
         minters[minter] = false;
         emit MinterRemoved(minter);
     }
 
     // ------------------------------- Debt ceiling
-    /// @inheritdoc IAuraUSD
+    /// @inheritdoc ICeitnotUSD
     function setGlobalDebtCeiling(uint256 ceiling) external onlyAdmin {
         globalDebtCeiling = ceiling;
         emit GlobalDebtCeilingSet(ceiling);
     }
 
     // ------------------------------- Mint / Burn
-    /// @inheritdoc IAuraUSD
+    /// @inheritdoc ICeitnotUSD
     function mint(address to, uint256 amount) external onlyMinter {
-        if (to == address(0)) revert AuraUSD__ZeroAddress();
+        if (to == address(0)) revert CeitnotUSD__ZeroAddress();
         if (globalDebtCeiling != 0 && totalSupply + amount > globalDebtCeiling)
-            revert AuraUSD__DebtCeilingExceeded();
+            revert CeitnotUSD__DebtCeilingExceeded();
         unchecked { totalSupply += amount; }
         balanceOf[to] += amount;
         emit Transfer(address(0), to, amount);
     }
 
-    /// @inheritdoc IAuraUSD
+    /// @inheritdoc ICeitnotUSD
     /// @dev Minter-only; does NOT consume allowance — the minter (engine) is trusted to
-    ///      correctly attribute debt repayment. Used by AuraEngine on behalf of users.
+    ///      correctly attribute debt repayment. Used by CeitnotEngine on behalf of users.
     function burn(address from, uint256 amount) external onlyMinter {
         _deductBalance(from, amount);
         emit Transfer(from, address(0), amount);
     }
 
-    /// @inheritdoc IAuraUSD
+    /// @inheritdoc ICeitnotUSD
     /// @dev Open to any caller. Caller must have sufficient allowance from `from`.
-    ///      Used by AuraEngine.repay / AuraPSM.swapOut (user approves the contract first).
+    ///      Used by CeitnotEngine.repay / CeitnotPSM.swapOut (user approves the contract first).
     function burnFrom(address from, uint256 amount) external {
         uint256 allowed = allowance[from][msg.sender];
         if (allowed != type(uint256).max) {
-            if (allowed < amount) revert AuraUSD__InsufficientAllowance();
+            if (allowed < amount) revert CeitnotUSD__InsufficientAllowance();
             unchecked { allowance[from][msg.sender] = allowed - amount; }
         }
         _deductBalance(from, amount);
@@ -167,7 +167,7 @@ contract AuraUSD is IAuraUSD {
     function transferFrom(address from, address to, uint256 amount) external returns (bool) {
         uint256 allowed = allowance[from][msg.sender];
         if (allowed != type(uint256).max) {
-            if (allowed < amount) revert AuraUSD__InsufficientAllowance();
+            if (allowed < amount) revert CeitnotUSD__InsufficientAllowance();
             unchecked { allowance[from][msg.sender] = allowed - amount; }
         }
         _deductBalance(from, amount);
@@ -212,7 +212,7 @@ contract AuraUSD is IAuraUSD {
         bytes32 r,
         bytes32 s
     ) external {
-        if (block.timestamp > deadline) revert AuraUSD__PermitExpired();
+        if (block.timestamp > deadline) revert CeitnotUSD__PermitExpired();
 
         bytes32 structHash = keccak256(
             abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline)
@@ -222,7 +222,7 @@ contract AuraUSD is IAuraUSD {
         );
 
         address recovered = ecrecover(digest, v, r, s);
-        if (recovered == address(0) || recovered != owner) revert AuraUSD__InvalidSignature();
+        if (recovered == address(0) || recovered != owner) revert CeitnotUSD__InvalidSignature();
 
         allowance[owner][spender] = value;
         emit Approval(owner, spender, value);
@@ -230,7 +230,7 @@ contract AuraUSD is IAuraUSD {
 
     // ------------------------------- Internal
     function _deductBalance(address from, uint256 amount) internal {
-        if (balanceOf[from] < amount) revert AuraUSD__InsufficientBalance();
+        if (balanceOf[from] < amount) revert CeitnotUSD__InsufficientBalance();
         unchecked {
             balanceOf[from] -= amount;
             totalSupply     -= amount;

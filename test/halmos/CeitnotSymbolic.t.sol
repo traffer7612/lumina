@@ -2,27 +2,27 @@
 pragma solidity ^0.8.20;
 
 import { Test }               from "forge-std/Test.sol";
-import { AuraEngine }         from "../../src/AuraEngine.sol";
-import { AuraProxy }          from "../../src/AuraProxy.sol";
-import { AuraMarketRegistry } from "../../src/AuraMarketRegistry.sol";
+import { CeitnotEngine }         from "../../src/CeitnotEngine.sol";
+import { CeitnotProxy }          from "../../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry } from "../../src/CeitnotMarketRegistry.sol";
 import { MockERC20 }          from "../mocks/MockERC20.sol";
 import { MockVault4626 }      from "../mocks/MockVault4626.sol";
 import { MockOracle }         from "../mocks/MockOracle.sol";
 
 /**
- * @title  AuraSymbolicTest
- * @notice Symbolic execution checks for critical AuraEngine safety properties.
+ * @title  CeitnotSymbolicTest
+ * @notice Symbolic execution checks for critical CeitnotEngine safety properties.
  *
  *   Execution modes:
  *   ─────────────────────────────────────────────────────────────────────────
  *   1. Halmos symbolic execution (preferred for full coverage):
  *         pip install halmos
- *         halmos --contract AuraSymbolicTest
+ *         halmos --contract CeitnotSymbolicTest
  *      Halmos treats function parameters as fully symbolic (all possible values)
  *      and uses SAT/SMT solving to prove the assert statements hold for ALL inputs.
  *
  *   2. Foundry property-based fuzzing (always available, no extra tooling):
- *         forge test --match-contract AuraSymbolicTest
+ *         forge test --match-contract CeitnotSymbolicTest
  *      Foundry treats the `check_*` functions as fuzz tests and runs them for
  *      the configured number of runs (1000 by default, set in foundry.toml).
  *      The `check_` prefix is valid in Foundry — it runs the functions as tests.
@@ -36,7 +36,7 @@ import { MockOracle }         from "../mocks/MockOracle.sol";
  *   3. Repay never over-pulls — after repay(), position debt is 0 and engine never
  *                               deducts more tokens than the original principal.
  */
-contract AuraSymbolicTest is Test {
+contract CeitnotSymbolicTest is Test {
 
     // ---- Constants
     uint256 constant WAD       = 1e18;
@@ -48,9 +48,9 @@ contract AuraSymbolicTest is Test {
     // ---- Shared setup helper
 
     struct Env {
-        AuraEngine         engine;
-        AuraProxy          proxy;
-        AuraMarketRegistry registry;
+        CeitnotEngine         engine;
+        CeitnotProxy          proxy;
+        CeitnotMarketRegistry registry;
         MockERC20          assetToken;
         MockERC20          debtToken;
         MockVault4626      vault;
@@ -67,20 +67,20 @@ contract AuraSymbolicTest is Test {
         e.vault      = new MockVault4626(address(e.assetToken), "aV", "aV");
         e.oracle     = new MockOracle();  // price = 1 WAD
 
-        e.registry = new AuraMarketRegistry(address(this));
+        e.registry = new CeitnotMarketRegistry(address(this));
         e.registry.addMarket(
             address(e.vault), address(e.oracle),
             uint16(8000), uint16(8500), uint16(500),
             0, 0, false, 0
         );
 
-        AuraEngine impl = new AuraEngine();
+        CeitnotEngine impl = new CeitnotEngine();
         bytes memory init = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(e.debtToken), address(e.registry), 1 days, 2 days)
         );
-        e.proxy  = new AuraProxy(address(impl), init);
-        e.engine = AuraEngine(address(e.proxy));
+        e.proxy  = new CeitnotProxy(address(impl), init);
+        e.engine = CeitnotEngine(address(e.proxy));
         e.registry.setEngine(address(e.proxy));
 
         e.debtToken.mint(address(e.proxy), 10_000_000 * WAD);

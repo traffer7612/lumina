@@ -26,8 +26,8 @@ const MARKET_CONFIG_COMPONENTS = [
   { name: 'debtCeiling',                  type: 'uint256'  },
 ] as const;
 
-// ─── AuraEngine ABI ───────────────────────────────────────────────────────────
-export const auraEngineAbi = [
+// ─── CeitnotEngine ABI ─────────────────────────────────────────────────────────
+export const ceitnotEngineAbi = [
   // ── Read: position ──
   { inputs: [{ name: 'user', type: 'address' }], name: 'getHealthFactor', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
   { inputs: [{ name: 'user', type: 'address' }, { name: 'marketId', type: 'uint256' }], name: 'getPositionDebt', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
@@ -62,8 +62,8 @@ export const auraEngineAbi = [
   { inputs: [{ name: 'newAdmin', type: 'address' }], name: 'transferAdmin', outputs: [], stateMutability: 'nonpayable', type: 'function' },
 ] as const;
 
-// ─── AuraMarketRegistry ABI ───────────────────────────────────────────────────
-export const auraRegistryAbi = [
+// ─── CeitnotMarketRegistry ABI ────────────────────────────────────────────────
+export const marketRegistryAbi = [
   // Read
   { inputs: [], name: 'marketCount', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
   { inputs: [{ name: 'marketId', type: 'uint256' }], name: 'getMarket', outputs: [{ name: '', type: 'tuple', components: MARKET_CONFIG_COMPONENTS }], stateMutability: 'view', type: 'function' },
@@ -128,8 +128,8 @@ export const erc4626Abi = [
   { inputs: [{ name: 'shares', type: 'uint256' }, { name: 'receiver', type: 'address' }, { name: 'owner', type: 'address' }], name: 'redeem', outputs: [{ name: 'assets', type: 'uint256' }], stateMutability: 'nonpayable', type: 'function' },
 ] as const;
 
-// ─── VeAura ABI ───────────────────────────────────────────────────────────────
-export const veAuraAbi = [
+// ─── VeCeitnot (vote-escrow) ABI ──────────────────────────────────────────────
+export const veLockAbi = [
   // Read
   { inputs: [], name: 'token', outputs: [{ name: '', type: 'address' }], stateMutability: 'view', type: 'function' },
   { inputs: [], name: 'totalLocked', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
@@ -148,13 +148,20 @@ export const veAuraAbi = [
   { inputs: [{ name: 'delegatee', type: 'address' }], name: 'delegate', outputs: [], stateMutability: 'nonpayable', type: 'function' },
 ] as const;
 
-// ─── AuraPSM ABI ──────────────────────────────────────────────────────────────
-export const auraPsmAbi = [
-  { inputs: [], name: 'admin', outputs: [{ name: '', type: 'address' }], stateMutability: 'view', type: 'function' },
+// ─── CeitnotPSM ABI (swap + admin) ────────────────────────────────────────────
+export const ceitnotPsmAbi = [
+  { inputs: [], name: 'ausd', outputs: [{ name: '', type: 'address' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'peggedToken', outputs: [{ name: '', type: 'address' }], stateMutability: 'view', type: 'function' },
   { inputs: [], name: 'peggedDecimals', outputs: [{ name: '', type: 'uint8' }], stateMutability: 'view', type: 'function' },
-  { inputs: [], name: 'feeReserves', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
   { inputs: [], name: 'tinBps', outputs: [{ name: '', type: 'uint16' }], stateMutability: 'view', type: 'function' },
   { inputs: [], name: 'toutBps', outputs: [{ name: '', type: 'uint16' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'ceiling', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'mintedViaPsm', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'feeReserves', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'availableReserves', outputs: [{ name: '', type: 'uint256' }], stateMutability: 'view', type: 'function' },
+  { inputs: [], name: 'admin', outputs: [{ name: '', type: 'address' }], stateMutability: 'view', type: 'function' },
+  { inputs: [{ name: 'amount', type: 'uint256' }], name: 'swapIn', outputs: [{ name: 'ausdOut', type: 'uint256' }], stateMutability: 'nonpayable', type: 'function' },
+  { inputs: [{ name: 'amount', type: 'uint256' }], name: 'swapOut', outputs: [{ name: 'stableOut', type: 'uint256' }], stateMutability: 'nonpayable', type: 'function' },
   { inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], name: 'withdrawFeeReserves', outputs: [], stateMutability: 'nonpayable', type: 'function' },
   { inputs: [{ name: 'to', type: 'address' }, { name: 'amount', type: 'uint256' }], name: 'withdrawLiquidity', outputs: [], stateMutability: 'nonpayable', type: 'function' },
 ] as const;

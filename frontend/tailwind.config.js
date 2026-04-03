@@ -4,7 +4,7 @@ export default {
   theme: {
     extend: {
       colors: {
-        aura: {
+        ceitnot: {
           bg:           "#080810",
           surface:      "#0f0f1a",
           "surface-2":  "#161625",

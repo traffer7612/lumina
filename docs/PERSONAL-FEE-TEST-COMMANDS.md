@@ -4,7 +4,7 @@
 
 Важно:
 - Админом является `Timelock`, поэтому вывод делается через governance-процесс: `propose -> vote -> queue -> execute`.
-- Кошелек, который создает proposal, должен проходить порог `Governor` (достаточно `veLUMINA` голосов).
+- Кошелек, который создает proposal, должен проходить порог `Governor` (достаточно `veCEITNOT` голосов).
 
 ## 0) Фиксированные адреса в этом гайде
 
@@ -147,5 +147,5 @@ cast send 0xa4d0f26cabec345034c2687467b6157cae581216 "propose(address[],uint256[
 ## 5) Частые ошибки
 
 - `--rpc-url ... none was supplied`: задайте `$env:ARBITRUM_RPC_URL` в этом терминале.
-- `GovernorInsufficientProposerVotes`: у вашего кошелька недостаточно `veLUMINA` голосов.
+- `GovernorInsufficientProposerVotes`: у вашего кошелька недостаточно `veCEITNOT` голосов.
 - Proposal в неожиданном состоянии: сначала проверьте `votingDelay`, `votingPeriod` и `timelock delay`.

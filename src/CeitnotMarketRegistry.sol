@@ -6,14 +6,14 @@ import { IERC4626 }         from "./interfaces/IERC4626.sol";
 import { IOracleRelay }     from "./interfaces/IOracleRelay.sol";
 
 /**
- * @title  AuraMarketRegistry
+ * @title  CeitnotMarketRegistry
  * @author Sanzhik(traffer7612)
- * @notice Standalone registry of supported collateral markets for the Aura protocol.
+ * @notice Standalone registry of supported collateral markets for the Ceitnot Protocol.
  *         Each market maps a collateral type (ERC-4626 vault + oracle) to risk parameters.
- *         Admin manages the market list; the AuraEngine address may update risk params after
+ *         Admin manages the market list; the CeitnotEngine address may update risk params after
  *         a timelock has been executed on the engine side.
  */
-contract AuraMarketRegistry is IMarketRegistry {
+contract CeitnotMarketRegistry is IMarketRegistry {
     // ----------------------------- Errors
     error Registry__Unauthorized();
     error Registry__InvalidParams();
@@ -37,7 +37,7 @@ contract AuraMarketRegistry is IMarketRegistry {
 
     address public admin;
     address public pendingAdmin;
-    /// @notice AuraEngine address — permitted to call updateMarketRiskParams after timelock
+    /// @notice CeitnotEngine address — permitted to call updateMarketRiskParams after timelock
     address public engine;
 
     // ----------------------------- Modifiers
@@ -74,7 +74,7 @@ contract AuraMarketRegistry is IMarketRegistry {
         emit AdminTransferred(old, msg.sender);
     }
 
-    /// @notice Set the authorised engine address (AuraEngine proxy).
+    /// @notice Set the authorised engine address (CeitnotEngine proxy).
     function setEngine(address engine_) external onlyAdmin {
         if (engine_ == address(0)) revert Registry__InvalidParams();
         engine = engine_;

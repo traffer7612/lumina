@@ -2,14 +2,14 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title  AuraTreasury
+ * @title  CeitnotTreasury
  * @author Sanzhik(traffer7612)
  * @notice Accumulates protocol revenue (yield fees, origination fees, liquidation fees,
  *         interest reserves) and exposes admin-controlled withdrawal/distribution.
  * @dev    Phase 5 implementation. Governance integration planned for Phase 7.
  *         Uses a minimal ERC-20 interface for flexibility across any token.
  */
-contract AuraTreasury {
+contract CeitnotTreasury {
     // ------------------------------- Errors
     error Treasury__Unauthorized();
     error Treasury__InvalidParams();

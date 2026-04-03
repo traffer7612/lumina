@@ -1,4 +1,4 @@
-# Lumina Documentation (GitBook / docs.lumina.finance)
+# Ceitnot Documentation (GitBook / docs.ceitnot.finance)
 
 ## Протокол
 
@@ -23,7 +23,7 @@
 
 ## Продукт и запуск
 
-- [Бренд и имена (Lumina vs Aura* в коде)](BRANDING-AND-NAMING.md)
+- [Бренд и имена (Ceitnot и идентификаторы в коде)](BRANDING-AND-NAMING.md)
 - [Roadmap](ROADMAP.md)
 - [Go-live checklist (tokenomics & prod)](TOKENOMICS-PROD-CHECKLIST.md)
 - [Адреса production — Arbitrum](PRODUCTION-ADDRESSES-ARBITRUM.md)

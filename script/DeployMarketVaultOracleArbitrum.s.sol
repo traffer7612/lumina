@@ -12,7 +12,7 @@ import { SimpleERC4626Vault } from "../src/vaults/SimpleERC4626Vault.sol";
  * @title DeployMarketVaultOracleArbitrum
  * @notice Deploys ONLY SimpleERC4626Vault + OracleRelay. Does NOT call registry.addMarket.
  *
- * When `AuraMarketRegistry.admin()` is the Timelock, `addMarket` must be executed via
+ * When `CeitnotMarketRegistry.admin()` is the Timelock, `addMarket` must be executed via
  * Governor → queue → Timelock delay → execute. Use this script first to get VAULT + ORACLE
  * addresses, then `PrintRegistryAddMarketCalldata.s.sol` (or your Governance UI) to build the proposal.
  *

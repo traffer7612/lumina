@@ -18,9 +18,9 @@ app.use("/api/faucet", faucetRouter);
 app.use("/api", rpcRouter);
 
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", service: "aura-backend" });
+  res.json({ status: "ok", service: "ceitnot-backend" });
 });
 
 app.listen(PORT, () => {
-  console.log(`Aura backend running at http://localhost:${PORT}`);
+  console.log(`Ceitnot backend running at http://localhost:${PORT}`);
 });

@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import { Test }               from "forge-std/Test.sol";
-import { AuraEngine }         from "../../src/AuraEngine.sol";
-import { AuraProxy }          from "../../src/AuraProxy.sol";
-import { AuraMarketRegistry } from "../../src/AuraMarketRegistry.sol";
+import { CeitnotEngine }         from "../../src/CeitnotEngine.sol";
+import { CeitnotProxy }          from "../../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry } from "../../src/CeitnotMarketRegistry.sol";
 import { MockERC20 }          from "../mocks/MockERC20.sol";
 import { MockVault4626 }      from "../mocks/MockVault4626.sol";
 import { MockOracle }         from "../mocks/MockOracle.sol";
@@ -12,7 +12,7 @@ import { MockFlashBorrower }  from "../mocks/MockFlashBorrower.sol";
 
 /**
  * @title  GasBenchmarkTest
- * @notice Gas consumption benchmarks for AuraEngine hot paths.
+ * @notice Gas consumption benchmarks for CeitnotEngine hot paths.
  *
  * Usage:
  *   forge snapshot                    — create / update .gas-snapshot
@@ -43,9 +43,9 @@ contract GasBenchmarkTest is Test {
     address public liquidator = address(0x4321);
 
     // ---- Contracts
-    AuraEngine         public engine;
-    AuraProxy          public proxy;
-    AuraMarketRegistry public registry;
+    CeitnotEngine         public engine;
+    CeitnotProxy          public proxy;
+    CeitnotMarketRegistry public registry;
     MockERC20          public assetToken;
     MockERC20          public debtToken;
     MockVault4626      public vault;
@@ -57,20 +57,20 @@ contract GasBenchmarkTest is Test {
         vault      = new MockVault4626(address(assetToken), "aVault", "aV");
         oracle     = new MockOracle();  // price = 1 WAD
 
-        registry = new AuraMarketRegistry(address(this));
+        registry = new CeitnotMarketRegistry(address(this));
         registry.addMarket(
             address(vault), address(oracle),
             uint16(8000), uint16(8500), uint16(500),
             0, 0, false, 0
         );
 
-        AuraEngine impl = new AuraEngine();
+        CeitnotEngine impl = new CeitnotEngine();
         bytes memory init = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(debtToken), address(registry), 1 days, 2 days)
         );
-        proxy  = new AuraProxy(address(impl), init);
-        engine = AuraEngine(address(proxy));
+        proxy  = new CeitnotProxy(address(impl), init);
+        engine = CeitnotEngine(address(proxy));
         registry.setEngine(address(proxy));
 
         // Fund engine

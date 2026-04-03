@@ -2,18 +2,23 @@
 
 ## Публичное имя
 
-**Lumina** (или **Lumina Protocol**) — имя продукта для пользователей, сайта, соцсетей и большинства текстов в `docs/`.
+**Ceitnot** (или **Ceitnot Protocol**) — имя продукта для пользователей, сайта, соцсетей и большинства текстов в `docs/`.
 
 ## Имена в коде и на блокчейне
 
-В репозитории и на Arbiscan/Etherscan контракты по-прежнему называются **`AuraEngine`**, **`AuraUSD`**, **`AuraPSM`**, **`AuraToken`**, **`VeAura`**, **`AuraGovernor`**, **`AuraTreasury`**, **`AuraMarketRegistry`**, **`AuraProxy`**, **`AuraRouter`** и т.д. Это **идентификаторы Solidity** и верификации; они **не меняются** без нового деплоя.
+В репозитории контракты называются **`CeitnotEngine`**, **`CeitnotUSD`**, **`CeitnotPSM`**, **`CeitnotToken`**, **`VeCeitnot`**, **`CeitnotGovernor`**, **`CeitnotTreasury`**, **`CeitnotMarketRegistry`**, **`CeitnotProxy`**, **`CeitnotRouter`** и т.д.
 
-В кошельке у токена управления в метаданных ERC-20 может отображаться **Aura / AURA** (как задано в `AuraToken.sol`), тогда как в UI приложения используется **LUMINA** — это нормальная рассинхронизация «маркетинг vs on-chain», пока не будет отдельной миграции токена.
+Токен управления в `CeitnotToken.sol`: имя **Ceitnot**, тикер **CEITNOT**. Старые деплои могли использовать другие метаданные — в UI символ берётся из контракта, с подстановкой **CEITNOT** для устаревших тикеров при необходимости.
+
+## Переменные окружения (актуальные)
+
+- Фронт: `VITE_GOVERNANCE_TOKEN_ADDRESS`, `VITE_VE_TOKEN_ADDRESS`, `VITE_ENGINE_ADDRESS`, …
+- Бэкенд (пример): `CEITNOT_ENGINE_ADDRESS`, `CEITNOT_REGISTRY_ADDRESS`, `GOVERNANCE_TOKEN_ADDRESS`, `FAUCET_PRIVATE_KEY`
+- Скрипты деплоя в логах печатают префиксы `CEITNOT_*` для адресов.
 
 ## Как писать в доках
 
-1. О **продукте** — **Lumina**.
-2. О **конкретном контракте или вызове** — имя в обратных кавычках: `` `AuraUSD.mint` ``.
-3. Переменные окружения вроде `AURA_ENGINE_ADDRESS` **не переименовывать** в документации без изменения кода бэкенда/фронта.
+1. О **продукте** — **Ceitnot** / **Ceitnot Protocol**.
+2. О **конкретном контракте** — имя в обратных кавычках: `` `CeitnotUSD.mint` ``.
 
 См. также [README-GITBOOK.md](README-GITBOOK.md) и [CONTRACTS.md](CONTRACTS.md).

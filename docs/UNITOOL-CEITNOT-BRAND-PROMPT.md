@@ -1,6 +1,6 @@
-# Промпты для визуальных материалов бренда Lumina
+# Промпты для визуальных материалов бренда Ceitnot
 
-Документ содержит готовые промпты для генерации картинок в **unitool.ai**, **DALL·E** (ChatGPT / OpenAI), **Nano Banana 2** и **Stable Diffusion**. Палитра и стилистика Lumina / luminadefi — единые для всех инструментов. При генерации конкретного креатива добавляйте в конец описание формата и сюжета (баннер, иконка, иллюстрация и т.д.).
+Документ содержит готовые промпты для генерации картинок в **unitool.ai**, **DALL·E** (ChatGPT / OpenAI), **Nano Banana 2** и **Stable Diffusion**. Палитра и стилистика Ceitnot / ceitnotdefi — единые для всех инструментов. При генерации конкретного креатива добавляйте в конец описание формата и сюжета (баннер, иконка, иллюстрация и т.д.).
 
 ---
 
@@ -18,20 +18,20 @@ Wide banner background, 16:9. Very dark blue-black, soft gradient with warm gold
 
 Сгенерируй несколько вариантов, выбери лучший.
 
-### Шаг 2: Текст "luminatoken" добавить в редакторе
+### Шаг 2: Текст "ceitnottoken" добавить в редакторе
 
-- **Canva** (canva.com) — бесплатно: загрузи картинку → Текст → напиши `luminatoken` → шрифт типа Outfit, Space Grotesk или любой современный sans-serif → цвет **#d4a853** (золотой), крупно, по центру.
-- **Figma** — то же: картинка как фон, поверх текстовый слой "luminatoken", золотой, по центру.
+- **Canva** (canva.com) — бесплатно: загрузи картинку → Текст → напиши `ceitnottoken` → шрифт типа Outfit, Space Grotesk или любой современный sans-serif → цвет **#d4a853** (золотой), крупно, по центру.
+- **Figma** — то же: картинка как фон, поверх текстовый слой "ceitnottoken", золотой, по центру.
 - **Photoshop / Photopea** — то же: слой с текстом поверх фона.
 
 Итог: баннер с идеально читаемым текстом, без искажений. Так делают в прод-дизайне, когда нужен точный текст.
 
 ---
 
-## Бренд Lumina — базовый промпт (копируй в unitool.ai)
+## Бренд Ceitnot — базовый промпт (копируй в unitool.ai)
 
 ```
-Brand: Lumina (Lumina Protocol). DeFi lending protocol: deposit collateral, borrow stablecoins, governance via LUMINA and veLUMINA. Non-custodial, on-chain. Tagline feel: "DeFi lending. On your terms."
+Brand: Ceitnot (Ceitnot Protocol). DeFi lending protocol: deposit collateral, borrow stablecoins, governance via CEITNOT and veCEITNOT. Non-custodial, on-chain. Tagline feel: "DeFi lending. On your terms."
 
 Visual identity:
 - Mood: premium, trustworthy, modern DeFi; dark theme with warm gold and subtle purple; professional, not playful.
@@ -57,10 +57,10 @@ Output: [здесь опиши формат: e.g. "Square logo mark 512px", "Twi
 - Output: Square logo mark, 512×512px, transparent or dark background. Symbol only: abstract "L" or vault/light motif in gold on dark, minimal, no text.
 
 **Баннер для Twitter/X**
-- Output: Twitter header 1500×500px. Dark background, gradient gold-to-purple glow top-center, "LUMINA" or "Lumina Protocol" clean typography, tagline "DeFi lending. On your terms." Optional: subtle chart or lock icon. No faces.
+- Output: Twitter header 1500×500px. Dark background, gradient gold-to-purple glow top-center, "CEITNOT" or "Ceitnot Protocol" clean typography, tagline "DeFi lending. On your terms." Optional: subtle chart or lock icon. No faces.
 
 **OG-картинка для ссылок**
-- Output: Open Graph image 1200×630px. Dark theme, gold accent, logo or wordmark "Lumina", short line "DeFi lending protocol" or "Deposit. Borrow. Govern." Centered, readable in small preview.
+- Output: Open Graph image 1200×630px. Dark theme, gold accent, logo or wordmark "Ceitnot", short line "DeFi lending protocol" or "Deposit. Borrow. Govern." Centered, readable in small preview.
 
 **Иконка приложения**
 - Output: App icon 1024×1024px, rounded square. Single strong symbol (e.g. stylized L, vault, or light burst) in gold on #0f0f1a. No small text.
@@ -69,7 +69,7 @@ Output: [здесь опиши формат: e.g. "Square logo mark 512px", "Twi
 - Output: Hero illustration, wide format. Dark blue-black base, soft radial gradient with gold/purple, abstract elements: vault, upward chart line, or rays. Minimal, no people. Premium DeFi feel.
 
 **Стикеры / мелкие ассеты**
-- Output: Set of 4–6 simple icons: lock, chart-up, vault, LUMINA coin, shield, wallet. Same palette (gold/violet on dark), flat or soft gradient, consistent line weight.
+- Output: Set of 4–6 simple icons: lock, chart-up, vault, CEITNOT coin, shield, wallet. Same palette (gold/violet on dark), flat or soft gradient, consistent line weight.
 
 **Фон для презентации**
 - Output: Presentation background 1920×1080. Very dark (#080810), subtle grid or radial fade, small gold/purple glow in corner or center. Space for title and body text. Professional.
@@ -115,69 +115,69 @@ Presentation background. Very dark blue-black with subtle gold and purple glow i
 
 **Совет:** если DALL·E добавляет текст сам — в конце промпта явно напиши: *"No text, no letters, no words."* Для логотипа с буквой L можно оставить один символ, тогда уточни: *"Only one letter: L, stylized, in gold."*
 
-### GPT Image — баннер с текстом "luminatoken"
+### GPT Image — баннер с текстом "ceitnottoken"
 
-Для ChatGPT (GPT Image / DALL·E) — один промпт, текст **luminatoken** прямо в кадре. GPT Image 1.5 хорошо выводит текст, можно копировать целиком.
+Для ChatGPT (GPT Image / DALL·E) — один промпт, текст **ceitnottoken** прямо в кадре. GPT Image 1.5 хорошо выводит текст, можно копировать целиком.
 
 ```
-Wide banner image, 16:9 aspect ratio. Dark blue-black background with soft warm gold and purple gradient glow. Minimal DeFi fintech style, premium and clean. In the center, large bold text: "luminatoken" in warm golden color, modern sans-serif, clearly readable. Optional: very subtle vault silhouette or soft chart line in the background. No other text, no people. Professional crypto token brand banner.
+Wide banner image, 16:9 aspect ratio. Dark blue-black background with soft warm gold and purple gradient glow. Minimal DeFi fintech style, premium and clean. In the center, large bold text: "ceitnottoken" in warm golden color, modern sans-serif, clearly readable. Optional: very subtle vault silhouette or soft chart line in the background. No other text, no people. Professional crypto token brand banner.
 ```
 
 **Вариант короче (если лимит символов):**
 ```
-Banner 16:9, dark blue-black background, gold and purple glow. Centered large text: "luminatoken" in warm gold, clean sans-serif, readable. Minimal DeFi style, no people, no other text.
+Banner 16:9, dark blue-black background, gold and purple glow. Centered large text: "ceitnottoken" in warm gold, clean sans-serif, readable. Minimal DeFi style, no people, no other text.
 ```
 
 ---
 
 ## Промпты для Nano Banana 2
 
-Бренд в промптах явно указан как **luminadefi** (Lumina Protocol, luminadefi.pro). Копируй целиком в Nano Banana 2.
+Бренд в промптах явно указан как **ceitnotdefi** (Ceitnot Protocol, ceitnotdefi.pro). Копируй целиком в Nano Banana 2.
 
 **Базовый контекст (добавляй к любому запросу):**  
-*Brand: luminadefi — Lumina Protocol, DeFi lending. Site: luminadefi.pro. Dark theme, warm gold and soft purple, premium minimal.*
+*Brand: ceitnotdefi — Ceitnot Protocol, DeFi lending. Site: ceitnotdefi.pro. Dark theme, warm gold and soft purple, premium minimal.*
 
 ### Логотип / знак
 ```
-luminadefi logo mark. Lumina Protocol brand. Abstract L or vault or light burst, warm gold on dark blue-black. Minimal, no text, square. luminadefi.pro
+ceitnotdefi logo mark. Ceitnot Protocol brand. Abstract L or vault or light burst, warm gold on dark blue-black. Minimal, no text, square. ceitnotdefi.pro
 ```
 
 ### Баннер
 ```
-luminadefi banner. Lumina Protocol, luminadefi.pro. Dark background, gold and purple glow, minimal chart or lock shape. No text. Wide format, premium DeFi.
+ceitnotdefi banner. Ceitnot Protocol, ceitnotdefi.pro. Dark background, gold and purple glow, minimal chart or lock shape. No text. Wide format, premium DeFi.
 ```
 
 ### OG-картинка
 ```
-luminadefi social preview. Lumina Protocol. Dark background, one gold accent glow, centered, minimal. luminadefi.pro. No text. 1200x630.
+ceitnotdefi social preview. Ceitnot Protocol. Dark background, one gold accent glow, centered, minimal. ceitnotdefi.pro. No text. 1200x630.
 ```
 
 ### Иконка приложения
 ```
-luminadefi app icon. Lumina brand. Single symbol in warm gold on dark blue-black. L or vault or coin, minimal, rounded square. luminadefi.pro
+ceitnotdefi app icon. Ceitnot brand. Single symbol in warm gold on dark blue-black. L or vault or coin, minimal, rounded square. ceitnotdefi.pro
 ```
 
 ### Hero / лендинг
 ```
-luminadefi hero illustration. Lumina Protocol DeFi lending. Dark base, gold and purple gradient, vault or chart or rays. No people, no text. luminadefi.pro. Premium.
+ceitnotdefi hero illustration. Ceitnot Protocol DeFi lending. Dark base, gold and purple gradient, vault or chart or rays. No people, no text. ceitnotdefi.pro. Premium.
 ```
 
 ### Фон
 ```
-luminadefi presentation background. Lumina Protocol. Very dark blue-black, subtle gold and purple glow. Minimal, space for text. luminadefi.pro
+ceitnotdefi presentation background. Ceitnot Protocol. Very dark blue-black, subtle gold and purple glow. Minimal, space for text. ceitnotdefi.pro
 ```
 
 ---
 
-## Промпты для Stable Diffusion (баннер с текстом luminatoken)
+## Промпты для Stable Diffusion (баннер с текстом ceitnottoken)
 
-Stable Diffusion плохо выводит точный текст — буквы часто искажает. Ниже промпт для баннера с надписью **luminatoken**; для надёжного текста лучше сгенерировать фон, затем добавить текст в редакторе или через inpainting.
+Stable Diffusion плохо выводит точный текст — буквы часто искажает. Ниже промпт для баннера с надписью **ceitnottoken**; для надёжного текста лучше сгенерировать фон, затем добавить текст в редакторе или через inpainting.
 
-### Баннер с текстом "luminatoken"
+### Баннер с текстом "ceitnottoken"
 
 **Positive prompt:**
 ```
-banner, wide format, 16:9, dark blue black background, very dark #0f0f1a, warm gold and soft purple gradient glow, minimal DeFi fintech style, premium, clean. Large bold text in center reading "luminatoken", golden color #d4a853, modern sans-serif typography, clear readable letters, no distortion. Subtle abstract elements: vault silhouette or soft chart line in background. Lumina token crypto brand, professional, high quality
+banner, wide format, 16:9, dark blue black background, very dark #0f0f1a, warm gold and soft purple gradient glow, minimal DeFi fintech style, premium, clean. Large bold text in center reading "ceitnottoken", golden color #d4a853, modern sans-serif typography, clear readable letters, no distortion. Subtle abstract elements: vault silhouette or soft chart line in background. Ceitnot token crypto brand, professional, high quality
 ```
 
 **Negative prompt:**
@@ -186,18 +186,18 @@ blurry text, distorted letters, wrong spelling, extra limbs, cartoon, meme, neon
 ```
 
 **Параметры (ориентир):**  
-Resolution для баннера: 1024×576 или 1280×720 (16:9). Steps 25–35. CFG 7–9. Если используешь SDXL или модель с поддержкой текста (например Flux) — шанс на читаемый "luminatoken" выше.
+Resolution для баннера: 1024×576 или 1280×720 (16:9). Steps 25–35. CFG 7–9. Если используешь SDXL или модель с поддержкой текста (например Flux) — шанс на читаемый "ceitnottoken" выше.
 
 **Если текст всё равно кривой:**  
-1. Сгенерировать только фон (тот же промпт, но без фразы про "luminatoken").  
-2. Добавить надпись **luminatoken** в Figma/Photoshop/Canva поверх картинки шрифтом в духе Outfit или любой современный sans-serif, цвет золотой (#d4a853).  
-3. Либо использовать inpainting: замазать область текста на сгенерированном баннере и в промпте inpaint указать: *"large text luminatoken, golden color, clean sans-serif, centered"*.
+1. Сгенерировать только фон (тот же промпт, но без фразы про "ceitnottoken").  
+2. Добавить надпись **ceitnottoken** в Figma/Photoshop/Canva поверх картинки шрифтом в духе Outfit или любой современный sans-serif, цвет золотой (#d4a853).  
+3. Либо использовать inpainting: замазать область текста на сгенерированном баннере и в промпте inpaint указать: *"large text ceitnottoken, golden color, clean sans-serif, centered"*.
 
 ---
 
 ## Какие модели хорошо рисуют текст
 
-Для баннеров с надписью **luminatoken** (и другим точным текстом) лучше использовать модели, заточенные под текст:
+Для баннеров с надписью **ceitnottoken** (и другим точным текстом) лучше использовать модели, заточенные под текст:
 
 | Модель | Где / как | Текст |
 |--------|-----------|--------|
@@ -208,7 +208,7 @@ Resolution для баннера: 1024×576 или 1280×720 (16:9). Steps 25–
 | **Flux** (например Flux.1 Pro) | разный софт | Лучше, чем SD 1.5/2.x; текст часто читаемый, но не идеальный. |
 | **SDXL / SD 1.5–2.x** | Automatic1111, ComfyUI и т.д. | Текст рисует плохо — буквы путает и искажает. |
 
-**Итог:** если все модели плохо генерируют текст — не борись с ними. Сгенерируй **только фон** (промпт в начале документа, раздел «Если всё плохо генерит»), затем добавь надпись **luminatoken** в Canva / Figma / Photopea. Так получишь гарантированно читаемый баннер за пару минут.
+**Итог:** если все модели плохо генерируют текст — не борись с ними. Сгенерируй **только фон** (промпт в начале документа, раздел «Если всё плохо генерит»), затем добавь надпись **ceitnottoken** в Canva / Figma / Photopea. Так получишь гарантированно читаемый баннер за пару минут.
 
 ---
 
@@ -227,6 +227,6 @@ Resolution для баннера: 1024×576 или 1280×720 (16:9). Steps 25–
 
 ## Домены и названия
 
-- Сайт: luminadefi.pro, lumina.finance  
-- Токены: LUMINA, veLUMINA  
-- Продукт: Lumina Protocol
+- Сайт: ceitnotdefi.pro, ceitnot.finance  
+- Токены: CEITNOT, veCEITNOT  
+- Продукт: Ceitnot Protocol

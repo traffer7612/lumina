@@ -11,13 +11,13 @@ interface IUpgradeable {
 
 /**
  * @title  UpgradeEngine
- * @notice UUPS upgrade script for AuraEngine.
+ * @notice UUPS upgrade script for CeitnotEngine.
  *         Run with DRY_RUN=true to print Safe calldata without broadcasting.
  *         Run without DRY_RUN (or DRY_RUN=false) to broadcast the upgrade directly.
  *
  * Required env vars:
- *   ENGINE_PROXY        - AuraEngine proxy address
- *   NEW_IMPLEMENTATION  - Address of the already-deployed new AuraEngine implementation
+ *   ENGINE_PROXY        - CeitnotEngine proxy address
+ *   NEW_IMPLEMENTATION  - Address of the already-deployed new CeitnotEngine implementation
  *
  * Optional env vars:
  *   UPGRADE_CALLDATA    - Hex-encoded calldata for post-upgrade initializer (default: 0x)
@@ -53,7 +53,7 @@ contract UpgradeEngine is Script {
         IUpgradeable engine = IUpgradeable(proxy);
         address currentAdmin = engine.admin();
 
-        console.log("=== AuraEngine Upgrade ===");
+        console.log("=== CeitnotEngine Upgrade ===");
         console.log("Proxy:              %s", proxy);
         console.log("New implementation: %s", newImpl);
         console.log("Current admin:      %s", currentAdmin);

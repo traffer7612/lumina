@@ -3,9 +3,9 @@ pragma solidity ^0.8.20;
 
 import { Script } from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
-import { AuraEngine }         from "../src/AuraEngine.sol";
-import { AuraProxy }          from "../src/AuraProxy.sol";
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotEngine }         from "../src/CeitnotEngine.sol";
+import { CeitnotProxy }          from "../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 import { OracleRelay }        from "../src/OracleRelay.sol";
 import { MockERC20 }          from "../test/mocks/MockERC20.sol";
 import { MockVault4626 }      from "../test/mocks/MockVault4626.sol";
@@ -27,12 +27,12 @@ contract DeploySepolia is Script {
 
         MockERC20     assetToken = new MockERC20("Wrapped stETH", "wstETH", 18);
         MockERC20     debtToken  = new MockERC20("USD Coin", "USDC", 18);
-        MockVault4626 vault      = new MockVault4626(address(assetToken), "Aura wstETH Vault", "wstETH");
+        MockVault4626 vault      = new MockVault4626(address(assetToken), "Ceitnot wstETH Vault", "wstETH");
 
         OracleRelay oracle = new OracleRelay(CHAINLINK_ETH_USD, address(0), 0);
 
         // Registry + first market
-        AuraMarketRegistry registry = new AuraMarketRegistry(msg.sender);
+        CeitnotMarketRegistry registry = new CeitnotMarketRegistry(msg.sender);
         registry.addMarket(
             address(vault),
             address(oracle),
@@ -43,12 +43,12 @@ contract DeploySepolia is Script {
         );
 
         // Engine + Proxy
-        AuraEngine implementation = new AuraEngine();
+        CeitnotEngine implementation = new CeitnotEngine();
         bytes memory initData = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(debtToken), address(registry), uint256(1 hours), uint256(2 days))
         );
-        AuraProxy proxyContract = new AuraProxy(address(implementation), initData);
+        CeitnotProxy proxyContract = new CeitnotProxy(address(implementation), initData);
         proxy = address(proxyContract);
         registry.setEngine(proxy);
 
@@ -57,10 +57,10 @@ contract DeploySepolia is Script {
 
         vm.stopBroadcast();
 
-        console.log("AURA_ENGINE_ADDRESS=%s", proxy);
-        console.log("AURA_REGISTRY_ADDRESS=%s", address(registry));
+        console.log("CEITNOT_ENGINE_ADDRESS=%s", proxy);
+        console.log("CEITNOT_REGISTRY_ADDRESS=%s", address(registry));
         console.log("ORACLE_RELAY_ADDRESS=%s", address(oracle));
-        console.log("AURA_VAULT_4626_ADDRESS=%s", address(vault));
+        console.log("CEITNOT_VAULT_4626_ADDRESS=%s", address(vault));
         console.log("MOCK_ASSET_ADDRESS=%s", address(assetToken));
         console.log("MOCK_DEBT_ADDRESS=%s", address(debtToken));
         console.log("CHAINLINK_FEED=%s", CHAINLINK_ETH_USD);

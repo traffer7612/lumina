@@ -1,4 +1,4 @@
-# Аудит безопасности Lumina Protocol
+# Аудит безопасности Ceitnot Protocol
 
 Документ описывает полный набор тестов безопасности, результаты статического анализа **Slither** (статический анализатор), отчёты в открытом доступе и программу **Bug Bounty**.
 
@@ -6,7 +6,7 @@
 
 ## 1. Тестовые сьюты
 
-### 1.1. Юнит-тесты (`test/Aura.t.sol`)
+### 1.1. Юнит-тесты (`test/Ceitnot.t.sol`)
 **66 тестов** — покрытие основных функций движка: инициализация, депозит/вывод коллатерала, займ/погашение, начисление процентов, harvest yield, ликвидация, пауза, shutdown, timelock, апгрейд прокси, multi-market, изоляционный режим.
 
 ### 1.2. Тесты безопасности (`test/Security.t.sol`)
@@ -26,18 +26,18 @@
 **19 тестов** — ERC-3156 flash-loan: корректность выдачи, fee accounting, reentrancy protection, maxFlashLoan, невалидный callback return, insufficient repay.
 
 ### 1.4. Governance тесты (`test/Governance.t.sol`)
-**23 теста** — контракты governance Lumina: `AuraToken`, `VeAura` (lock, extend, withdraw, delegation, revenue), `AuraGovernor` (propose, vote, execute через timelock), `AuraTreasury` (deposit, withdraw, distribute).
+**23 теста** — контракты governance Ceitnot: `CeitnotToken`, `VeCeitnot` (lock, extend, withdraw, delegation, revenue), `CeitnotGovernor` (propose, vote, execute через timelock), `CeitnotTreasury` (deposit, withdraw, distribute).
 
 ### 1.5. Phase 9 — CDP / PSM (`test/Phase9.t.sol`)
-**25 тестов** — AuraUSD (mint/burn, minter management, global debt ceiling), CDP-режим (borrow mints aUSD, repay/liquidate burns aUSD, per-market debt ceiling), PSM (swapIn/swapOut, fee accounting, ceiling, reserves).
+**25 тестов** — CeitnotUSD (mint/burn, minter management, global debt ceiling), CDP-режим (borrow mints aUSD, repay/liquidate burns aUSD, per-market debt ceiling), PSM (swapIn/swapOut, fee accounting, ceiling, reserves).
 
 ### 1.6. Phase 10 — Router / Delegates (`test/Phase10.t.sol`)
-**24 теста** — AuraRouter (depositCollateral, depositAndBorrow, repayAndWithdraw, leverageUp/Down), Delegate system (set/get, borrow/repay via delegate, unauthorized reverts), Multicall, EIP-2612 permit.
+**24 теста** — CeitnotRouter (depositCollateral, depositAndBorrow, repayAndWithdraw, leverageUp/Down), Delegate system (set/get, borrow/repay via delegate, unauthorized reverts), Multicall, EIP-2612 permit.
 
 ### 1.7. OracleV2 (`test/OracleV2.t.sol`)
 **40 тестов** — Multi-source median oracle, circuit breaker (trip/reset, large/small deviation), feed management (add/disable/max feeds), Chainlink normalisation, stale price exclusion, L2 sequencer uptime feed, TWAP.
 
-### 1.8. Fuzz-тесты (`test/fuzz/AuraFuzz.t.sol`)
+### 1.8. Fuzz-тесты (`test/fuzz/CeitnotFuzz.t.sol`)
 **8 тестов × 1000 прогонов** — рандомизированные сценарии:
 - `fuzz_depositWithdraw`: депозит → вывод (collateral conservation)
 - `fuzz_borrowRepay`: займ → погашение (debt conservation)
@@ -65,7 +65,7 @@
 
 | Сьют | Тесты | Статус |
 |------|-------|--------|
-| Aura.t.sol (юнит) | 66 | ✅ PASS |
+| Ceitnot.t.sol (юнит) | 66 | ✅ PASS |
 | Security.t.sol | 60 | ✅ PASS |
 | FlashLoan.t.sol | 19 | ✅ PASS |
 | Governance.t.sol | 23 | ✅ PASS |
@@ -79,7 +79,7 @@
 | Treasury.t.sol | 19 | ✅ PASS |
 | **Итого** | **296** | **✅ 296 passed, 0 failed** |
 
-> 4 fork-теста (`test/fork/AuraFork.t.sol`) требуют Infura API key и не считаются в основной набор.
+> 4 fork-теста (`test/fork/CeitnotFork.t.sol`) требуют Infura API key и не считаются в основной набор.
 
 ---
 
@@ -91,22 +91,22 @@ Slither проанализировал **82 контракта** с **100 дет
 
 #### High — исправлены ✅
 
-**Unchecked transfer return values** — `AuraRouter`
+**Unchecked transfer return values** — `CeitnotRouter`
 - 4 вызова `IERC4626.transferFrom()` и 4 вызова `IERC4626.approve()` без проверки return value
 - **Исправление**: добавлен error `Router__TransferFailed`, все 8 вызовов обёрнуты в `if (!...) revert`
 
-**Controlled delegatecall** — `AuraEngine.upgradeToAndCall()`
+**Controlled delegatecall** — `CeitnotEngine.upgradeToAndCall()`
 - Ложное срабатывание: стандартный UUPS proxy upgrade pattern, защищён `onlyAdmin` модификатором
 
 #### Medium — исправлены ✅
 
-**Reentrancy (CEI violation)** — `VeAura`, `AuraPSM`
-- `VeAura.lock()`, `increaseAmount()`, `distributeRevenue()`: `_transferIn` вызывался до обновления state
-- `AuraPSM.swapIn()`, `swapOut()`: state обновлялся после external calls
+**Reentrancy (CEI violation)** — `VeCeitnot`, `CeitnotPSM`
+- `VeCeitnot.lock()`, `increaseAmount()`, `distributeRevenue()`: `_transferIn` вызывался до обновления state
+- `CeitnotPSM.swapIn()`, `swapOut()`: state обновлялся после external calls
 - **Исправление**: переупорядочены в паттерн Checks-Effects-Interactions (state updates → external calls)
 
 **Missing zero-address validation**
-- `AuraMarketRegistry.setEngine()`, `AuraProxy` конструктор, `AuraVault4626` конструктор, `OracleRelay` конструктор (`primaryFeed`), `VeAura.setRevenueToken()`
+- `CeitnotMarketRegistry.setEngine()`, `CeitnotProxy` конструктор, `CeitnotVault4626` конструктор, `OracleRelay` конструктор (`primaryFeed`), `VeCeitnot.setRevenueToken()`
 - **Исправление**: добавлены проверки `if (addr == address(0)) revert`
 
 #### Low / Informational — принято (не требует правок)
@@ -136,7 +136,7 @@ Slither проанализировал **82 контракта** с **100 дет
 - **Как сгенерировать отчёт:** см. [docs/SLITHER.md](SLITHER.md). В корне репозитория:  
   `slither . --json docs/reports/slither-report.json` (или `--markdown-root docs/reports` для читаемого отчёта).  
   Требуется установленный [Slither](https://github.com/crytic/slither).
-- **Где лежат отчёты:** папка `docs/reports/` в репозитории (при наличии сгенерированных файлов) или артефакты в CI. Отчёты можно выложить в открытый доступ через репозиторий или отдельную страницу docs.lumina.finance/security.
+- **Где лежат отчёты:** папка `docs/reports/` в репозитории (при наличии сгенерированных файлов) или артефакты в CI. Отчёты можно выложить в открытый доступ через репозиторий или отдельную страницу docs.ceitnot.finance/security.
 
 ---
 
@@ -144,21 +144,21 @@ Slither проанализировал **82 контракта** с **100 дет
 
 | # | Файл | Что исправлено | Коммит |
 |---|------|---------------|--------|
-| 1 | `AuraRouter.sol` | Проверка return value `transferFrom`/`approve` (8 мест) | текущий |
-| 2 | `AuraPSM.sol` | CEI pattern: state updates до external calls в `swapIn`/`swapOut` | текущий |
-| 3 | `VeAura.sol` | CEI pattern: `_transferIn` после state updates в `lock`/`increaseAmount`/`distributeRevenue` | текущий |
-| 4 | `AuraMarketRegistry.sol` | Zero-address check в `setEngine()` | текущий |
-| 5 | `AuraProxy.sol` | Zero-address check в конструкторе | текущий |
-| 6 | `AuraVault4626.sol` | Zero-address check в конструкторе | текущий |
+| 1 | `CeitnotRouter.sol` | Проверка return value `transferFrom`/`approve` (8 мест) | текущий |
+| 2 | `CeitnotPSM.sol` | CEI pattern: state updates до external calls в `swapIn`/`swapOut` | текущий |
+| 3 | `VeCeitnot.sol` | CEI pattern: `_transferIn` после state updates в `lock`/`increaseAmount`/`distributeRevenue` | текущий |
+| 4 | `CeitnotMarketRegistry.sol` | Zero-address check в `setEngine()` | текущий |
+| 5 | `CeitnotProxy.sol` | Zero-address check в конструкторе | текущий |
+| 6 | `CeitnotVault4626.sol` | Zero-address check в конструкторе | текущий |
 | 7 | `OracleRelay.sol` | Zero-address check для `primaryFeed` в конструкторе | текущий |
-| 8 | `VeAura.sol` | Zero-address check в `setRevenueToken()` | текущий |
+| 8 | `VeCeitnot.sol` | Zero-address check в `setRevenueToken()` | текущий |
 
 ---
 
 ## 5. Bug Bounty
 
 Программа вознаграждений за ответственное раскрытие уязвимостей: **[docs/BUG-BOUNTY.md](BUG-BOUNTY.md)**.  
-Награды — баллы или будущие токены LUMINA; scope: смарт-контракты и критические баги в фронте/бэкенде.
+Награды — баллы или будущие токены CEITNOT; scope: смарт-контракты и критические баги в фронте/бэкенде.
 
 ---
 

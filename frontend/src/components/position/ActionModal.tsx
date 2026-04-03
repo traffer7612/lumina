@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadContracts } from 'wagmi';
 import { parseUnits, formatUnits, type Hash, type Address } from 'viem';
 import { X, ArrowRight, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
-import { auraEngineAbi, erc20Abi, erc4626Abi } from '../../abi/auraEngine';
+import { ceitnotEngineAbi, erc20Abi, erc4626Abi } from '../../abi/ceitnotEngine';
 import { useContractAddresses, gasFor, TARGET_CHAIN_ID } from '../../lib/contracts';
 
 export type ActionType = 'deposit' | 'withdraw' | 'borrow' | 'repay';
@@ -89,7 +89,7 @@ export default function ActionModal({
   // Read collateral value for borrow max calculation
   const { data: posValueData } = useReadContracts({
     contracts: engine && address ? [
-      { address: engine, abi: auraEngineAbi, functionName: 'getPositionCollateralValue' as const, args: [address, BigInt(marketId)] as const, chainId: TARGET_CHAIN_ID },
+      { address: engine, abi: ceitnotEngineAbi, functionName: 'getPositionCollateralValue' as const, args: [address, BigInt(marketId)] as const, chainId: TARGET_CHAIN_ID },
     ] : [],
     query: { enabled: !!engine && !!address && action === 'borrow' },
   });
@@ -164,13 +164,13 @@ export default function ActionModal({
       setStep('writing');
       let h: Hash;
       if (action === 'deposit') {
-        h = await writeContractAsync({ address: engine, abi: auraEngineAbi, functionName: 'depositCollateral', args: [address, BigInt(marketId), amountRaw], ...gas });
+        h = await writeContractAsync({ address: engine, abi: ceitnotEngineAbi, functionName: 'depositCollateral', args: [address, BigInt(marketId), amountRaw], ...gas });
       } else if (action === 'withdraw') {
-        h = await writeContractAsync({ address: engine, abi: auraEngineAbi, functionName: 'withdrawCollateral', args: [address, BigInt(marketId), amountRaw], ...gas });
+        h = await writeContractAsync({ address: engine, abi: ceitnotEngineAbi, functionName: 'withdrawCollateral', args: [address, BigInt(marketId), amountRaw], ...gas });
       } else if (action === 'borrow') {
-        h = await writeContractAsync({ address: engine, abi: auraEngineAbi, functionName: 'borrow', args: [address, BigInt(marketId), amountRaw], ...gas });
+        h = await writeContractAsync({ address: engine, abi: ceitnotEngineAbi, functionName: 'borrow', args: [address, BigInt(marketId), amountRaw], ...gas });
       } else {
-        h = await writeContractAsync({ address: engine, abi: auraEngineAbi, functionName: 'repay', args: [address, BigInt(marketId), amountRaw], ...gas });
+        h = await writeContractAsync({ address: engine, abi: ceitnotEngineAbi, functionName: 'repay', args: [address, BigInt(marketId), amountRaw], ...gas });
       }
       setHash(h);
     } catch (e: unknown) {
@@ -220,12 +220,12 @@ export default function ActionModal({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={close} />
 
       {/* Modal */}
-      <div className="relative z-10 w-full max-w-md card bg-aura-surface border border-aura-border-2 shadow-2xl p-6 animate-fade-in">
+      <div className="relative z-10 w-full max-w-md card bg-ceitnot-surface border border-ceitnot-border-2 shadow-2xl p-6 animate-fade-in">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-semibold">
             {ACTION_LABEL[action]}
-            <span className="ml-2 text-sm text-aura-muted font-normal">Market #{marketId}</span>
+            <span className="ml-2 text-sm text-ceitnot-muted font-normal">Market #{marketId}</span>
           </h2>
           <button onClick={close} className="btn-ghost p-1.5 rounded-lg" aria-label="Close">
             <X size={18} />
@@ -235,9 +235,9 @@ export default function ActionModal({
         {/* Success state */}
         {step === 'success' && (
           <div className="text-center py-6">
-            <CheckCircle size={48} className="text-aura-success mx-auto mb-3" />
+            <CheckCircle size={48} className="text-ceitnot-success mx-auto mb-3" />
             <p className="font-semibold text-lg">Transaction confirmed!</p>
-            <p className="text-aura-muted text-sm mt-1">Your position has been updated.</p>
+            <p className="text-ceitnot-muted text-sm mt-1">Your position has been updated.</p>
             <button className="btn-primary mt-6 w-full" onClick={close}>Close</button>
           </div>
         )}
@@ -245,9 +245,9 @@ export default function ActionModal({
         {/* Error state */}
         {step === 'error' && (
           <div className="text-center py-4">
-            <AlertCircle size={40} className="text-aura-danger mx-auto mb-3" />
-            <p className="font-semibold text-aura-danger">Transaction failed</p>
-            <p className="text-aura-muted text-xs mt-2 break-words">{errMsg}</p>
+            <AlertCircle size={40} className="text-ceitnot-danger mx-auto mb-3" />
+            <p className="font-semibold text-ceitnot-danger">Transaction failed</p>
+            <p className="text-ceitnot-muted text-xs mt-2 break-words">{errMsg}</p>
             <button className="btn-secondary mt-5 w-full" onClick={() => { setStep('input'); setErrMsg(''); }}>Try again</button>
           </div>
         )}
@@ -255,9 +255,9 @@ export default function ActionModal({
         {/* Withdraw confirmed -> redeem shares to underlying */}
         {step === 'withdrawn' && (
           <div className="text-center py-6">
-            <CheckCircle size={48} className="text-aura-success mx-auto mb-3" />
+            <CheckCircle size={48} className="text-ceitnot-success mx-auto mb-3" />
             <p className="font-semibold text-lg">Withdraw confirmed!</p>
-            <p className="text-aura-muted text-sm mt-1">
+            <p className="text-ceitnot-muted text-sm mt-1">
               Now you have <span className="font-mono">{amount ? amount : '0'}</span> {vaultSymbol} shares.
               Redeem them to get <span className="font-mono">{assetSymbol}</span>.
             </p>
@@ -279,9 +279,9 @@ export default function ActionModal({
           <>
             {/* Approve step indicator */}
             {needsApproval && (
-              <div className="flex items-center gap-2 mb-4 p-3 bg-aura-warning/10 border border-aura-warning/20 rounded-xl">
-                <ArrowRight size={14} className="text-aura-warning shrink-0" />
-                <p className="text-xs text-aura-warning">
+              <div className="flex items-center gap-2 mb-4 p-3 bg-ceitnot-warning/10 border border-ceitnot-warning/20 rounded-xl">
+                <ArrowRight size={14} className="text-ceitnot-warning shrink-0" />
+                <p className="text-xs text-ceitnot-warning">
                   Two steps: first approve the token, then confirm the action.
                 </p>
               </div>
@@ -289,8 +289,8 @@ export default function ActionModal({
 
             {/* Amount input */}
             <div className="mb-5">
-              <label className="block text-sm text-aura-muted mb-2">
-                Amount <span className="text-aura-muted-2">(shares / tokens, 18 dec)</span>
+              <label className="block text-sm text-ceitnot-muted mb-2">
+                Amount <span className="text-ceitnot-muted-2">(shares / tokens, 18 dec)</span>
               </label>
               <div className="flex gap-2">
                 <input
@@ -305,7 +305,7 @@ export default function ActionModal({
                 <button
                   type="button"
                   onClick={setMax}
-                  className="px-3 py-2 rounded-xl text-sm font-medium bg-aura-gold/15 text-aura-gold hover:bg-aura-gold/25 transition-colors"
+                  className="px-3 py-2 rounded-xl text-sm font-medium bg-ceitnot-gold/15 text-ceitnot-gold hover:bg-ceitnot-gold/25 transition-colors"
                   disabled={isPending}
                 >
                   Max
@@ -314,28 +314,28 @@ export default function ActionModal({
 
               {/* Balance hints */}
               {action === 'deposit' && (
-                <p className="text-xs text-aura-muted mt-1">
+                <p className="text-xs text-ceitnot-muted mt-1">
                   Wallet shares: <span className="text-white font-mono">{formatUnits(walletShares, 18)}</span>
                 </p>
               )}
               {action === 'withdraw' && sharesBalance !== undefined && (
-                <p className="text-xs text-aura-muted mt-1">
+                <p className="text-xs text-ceitnot-muted mt-1">
                   Deposited shares: <span className="text-white font-mono">{formatUnits(sharesBalance, 18)}</span>
                 </p>
               )}
               {action === 'borrow' && (
-                <p className="text-xs text-aura-muted mt-1">
+                <p className="text-xs text-ceitnot-muted mt-1">
                   Collateral value: <span className="text-white font-mono">{formatUnits(collateralValue, 18)}</span>
                   {' · '}Max borrow (80% LTV): <span className="text-white font-mono">
                     {formatUnits((collateralValue * 8000n / 10000n) - (debtBalance ?? 0n) > 0n ? (collateralValue * 8000n / 10000n) - (debtBalance ?? 0n) : 0n, 18)}
                   </span>
                   {!!debtBalance && debtBalance > 0n && (
-                    <>{' · '}Current debt: <span className="text-aura-warning font-mono">{formatUnits(debtBalance, 18)}</span></>
+                    <>{' · '}Current debt: <span className="text-ceitnot-warning font-mono">{formatUnits(debtBalance, 18)}</span></>
                   )}
                 </p>
               )}
               {action === 'repay' && debtBalance !== undefined && debtBalance > 0n && (
-                <p className="text-xs text-aura-muted mt-1">
+                <p className="text-xs text-ceitnot-muted mt-1">
                   Outstanding debt: <span className="text-white font-mono">{formatUnits(debtBalance, 18)}</span>
                   {' · '}Wallet USDC: <span className="text-white font-mono">{formatUnits(walletDebtToken, 18)}</span>
                 </p>
@@ -355,7 +355,7 @@ export default function ActionModal({
 
             {/* Tx hash */}
             {hash && (
-              <p className="text-xs text-aura-muted mt-3 text-center font-mono break-all">
+              <p className="text-xs text-ceitnot-muted mt-3 text-center font-mono break-all">
                 tx: {hash.slice(0, 10)}…{hash.slice(-8)}
               </p>
             )}

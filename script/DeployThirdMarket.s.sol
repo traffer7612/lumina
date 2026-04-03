@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import { Script }  from "forge-std/Script.sol";
 import { console } from "forge-std/console.sol";
 
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 import { MockERC20 }          from "../test/mocks/MockERC20.sol";
 import { MockVault4626 }      from "../test/mocks/MockVault4626.sol";
 import { MockOracle }         from "../test/mocks/MockOracle.sol";
@@ -42,7 +42,7 @@ contract DeployThirdMarket is Script {
         oracle.setPrice(150e18);
 
         // 4. Register market in existing registry
-        AuraMarketRegistry registry = AuraMarketRegistry(REGISTRY);
+        CeitnotMarketRegistry registry = CeitnotMarketRegistry(REGISTRY);
         uint256 marketId = registry.addMarket(
             address(vault),
             address(oracle),

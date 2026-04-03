@@ -11,10 +11,10 @@ import { TimelockController }          from "@openzeppelin/contracts/governance/
 import { IVotes }                      from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 
 /**
- * @title  AuraGovernor
+ * @title  CeitnotGovernor
  * @author Sanzhik(traffer7612)
- * @notice On-chain governance for the Aura Protocol.
- *         Voting power is provided by VeAura (vote-escrow AURA).
+ * @notice On-chain governance for the Ceitnot Protocol.
+ *         Voting power is provided by VeCeitnot (vote-escrow CEITNOT).
  *         Successful proposals are queued through a TimelockController before execution.
  *
  * @dev    Phase 7 implementation.
@@ -23,10 +23,10 @@ import { IVotes }                      from "@openzeppelin/contracts/governance/
  *         Parameters:
  *           votingDelay    = 1 day   (seconds, timestamp clock)
  *           votingPeriod   = 7 days
- *           proposalThreshold = 100,000 AURA (veAURA)
- *           quorum         = 4% of total veAURA supply
+ *           proposalThreshold = 100,000 CEITNOT (VeCeitnot)
+ *           quorum         = 4% of total VeCeitnot supply
  */
-contract AuraGovernor is
+contract CeitnotGovernor is
     Governor,
     GovernorSettings,
     GovernorCountingSimple,
@@ -35,11 +35,11 @@ contract AuraGovernor is
     GovernorTimelockControl
 {
     /**
-     * @param _token     VeAura contract (implements IVotes / IERC5805)
+     * @param _token     VeCeitnot contract (implements IVotes / IERC5805)
      * @param _timelock  TimelockController that executes queued proposals
      */
     constructor(IVotes _token, TimelockController _timelock)
-        Governor("AuraGovernor")
+        Governor("CeitnotGovernor")
         GovernorSettings(
             1 days,       // votingDelay  (seconds)
             7 days,       // votingPeriod (seconds)

@@ -1,6 +1,6 @@
 import { useReadContract, useReadContracts } from 'wagmi';
 import { useAccount } from 'wagmi';
-import { auraEngineAbi } from '../abi/auraEngine';
+import { ceitnotEngineAbi } from '../abi/ceitnotEngine';
 import { useContractAddresses } from '../lib/contracts';
 
 export type UserPosition = {
@@ -17,7 +17,7 @@ export function usePosition() {
   // Health factor (global across all markets)
   const { data: healthFactor, refetch: refetchHf } = useReadContract({
     address: engine,
-    abi: auraEngineAbi,
+    abi: ceitnotEngineAbi,
     functionName: 'getHealthFactor',
     args: address ? [address] : undefined,
     query: { enabled: !!engine && !!address },
@@ -26,7 +26,7 @@ export function usePosition() {
   // Which markets does user have positions in?
   const { data: marketIdsBig, refetch: refetchMids } = useReadContract({
     address: engine,
-    abi: auraEngineAbi,
+    abi: ceitnotEngineAbi,
     functionName: 'getUserMarkets',
     args: address ? [address] : undefined,
     query: { enabled: !!engine && !!address },
@@ -37,9 +37,9 @@ export function usePosition() {
   // Batch: debt + shares + value for each market
   const { data: posData, refetch: refetchPos } = useReadContracts({
     contracts: marketIds.flatMap(mid => [
-      { address: engine!, abi: auraEngineAbi, functionName: 'getPositionDebt'             as const, args: [address!, mid] as const },
-      { address: engine!, abi: auraEngineAbi, functionName: 'getPositionCollateralShares' as const, args: [address!, mid] as const },
-      { address: engine!, abi: auraEngineAbi, functionName: 'getPositionCollateralValue'  as const, args: [address!, mid] as const },
+      { address: engine!, abi: ceitnotEngineAbi, functionName: 'getPositionDebt'             as const, args: [address!, mid] as const },
+      { address: engine!, abi: ceitnotEngineAbi, functionName: 'getPositionCollateralShares' as const, args: [address!, mid] as const },
+      { address: engine!, abi: ceitnotEngineAbi, functionName: 'getPositionCollateralValue'  as const, args: [address!, mid] as const },
     ]),
     query: { enabled: !!engine && !!address && marketIds.length > 0 },
   });

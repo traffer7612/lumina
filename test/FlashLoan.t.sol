@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import { Test }                    from "forge-std/Test.sol";
-import { AuraEngine }              from "../src/AuraEngine.sol";
-import { AuraProxy }               from "../src/AuraProxy.sol";
-import { AuraMarketRegistry }      from "../src/AuraMarketRegistry.sol";
+import { CeitnotEngine }              from "../src/CeitnotEngine.sol";
+import { CeitnotProxy }               from "../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry }      from "../src/CeitnotMarketRegistry.sol";
 import { IERC3156FlashBorrower }   from "../src/interfaces/IERC3156FlashBorrower.sol";
 import { MockERC20 }               from "./mocks/MockERC20.sol";
 import { MockVault4626 }           from "./mocks/MockVault4626.sol";
@@ -14,9 +14,9 @@ import { MockFlashBorrowerBad }    from "./mocks/MockFlashBorrower.sol";
 import { MockFlashBorrowerWrongReturn } from "./mocks/MockFlashBorrower.sol";
 
 contract FlashLoanTest is Test {
-    AuraEngine         public engine;
-    AuraProxy          public proxy;
-    AuraMarketRegistry public registry;
+    CeitnotEngine         public engine;
+    CeitnotProxy          public proxy;
+    CeitnotMarketRegistry public registry;
     MockERC20          public debtToken;
     MockERC20          public assetToken;
     MockVault4626      public vault;
@@ -42,23 +42,23 @@ contract FlashLoanTest is Test {
     function setUp() public {
         assetToken = new MockERC20("Wrapped stETH", "wstETH", 18);
         debtToken  = new MockERC20("USD Coin", "USDC", 18);
-        vault      = new MockVault4626(address(assetToken), "Aura wstETH Vault", "wstETH");
+        vault      = new MockVault4626(address(assetToken), "Ceitnot wstETH Vault", "wstETH");
         oracle     = new MockOracle();
 
-        registry = new AuraMarketRegistry(admin);
+        registry = new CeitnotMarketRegistry(admin);
         registry.addMarket(
             address(vault), address(oracle),
             uint16(8000), uint16(8500), uint16(500),
             0, 0, false, 0
         );
 
-        AuraEngine impl = new AuraEngine();
+        CeitnotEngine impl = new CeitnotEngine();
         bytes memory initData = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(debtToken), address(registry), uint256(1 days), uint256(2 days))
         );
-        proxy  = new AuraProxy(address(impl), initData);
-        engine = AuraEngine(address(proxy));
+        proxy  = new CeitnotProxy(address(impl), initData);
+        engine = CeitnotEngine(address(proxy));
 
         registry.setEngine(address(proxy));
 
@@ -96,7 +96,7 @@ contract FlashLoanTest is Test {
     }
 
     function test_flashFee_wrongToken_reverts() public {
-        vm.expectRevert(AuraEngine.Aura__FlashLoanUnsupportedToken.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__FlashLoanUnsupportedToken.selector);
         engine.flashFee(address(vault), 100 * WAD);
     }
 
@@ -161,18 +161,18 @@ contract FlashLoanTest is Test {
     // ==================== flashLoan — revert paths ====================
 
     function test_flashLoan_wrongToken_reverts() public {
-        vm.expectRevert(AuraEngine.Aura__FlashLoanUnsupportedToken.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__FlashLoanUnsupportedToken.selector);
         engine.flashLoan(borrower, address(vault), 100 * WAD, "");
     }
 
     function test_flashLoan_zeroAmount_reverts() public {
-        vm.expectRevert(AuraEngine.Aura__ZeroAmount.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__ZeroAmount.selector);
         engine.flashLoan(borrower, address(debtToken), 0, "");
     }
 
     function test_flashLoan_exceedsBalance_reverts() public {
         uint256 tooBig = POOL_SIZE + 1;
-        vm.expectRevert(AuraEngine.Aura__FlashLoanExceedsBalance.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__FlashLoanExceedsBalance.selector);
         engine.flashLoan(borrower, address(debtToken), tooBig, "");
     }
 
@@ -183,7 +183,7 @@ contract FlashLoanTest is Test {
     }
 
     function test_flashLoan_wrongCallbackReturn_reverts() public {
-        vm.expectRevert(AuraEngine.Aura__FlashLoanCallbackFailed.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__FlashLoanCallbackFailed.selector);
         engine.flashLoan(borrowerWrong, address(debtToken), 100 * WAD, "");
     }
 
@@ -209,12 +209,12 @@ contract FlashLoanTest is Test {
         engine.flashLoan(borrower, address(debtToken), amount, "");
 
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.withdrawFlashLoanReserves(alice, 1 * WAD);
     }
 
     function test_withdrawFlashLoanReserves_exceedsReserves_reverts() public {
-        vm.expectRevert(AuraEngine.Aura__InsufficientReserves.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__InsufficientReserves.selector);
         engine.withdrawFlashLoanReserves(alice, 1 * WAD);
     }
 
@@ -229,7 +229,7 @@ contract FlashLoanTest is Test {
 
     function test_setFlashLoanFee_nonAdmin_reverts() public {
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.setFlashLoanFee(100);
     }
 }

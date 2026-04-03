@@ -1,4 +1,4 @@
-# Lumina: The Autonomous Yield-Backed Credit Engine
+# Ceitnot: The Autonomous Yield-Backed Credit Engine
 
 Production-ready DeFi primitive that lets protocols or users deposit **yield-bearing assets** (ERC-4626, e.g. stETH or sDAI) as collateral to **borrow stablecoins**. The **Yield Siphon** captures yield from collateral and applies it directly to principal debt in real time (self-liquidating debt).
 
@@ -24,12 +24,12 @@ Production-ready DeFi primitive that lets protocols or users deposit **yield-bea
 | MarketRegistry | Multi-market registry: vault, oracle, risk params, caps, isolation mode |
 | OracleRelay | Multi-oracle V1 (Chainlink primary + fallback, TWAP, staleness check) |
 | OracleRelayV2 | Multi-source median oracle, circuit breaker, L2 sequencer uptime feed |
-| LuminaUSD (aUSD) | Mintable stablecoin for CDP mode, EIP-2612 permit |
+| CeitnotUSD (aUSD) | Mintable stablecoin for CDP mode, EIP-2612 permit |
 | PSM | Peg Stability Module: 1:1 swaps aUSD ↔ pegged stable (USDC/DAI) |
 | Router | Stateless router: atomic deposit+borrow, repay+withdraw, permit, leverage |
 | Treasury | Protocol treasury: deposit, withdraw, batch distribute |
-| LuminaToken (LUMINA) | Governance ERC-20 + ERC20Votes (EIP-6372 timestamp clock) |
-| VeLumina | Vote-Escrow LUMINA: lock → voting power + revenue share |
+| CeitnotToken (CEITNOT) | Governance ERC-20 + ERC20Votes (EIP-6372 timestamp clock) |
+| VeCeitnot | Vote-Escrow CEITNOT: lock → voting power + revenue share |
 | Governor | OpenZeppelin Governor + TimelockControl + VotesQuorumFraction |
 | InterestRateModel | Kink-based interest rate model |
 | FixedPoint | WAD/RAY math and scale-after-yield |
@@ -70,7 +70,7 @@ forge test
 
 ```bash
 cd backend
-cp .env.example .env   # set AURA_ENGINE_ADDRESS (engine proxy) if you have a deployed engine
+cp .env.example .env   # set CEITNOT_ENGINE_ADDRESS (engine proxy) if you have a deployed engine
 npm install
 npm run dev           # http://localhost:3001
 ```
@@ -83,7 +83,7 @@ npm install
 npm run dev           # http://localhost:5173, proxies /api to backend
 ```
 
-Connect a wallet (Arbitrum or Base); the dashboard shows your position and lets you deposit collateral, borrow, and repay. Set `AURA_ENGINE_ADDRESS` in the backend so the app can read stats and contract addresses. (Env var names still use the legacy prefix.)
+Connect a wallet (Arbitrum or Base); the dashboard shows your position and lets you deposit collateral, borrow, and repay. Set `CEITNOT_ENGINE_ADDRESS` in the backend so the app can read stats and contract addresses.
 
 ## Security
 
@@ -94,7 +94,7 @@ Connect a wallet (Arbitrum or Base); the dashboard shows your position and lets 
 
 ## Documentation
 
-- **docs.lumina.finance:** GitBook-документация (папка [docs/](docs/), [SUMMARY](docs/SUMMARY.md)) — математика ставок, ликвидации, контракты, Security, Bug Bounty.
+- **docs.ceitnot.finance:** GitBook-документация (папка [docs/](docs/), [SUMMARY](docs/SUMMARY.md)) — математика ставок, ликвидации, контракты, Security, Bug Bounty.
 - **Contracts API reference:** [docs/CONTRACTS.md](docs/CONTRACTS.md)
 - **Security audit & Slither:** [docs/SECURITY-AUDIT.md](docs/SECURITY-AUDIT.md) · [Slither](docs/SLITHER.md) · [Bug Bounty](docs/BUG-BOUNTY.md)
 - **Changelog:** [docs/CHANGELOG.md](docs/CHANGELOG.md)

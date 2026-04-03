@@ -2,11 +2,11 @@
 pragma solidity ^0.8.20;
 
 import { Test }               from "forge-std/Test.sol";
-import { AuraEngine }         from "../src/AuraEngine.sol";
-import { AuraProxy }          from "../src/AuraProxy.sol";
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
-import { AuraUSD }            from "../src/AuraUSD.sol";
-import { AuraRouter }         from "../src/AuraRouter.sol";
+import { CeitnotEngine }         from "../src/CeitnotEngine.sol";
+import { CeitnotProxy }          from "../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
+import { CeitnotUSD }            from "../src/CeitnotUSD.sol";
+import { CeitnotRouter }         from "../src/CeitnotRouter.sol";
 import { MockERC20 }          from "./mocks/MockERC20.sol";
 import { MockVault4626 }      from "./mocks/MockVault4626.sol";
 import { MockOracle }         from "./mocks/MockOracle.sol";
@@ -35,11 +35,11 @@ contract Phase10Test is Test {
     uint256 constant ALICE_PK = 0xA11CE_BEEF_DEAD_C0DE;
 
     // ------------------------------- Contracts
-    AuraUSD            public ausd;
-    AuraEngine         public engine;
-    AuraProxy          public proxy;
-    AuraMarketRegistry public registry;
-    AuraRouter         public router;
+    CeitnotUSD            public ausd;
+    CeitnotEngine         public engine;
+    CeitnotProxy          public proxy;
+    CeitnotMarketRegistry public registry;
+    CeitnotRouter         public router;
 
     MockERC20     public assetToken;
     MockVault4626 public vault;
@@ -47,16 +47,16 @@ contract Phase10Test is Test {
 
     // ------------------------------- Setup
     function setUp() public {
-        // 1. Deploy AuraUSD
-        ausd = new AuraUSD(admin);
+        // 1. Deploy CeitnotUSD
+        ausd = new CeitnotUSD(admin);
 
         // 2. Collateral infrastructure
         assetToken = new MockERC20("Wrapped stETH", "wstETH", 18);
-        vault      = new MockVault4626(address(assetToken), "Aura wstETH Vault", "wstETH");
+        vault      = new MockVault4626(address(assetToken), "Ceitnot wstETH Vault", "wstETH");
         oracle     = new MockOracle();
 
         // 3. Registry
-        registry = new AuraMarketRegistry(admin);
+        registry = new CeitnotMarketRegistry(admin);
         registry.addMarket(
             address(vault), address(oracle),
             uint16(8000), uint16(8500), uint16(500),
@@ -64,13 +64,13 @@ contract Phase10Test is Test {
         );
 
         // 4. Engine (CDP mode)
-        AuraEngine impl = new AuraEngine();
+        CeitnotEngine impl = new CeitnotEngine();
         bytes memory initData = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(ausd), address(registry), uint256(1 days), uint256(2 days))
         );
-        proxy  = new AuraProxy(address(impl), initData);
-        engine = AuraEngine(address(proxy));
+        proxy  = new CeitnotProxy(address(impl), initData);
+        engine = CeitnotEngine(address(proxy));
         registry.setEngine(address(proxy));
 
         ausd.addMinter(address(proxy));
@@ -78,7 +78,7 @@ contract Phase10Test is Test {
         engine.setMintableDebtToken(true);
 
         // 5. Router
-        router = new AuraRouter(address(proxy), address(ausd));
+        router = new CeitnotRouter(address(proxy), address(ausd));
 
         // 6. Fund actors
         // alice — derive address from known private key
@@ -139,7 +139,7 @@ contract Phase10Test is Test {
     }
 
     // =========================================================================
-    // 1. AuraUSD EIP-2612 Permit
+    // 1. CeitnotUSD EIP-2612 Permit
     // =========================================================================
 
     function test_permit_basic() public {
@@ -157,7 +157,7 @@ contract Phase10Test is Test {
         uint256 deadline = block.timestamp - 1; // already expired
         (uint8 v, bytes32 r, bytes32 s) = _signPermit(bob, WAD, 0, deadline);
 
-        vm.expectRevert(AuraUSD.AuraUSD__PermitExpired.selector);
+        vm.expectRevert(CeitnotUSD.CeitnotUSD__PermitExpired.selector);
         ausd.permit(alice, bob, WAD, deadline, v, r, s);
     }
 
@@ -174,7 +174,7 @@ contract Phase10Test is Test {
         bytes32 digest = keccak256(abi.encodePacked("\x19\x01", ausd.DOMAIN_SEPARATOR(), structHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(BOB_PK, digest);
 
-        vm.expectRevert(AuraUSD.AuraUSD__InvalidSignature.selector);
+        vm.expectRevert(CeitnotUSD.CeitnotUSD__InvalidSignature.selector);
         ausd.permit(alice, bob, WAD, deadline, v, r, s);
     }
 
@@ -186,7 +186,7 @@ contract Phase10Test is Test {
         assertEq(ausd.nonces(alice), 1);
 
         // Replay the exact same signature — should fail (nonce is now 1)
-        vm.expectRevert(AuraUSD.AuraUSD__InvalidSignature.selector);
+        vm.expectRevert(CeitnotUSD.CeitnotUSD__InvalidSignature.selector);
         ausd.permit(alice, bob, WAD, deadline, v, r, s);
     }
 
@@ -212,7 +212,7 @@ contract Phase10Test is Test {
     }
 
     // =========================================================================
-    // 2. Multicall on AuraEngine
+    // 2. Multicall on CeitnotEngine
     // =========================================================================
 
     function test_multicall_emptyArray_noop() public {
@@ -224,8 +224,8 @@ contract Phase10Test is Test {
     function test_multicall_batchAdminCalls() public {
         // Admin batches two governance calls in one tx
         bytes[] memory calls = new bytes[](2);
-        calls[0] = abi.encodeCall(AuraEngine.setHeartbeat, (2 days));
-        calls[1] = abi.encodeCall(AuraEngine.setMinHarvestYieldDebt, (10 * WAD));
+        calls[0] = abi.encodeCall(CeitnotEngine.setHeartbeat, (2 days));
+        calls[1] = abi.encodeCall(CeitnotEngine.setMinHarvestYieldDebt, (10 * WAD));
 
         engine.multicall(calls);
         // Verify both took effect (use view functions if available — heartbeat is not directly exposed,
@@ -235,11 +235,11 @@ contract Phase10Test is Test {
     function test_multicall_revertPropagates() public {
         // Batch a valid call followed by an invalid one; the whole tx should revert
         bytes[] memory calls = new bytes[](2);
-        calls[0] = abi.encodeCall(AuraEngine.setHeartbeat, (1 days));
-        // depositCollateral with 0 shares → Aura__ZeroAmount
-        calls[1] = abi.encodeCall(AuraEngine.depositCollateral, (alice, MARKET_ID, 0));
+        calls[0] = abi.encodeCall(CeitnotEngine.setHeartbeat, (1 days));
+        // depositCollateral with 0 shares → Ceitnot__ZeroAmount
+        calls[1] = abi.encodeCall(CeitnotEngine.depositCollateral, (alice, MARKET_ID, 0));
 
-        vm.expectRevert(AuraEngine.Aura__ZeroAmount.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__ZeroAmount.selector);
         engine.multicall(calls);
     }
 
@@ -310,7 +310,7 @@ contract Phase10Test is Test {
 
         // bob is NOT a delegate
         vm.prank(bob);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.borrow(alice, MARKET_ID, 10 * WAD);
     }
 
@@ -371,7 +371,7 @@ contract Phase10Test is Test {
     }
 
     // =========================================================================
-    // 5. AuraRouter flows
+    // 5. CeitnotRouter flows
     // =========================================================================
 
     function test_router_depositCollateral() public {

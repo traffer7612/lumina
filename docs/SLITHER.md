@@ -1,6 +1,6 @@
-# Slither — статический анализ контрактов Lumina
+# Slither — статический анализ контрактов Ceitnot
 
-[Slither](https://github.com/crytic/slither) — статический анализатор Solidity от Trail of Bits. Используется для автоматической проверки контрактов Lumina; отчёты выкладываются в открытый доступ.
+[Slither](https://github.com/crytic/slither) — статический анализатор Solidity от Trail of Bits. Используется для автоматической проверки контрактов Ceitnot; отчёты выкладываются в открытый доступ.
 
 ## Установка
 
@@ -33,7 +33,7 @@ slither . --markdown-root docs/reports
 ## Где хранить отчёты
 
 - **docs/reports/** — создайте папку и положите сюда `slither-report.json` и/или markdown. Добавьте `docs/reports/*.json` в `.gitignore` при необходимости или коммитьте отчёты для прозрачности.
-- В CI (GitHub Actions и т.д.) можно генерировать отчёт на каждый коммит и публиковать артефакт или загружать на docs.lumina.finance.
+- В CI (GitHub Actions и т.д.) можно генерировать отчёт на каждый коммит и публиковать артефакт или загружать на docs.ceitnot.finance.
 
 ## Интерпретация
 

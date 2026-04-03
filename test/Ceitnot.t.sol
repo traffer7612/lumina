@@ -2,17 +2,17 @@
 pragma solidity ^0.8.20;
 
 import { Test }            from "forge-std/Test.sol";
-import { AuraEngine }      from "../src/AuraEngine.sol";
-import { AuraProxy }       from "../src/AuraProxy.sol";
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotEngine }      from "../src/CeitnotEngine.sol";
+import { CeitnotProxy }       from "../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 import { MockERC20 }       from "./mocks/MockERC20.sol";
 import { MockVault4626 }   from "./mocks/MockVault4626.sol";
 import { MockOracle }      from "./mocks/MockOracle.sol";
 
-contract AuraTest is Test {
-    AuraEngine          public engine;
-    AuraProxy           public proxy;
-    AuraMarketRegistry  public registry;
+contract CeitnotTest is Test {
+    CeitnotEngine          public engine;
+    CeitnotProxy           public proxy;
+    CeitnotMarketRegistry  public registry;
     MockERC20           public assetToken;
     MockERC20           public debtToken;
     MockVault4626       public vault;
@@ -25,17 +25,17 @@ contract AuraTest is Test {
     uint256 constant WAD       = 1e18;
     uint256 constant MARKET_ID = 0;
 
-    // Mirror events from AuraEngine for vm.expectEmit
+    // Mirror events from CeitnotEngine for vm.expectEmit
     event BadDebtRealized(address indexed user, uint256 indexed marketId, uint256 badDebtAmount);
 
     function setUp() public {
         assetToken = new MockERC20("Wrapped stETH", "wstETH", 18);
         debtToken  = new MockERC20("USD Coin", "USDC", 18);
-        vault      = new MockVault4626(address(assetToken), "Aura wstETH Vault", "wstETH");
+        vault      = new MockVault4626(address(assetToken), "Ceitnot wstETH Vault", "wstETH");
         oracle     = new MockOracle();
 
         // Deploy registry and add market 0
-        registry = new AuraMarketRegistry(address(this));
+        registry = new CeitnotMarketRegistry(address(this));
         registry.addMarket(
             address(vault), address(oracle),
             uint16(8000), uint16(8500), uint16(500),
@@ -43,13 +43,13 @@ contract AuraTest is Test {
         );
 
         // Deploy engine
-        AuraEngine impl = new AuraEngine();
+        CeitnotEngine impl = new CeitnotEngine();
         bytes memory initData = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(debtToken), address(registry), uint256(1 days), uint256(2 days))
         );
-        proxy  = new AuraProxy(address(impl), initData);
-        engine = AuraEngine(address(proxy));
+        proxy  = new CeitnotProxy(address(impl), initData);
+        engine = CeitnotEngine(address(proxy));
 
         // Authorize engine in registry (for timelocked market param updates)
         registry.setEngine(address(proxy));
@@ -87,14 +87,14 @@ contract AuraTest is Test {
 
     function test_depositCollateral_zeroReverts() public {
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__ZeroAmount.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__ZeroAmount.selector);
         engine.depositCollateral(alice, MARKET_ID, 0);
     }
 
     function test_depositCollateral_sameBlockReverts() public {
         vm.startPrank(alice);
         engine.depositCollateral(alice, MARKET_ID, 10 * WAD);
-        vm.expectRevert(AuraEngine.Aura__SameBlockInteraction.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__SameBlockInteraction.selector);
         engine.depositCollateral(alice, MARKET_ID, 10 * WAD);
         vm.stopPrank();
     }
@@ -120,7 +120,7 @@ contract AuraTest is Test {
         vm.roll(block.number + 1);
 
         vm.prank(bob);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.withdrawCollateral(alice, MARKET_ID, 50 * WAD);
     }
 
@@ -131,7 +131,7 @@ contract AuraTest is Test {
         vm.roll(block.number + 1);
 
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__InsufficientCollateral.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__InsufficientCollateral.selector);
         engine.withdrawCollateral(alice, MARKET_ID, 200 * WAD);
     }
 
@@ -156,7 +156,7 @@ contract AuraTest is Test {
         vm.roll(block.number + 1);
 
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__ExceedsLTV.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__ExceedsLTV.selector);
         engine.borrow(alice, MARKET_ID, 90 * WAD);
     }
 
@@ -167,7 +167,7 @@ contract AuraTest is Test {
         vm.roll(block.number + 1);
 
         vm.prank(bob);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.borrow(alice, MARKET_ID, 10 * WAD);
     }
 
@@ -239,7 +239,7 @@ contract AuraTest is Test {
 
         vm.roll(20);
         vm.prank(bob);
-        vm.expectRevert(AuraEngine.Aura__HealthFactorAboveOne.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__HealthFactorAboveOne.selector);
         engine.liquidate(alice, MARKET_ID, 10 * WAD);
     }
 
@@ -248,7 +248,7 @@ contract AuraTest is Test {
     function test_paused_depositReverts() public {
         engine.setPaused(true);
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__Paused.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Paused.selector);
         engine.depositCollateral(alice, MARKET_ID, 10 * WAD);
     }
 
@@ -258,7 +258,7 @@ contract AuraTest is Test {
         engine.setPaused(true);
         vm.roll(block.number + 1);
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__Paused.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Paused.selector);
         engine.borrow(alice, MARKET_ID, 10 * WAD);
     }
 
@@ -267,7 +267,7 @@ contract AuraTest is Test {
     function test_emergencyShutdown_depositReverts() public {
         engine.setEmergencyShutdown(true);
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__EmergencyShutdown.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__EmergencyShutdown.selector);
         engine.depositCollateral(alice, MARKET_ID, 10 * WAD);
     }
 
@@ -277,7 +277,7 @@ contract AuraTest is Test {
         engine.setEmergencyShutdown(true);
         vm.roll(block.number + 1);
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__EmergencyShutdown.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__EmergencyShutdown.selector);
         engine.borrow(alice, MARKET_ID, 10 * WAD);
     }
 
@@ -312,25 +312,25 @@ contract AuraTest is Test {
         engine.proposeAdmin(bob);
         vm.prank(bob);
         engine.acceptAdmin();
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.setPaused(true);
     }
 
     function test_proposeAdmin_zeroReverts() public {
-        vm.expectRevert(AuraEngine.Aura__InvalidParams.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__InvalidParams.selector);
         engine.proposeAdmin(address(0));
     }
 
     function test_proposeAdmin_unauthorizedReverts() public {
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.proposeAdmin(alice);
     }
 
     function test_acceptAdmin_wrongAddressReverts() public {
         engine.proposeAdmin(bob);
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.acceptAdmin();
     }
 
@@ -350,13 +350,13 @@ contract AuraTest is Test {
 
     function test_nonGuardianCannotPause() public {
         vm.prank(bob);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.setPaused(true);
     }
 
     function test_setGuardian_unauthorizedReverts() public {
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.setGuardian(alice, true);
     }
 
@@ -366,7 +366,7 @@ contract AuraTest is Test {
         // Deposit first so market state is initialized
         vm.prank(alice);
         engine.depositCollateral(alice, MARKET_ID, 10 * WAD);
-        vm.expectRevert(AuraEngine.Aura__HeartbeatNotElapsed.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__HeartbeatNotElapsed.selector);
         engine.harvestYield(MARKET_ID);
     }
 
@@ -418,7 +418,7 @@ contract AuraTest is Test {
         engine.proposeMarketParam(MARKET_ID, paramId, 7500);
 
         // Execute before timelock — should revert
-        vm.expectRevert(AuraEngine.Aura__TimelockNotElapsed.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__TimelockNotElapsed.selector);
         engine.executeMarketParam(MARKET_ID, paramId);
 
         // Warp past timelock (2 days)
@@ -431,15 +431,15 @@ contract AuraTest is Test {
     // ==================== Reinitialize prevention ====================
 
     function test_initialize_twiceReverts() public {
-        vm.expectRevert(AuraEngine.Aura__AlreadyInitialized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__AlreadyInitialized.selector);
         engine.initialize(address(debtToken), address(registry), uint256(1 days), uint256(2 days));
     }
 
     // ==================== _disableInitializers ====================
 
     function test_implementationCannotBeInitialized() public {
-        AuraEngine rawImpl = new AuraEngine();
-        vm.expectRevert(AuraEngine.Aura__AlreadyInitialized.selector);
+        CeitnotEngine rawImpl = new CeitnotEngine();
+        vm.expectRevert(CeitnotEngine.Ceitnot__AlreadyInitialized.selector);
         rawImpl.initialize(address(debtToken), address(registry), uint256(1 days), uint256(2 days));
     }
 
@@ -447,7 +447,7 @@ contract AuraTest is Test {
 
     function test_setKeeper_onlyAdmin() public {
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.setKeeper(alice, true);
     }
 
@@ -573,13 +573,13 @@ contract AuraTest is Test {
         engine.accrueInterest(MARKET_ID);
 
         uint256 reserves = engine.getMarketTotalReserves(MARKET_ID);
-        vm.expectRevert(AuraEngine.Aura__InsufficientReserves.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__InsufficientReserves.selector);
         engine.withdrawReserves(MARKET_ID, reserves + 1, address(0xBEEF));
     }
 
     function test_irm_withdrawReserves_onlyAdmin() public {
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.withdrawReserves(MARKET_ID, 1, address(0xBEEF));
     }
 
@@ -647,7 +647,7 @@ contract AuraTest is Test {
 
         // Trying to repay more than 50% should revert
         vm.prank(bob);
-        vm.expectRevert(AuraEngine.Aura__CloseFactorExceeded.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__CloseFactorExceeded.selector);
         engine.liquidate(alice, MARKET_ID, maxRepay + 1);
 
         // Repaying exactly 50% succeeds
@@ -684,7 +684,7 @@ contract AuraTest is Test {
         debtToken.mint(bob, 1_000 * WAD);
         vm.startPrank(bob);
         debtToken.approve(address(proxy), type(uint256).max);
-        vm.expectRevert(AuraEngine.Aura__AuctionNotStarted.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__AuctionNotStarted.selector);
         engine.liquidate(alice, MARKET_ID, 100 * WAD);
         vm.stopPrank();
     }
@@ -726,7 +726,7 @@ contract AuraTest is Test {
         vm.roll(block.number + 1);
         engine.initiateLiquidation(alice, MARKET_ID);
         vm.roll(block.number + 1);
-        vm.expectRevert(AuraEngine.Aura__AuctionAlreadyActive.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__AuctionAlreadyActive.selector);
         engine.initiateLiquidation(alice, MARKET_ID);
     }
 
@@ -777,13 +777,13 @@ contract AuraTest is Test {
     }
 
     function test_p4_withdrawProtocolCollateral_insufficientReverts() public {
-        vm.expectRevert(AuraEngine.Aura__InsufficientProtocolCollateral.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__InsufficientProtocolCollateral.selector);
         engine.withdrawProtocolCollateral(MARKET_ID, 1, address(0xBEEF));
     }
 
     function test_p4_withdrawProtocolCollateral_onlyAdmin() public {
         vm.prank(alice);
-        vm.expectRevert(AuraEngine.Aura__Unauthorized.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__Unauthorized.selector);
         engine.withdrawProtocolCollateral(MARKET_ID, 1, address(0xBEEF));
     }
 

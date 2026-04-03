@@ -2,11 +2,11 @@
 pragma solidity ^0.8.20;
 
 import { IERC4626 }  from "./interfaces/IERC4626.sol";
-import { IAuraUSD }  from "./interfaces/IAuraUSD.sol";
+import { ICeitnotUSD }  from "./interfaces/ICeitnotUSD.sol";
 import { IERC2612 }  from "./interfaces/IERC2612.sol";
 
-/// @dev Minimal AuraEngine interface needed by the router.
-interface IAuraEngineRouter {
+/// @dev Minimal CeitnotEngine interface needed by the router.
+interface ICeitnotEngineRouter {
     function depositCollateral(address user, uint256 marketId, uint256 shares) external;
     function depositAndBorrow(address user, uint256 marketId, uint256 shares, uint256 borrowAmount) external;
     function repayAndWithdraw(address user, uint256 marketId, uint256 repayAmount, uint256 withdrawShares) external;
@@ -14,9 +14,9 @@ interface IAuraEngineRouter {
 }
 
 /**
- * @title  AuraRouter
+ * @title  CeitnotRouter
  * @author Sanzhik(traffer7612)
- * @notice Stateless, user-friendly wrapper around AuraEngine that adds:
+ * @notice Stateless, user-friendly wrapper around CeitnotEngine that adds:
  *         - Atomic depositAndBorrow / repayAndWithdraw in a single tx
  *         - EIP-2612 permit support so users never need a separate approve tx
  *         - leverageUp / leverageDown convenience aliases
@@ -28,7 +28,7 @@ interface IAuraEngineRouter {
  *
  * @dev    Phase 10 — DX & Composability.
  */
-contract AuraRouter {
+contract CeitnotRouter {
 
     // ------------------------------- Errors
     error Router__ZeroAddress();
@@ -55,10 +55,10 @@ contract AuraRouter {
 
     // ------------------------------- Immutables
 
-    /// @notice AuraEngine proxy address.
+    /// @notice CeitnotEngine proxy address.
     address public immutable engine;
 
-    /// @notice AuraUSD address (used for permit-based repay flows).
+    /// @notice CeitnotUSD address (used for permit-based repay flows).
     address public immutable ausd;
 
     // ------------------------------- Constructor
@@ -85,7 +85,7 @@ contract AuraRouter {
         if (shares == 0) revert Router__ZeroAmount();
         if (!IERC4626(vault).transferFrom(msg.sender, address(this), shares)) revert Router__TransferFailed();
         if (!IERC4626(vault).approve(engine, shares)) revert Router__TransferFailed();
-        IAuraEngineRouter(engine).depositCollateral(msg.sender, marketId, shares);
+        ICeitnotEngineRouter(engine).depositCollateral(msg.sender, marketId, shares);
     }
 
     /**
@@ -111,7 +111,7 @@ contract AuraRouter {
         IERC2612(vault).permit(msg.sender, address(this), shares, deadline, v, r, s);
         if (!IERC4626(vault).transferFrom(msg.sender, address(this), shares)) revert Router__TransferFailed();
         if (!IERC4626(vault).approve(engine, shares)) revert Router__TransferFailed();
-        IAuraEngineRouter(engine).depositCollateral(msg.sender, marketId, shares);
+        ICeitnotEngineRouter(engine).depositCollateral(msg.sender, marketId, shares);
     }
 
     // ------------------------------- Compound helpers
@@ -137,7 +137,7 @@ contract AuraRouter {
         if (!IERC4626(vault).transferFrom(msg.sender, address(this), shares)) revert Router__TransferFailed();
         if (!IERC4626(vault).approve(engine, shares)) revert Router__TransferFailed();
         // Engine pulls shares from router (msg.sender = router) and borrows for user
-        IAuraEngineRouter(engine).depositAndBorrow(msg.sender, marketId, shares, borrowAmount);
+        ICeitnotEngineRouter(engine).depositAndBorrow(msg.sender, marketId, shares, borrowAmount);
         emit DepositAndBorrowed(msg.sender, marketId, shares, borrowAmount);
     }
 
@@ -156,7 +156,7 @@ contract AuraRouter {
         uint256 withdrawShares
     ) external {
         if (repayAmount == 0 && withdrawShares == 0) revert Router__ZeroAmount();
-        IAuraEngineRouter(engine).repayAndWithdraw(msg.sender, marketId, repayAmount, withdrawShares);
+        ICeitnotEngineRouter(engine).repayAndWithdraw(msg.sender, marketId, repayAmount, withdrawShares);
         emit RepaidAndWithdrawn(msg.sender, marketId, repayAmount, withdrawShares);
     }
 
@@ -179,8 +179,8 @@ contract AuraRouter {
     ) external {
         if (amount == 0) revert Router__ZeroAmount();
         // Set engine's allowance on user's aUSD via permit, then repay burns from user
-        IAuraUSD(ausd).permit(msg.sender, engine, amount, deadline, v, r, s);
-        IAuraEngineRouter(engine).repay(msg.sender, marketId, amount);
+        ICeitnotUSD(ausd).permit(msg.sender, engine, amount, deadline, v, r, s);
+        ICeitnotEngineRouter(engine).repay(msg.sender, marketId, amount);
     }
 
     // ------------------------------- Leverage aliases
@@ -202,7 +202,7 @@ contract AuraRouter {
         if (shares == 0 || borrowAmount == 0) revert Router__ZeroAmount();
         if (!IERC4626(vault).transferFrom(msg.sender, address(this), shares)) revert Router__TransferFailed();
         if (!IERC4626(vault).approve(engine, shares)) revert Router__TransferFailed();
-        IAuraEngineRouter(engine).depositAndBorrow(msg.sender, marketId, shares, borrowAmount);
+        ICeitnotEngineRouter(engine).depositAndBorrow(msg.sender, marketId, shares, borrowAmount);
         emit DepositAndBorrowed(msg.sender, marketId, shares, borrowAmount);
     }
 
@@ -219,7 +219,7 @@ contract AuraRouter {
         uint256 withdrawShares
     ) external {
         if (repayAmount == 0 && withdrawShares == 0) revert Router__ZeroAmount();
-        IAuraEngineRouter(engine).repayAndWithdraw(msg.sender, marketId, repayAmount, withdrawShares);
+        ICeitnotEngineRouter(engine).repayAndWithdraw(msg.sender, marketId, repayAmount, withdrawShares);
         emit RepaidAndWithdrawn(msg.sender, marketId, repayAmount, withdrawShares);
     }
 }

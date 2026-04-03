@@ -2,20 +2,20 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title AuraProxy
+ * @title CeitnotProxy
  * @author Sanzhik(traffer7612)
  * @notice UUPS (EIP-1822) upgradeable proxy. Delegates all calls to the implementation;
  *         implementation slot follows EIP-1967 for tooling compatibility.
  */
-contract AuraProxy {
+contract CeitnotProxy {
     /// @dev EIP-1967 implementation slot (literal for assembly)
     bytes32 private constant IMPLEMENTATION_SLOT =
         0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc;
 
     error Proxy__ZeroImplementation();
 
-    /// @param implementation_ Initial implementation (AuraEngine)
-    /// @param data_ Encoded call to initializer (e.g. AuraEngine.initialize(...))
+    /// @param implementation_ Initial implementation (CeitnotEngine)
+    /// @param data_ Encoded call to initializer (e.g. CeitnotEngine.initialize(...))
     constructor(address implementation_, bytes memory data_) {
         if (implementation_ == address(0)) revert Proxy__ZeroImplementation();
         assembly {

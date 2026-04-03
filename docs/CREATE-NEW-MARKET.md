@@ -1,6 +1,6 @@
 # Create New Market — что вводить в админке
 
-В админке Lumina (Admin → Create New Market) нужно указать **Vault Address** и **Oracle Address**, а также параметры риска. Кратко, что это и откуда брать адреса.
+В админке Ceitnot (Admin → Create New Market) нужно указать **Vault Address** и **Oracle Address**, а также параметры риска. Кратко, что это и откуда брать адреса.
 
 ---
 
@@ -52,7 +52,7 @@
 - **Supply Cap / Borrow Cap** — лимиты в токенах (0 = без лимита).
 - **Isolated Mode** — изолированный маркет; при включении задаётся **Isolated Borrow Cap**.
 
-Подробнее про параметры и контракт: [CONTRACTS.md](CONTRACTS.md) (`AuraMarketRegistry`, `addMarket`).
+Подробнее про параметры и контракт: [CONTRACTS.md](CONTRACTS.md) (`CeitnotMarketRegistry`, `addMarket`).
 
 ---
 

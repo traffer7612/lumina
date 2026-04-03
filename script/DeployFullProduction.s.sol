@@ -6,17 +6,17 @@ import { console } from "forge-std/console.sol";
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { AuraEngine }         from "../src/AuraEngine.sol";
-import { AuraProxy }          from "../src/AuraProxy.sol";
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotEngine }         from "../src/CeitnotEngine.sol";
+import { CeitnotProxy }          from "../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 import { OracleRelay }        from "../src/OracleRelay.sol";
-import { AuraUSD }            from "../src/AuraUSD.sol";
-import { AuraPSM }            from "../src/AuraPSM.sol";
-import { AuraRouter }         from "../src/AuraRouter.sol";
-import { AuraTreasury }       from "../src/AuraTreasury.sol";
-import { AuraToken }          from "../src/governance/AuraToken.sol";
-import { VeAura }             from "../src/governance/VeAura.sol";
-import { AuraGovernor }       from "../src/governance/AuraGovernor.sol";
+import { CeitnotUSD }            from "../src/CeitnotUSD.sol";
+import { CeitnotPSM }            from "../src/CeitnotPSM.sol";
+import { CeitnotRouter }         from "../src/CeitnotRouter.sol";
+import { CeitnotTreasury }       from "../src/CeitnotTreasury.sol";
+import { CeitnotToken }          from "../src/governance/CeitnotToken.sol";
+import { VeCeitnot }             from "../src/governance/VeCeitnot.sol";
+import { CeitnotGovernor }       from "../src/governance/CeitnotGovernor.sol";
 
 import { IVotes }             from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
@@ -34,7 +34,7 @@ import { TimelockController } from "@openzeppelin/contracts/governance/TimelockC
  *   FALLBACK_FEED       — secondary feed for OracleRelay (default: address(0))
  *   TWAP_PERIOD         — OracleRelay TWAP (default: 0 = spot only)
  *   PSM_USDC_SEED       — raw amount of USDC to transfer from deployer to PSM for swapOut liquidity (default: 0 = skip)
- *   GOVERNANCE_TOKEN_MINT — WAD amount to mint to deployer for AuraToken (default: 10_000_000e18)
+ *   GOVERNANCE_TOKEN_MINT — WAD amount to mint to deployer for CeitnotToken (default: 10_000_000e18)
  *   ENGINE_HEARTBEAT    — engine oracle heartbeat seconds (default: 3600)
  *   ENGINE_TIMELOCK     — engine param timelock seconds (default: 172800 = 2 days)
  *   TIN_BPS / TOUT_BPS  — PSM fees in bps (default: 10 each = 0.1%)
@@ -67,9 +67,9 @@ contract DeployFullProduction is Script {
 
         OracleRelay oracle = new OracleRelay(chainlinkFeed, fallbackFeed, twapPeriod);
 
-        AuraUSD ausd = new AuraUSD(deployer);
+        CeitnotUSD ausd = new CeitnotUSD(deployer);
 
-        AuraMarketRegistry registry = new AuraMarketRegistry(deployer);
+        CeitnotMarketRegistry registry = new CeitnotMarketRegistry(deployer);
         uint256 marketId = registry.addMarket(
             collateralVault,
             address(oracle),
@@ -82,20 +82,20 @@ contract DeployFullProduction is Script {
             0
         );
 
-        AuraEngine implementation = new AuraEngine();
+        CeitnotEngine implementation = new CeitnotEngine();
         bytes memory initData = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(ausd), address(registry), heartbeat, timelockDelay)
         );
-        AuraProxy proxyContract = new AuraProxy(address(implementation), initData);
+        CeitnotProxy proxyContract = new CeitnotProxy(address(implementation), initData);
         address engine = address(proxyContract);
 
         registry.setEngine(engine);
 
-        AuraEngine(engine).setMintableDebtToken(true);
+        CeitnotEngine(engine).setMintableDebtToken(true);
         ausd.addMinter(engine);
 
-        AuraPSM psm = new AuraPSM(address(ausd), usdc, deployer, tinBps, toutBps);
+        CeitnotPSM psm = new CeitnotPSM(address(ausd), usdc, deployer, tinBps, toutBps);
         ausd.addMinter(address(psm));
 
         if (psmUsdcSeed > 0) {
@@ -104,13 +104,13 @@ contract DeployFullProduction is Script {
             require(IERC20(usdc).transfer(address(psm), psmUsdcSeed), "DeployFullProduction: USDC transfer failed");
         }
 
-        AuraRouter   router   = new AuraRouter(engine, address(ausd));
-        AuraTreasury treasury = new AuraTreasury(deployer);
+        CeitnotRouter   router   = new CeitnotRouter(engine, address(ausd));
+        CeitnotTreasury treasury = new CeitnotTreasury(deployer);
 
-        AuraToken auraToken = new AuraToken(deployer);
-        auraToken.mint(deployer, govMint);
+        CeitnotToken govToken = new CeitnotToken(deployer);
+        govToken.mint(deployer, govMint);
 
-        VeAura veAura = new VeAura(address(auraToken), deployer, address(ausd));
+        VeCeitnot veLock = new VeCeitnot(address(govToken), deployer, address(ausd));
 
         address[] memory proposers = new address[](1);
         proposers[0] = deployer;
@@ -119,7 +119,7 @@ contract DeployFullProduction is Script {
 
         TimelockController timelock = new TimelockController(1 days, proposers, executors, deployer);
 
-        AuraGovernor governor = new AuraGovernor(IVotes(address(veAura)), timelock);
+        CeitnotGovernor governor = new CeitnotGovernor(IVotes(address(veLock)), timelock);
 
         vm.stopBroadcast();
 
@@ -141,8 +141,8 @@ contract DeployFullProduction is Script {
         console.log("TREASURY:           %s", address(treasury));
         console.log("");
         console.log("--- Governance ---");
-        console.log("AURA_TOKEN:         %s", address(auraToken));
-        console.log("VE_AURA:            %s", address(veAura));
+        console.log("CEITNOT_TOKEN:         %s", address(govToken));
+        console.log("CEITNOT_VE:            %s", address(veLock));
         console.log("GOVERNOR:           %s", address(governor));
         console.log("TIMELOCK:           %s", address(timelock));
         console.log("");

@@ -5,27 +5,27 @@ import { Test }                from "forge-std/Test.sol";
 import { IGovernor }           from "@openzeppelin/contracts/governance/IGovernor.sol";
 import { TimelockController }  from "@openzeppelin/contracts/governance/TimelockController.sol";
 import { IVotes }              from "@openzeppelin/contracts/governance/utils/IVotes.sol";
-import { AuraToken }           from "../src/governance/AuraToken.sol";
-import { VeAura }              from "../src/governance/VeAura.sol";
-import { AuraGovernor }        from "../src/governance/AuraGovernor.sol";
+import { CeitnotToken }           from "../src/governance/CeitnotToken.sol";
+import { VeCeitnot }              from "../src/governance/VeCeitnot.sol";
+import { CeitnotGovernor }        from "../src/governance/CeitnotGovernor.sol";
 import { MockERC20 }           from "./mocks/MockERC20.sol";
 
 /**
  * @title  GovernanceTest
  * @notice Phase 7 — Governance contracts test suite.
- *         Covers AuraToken, VeAura (lock/withdraw/revenue), and AuraGovernor
+ *         Covers CeitnotToken, VeCeitnot (lock/withdraw/revenue), and CeitnotGovernor
  *         (propose → vote → queue → execute full cycle).
  *
  *  Actor layout:
- *    address(this) = DEPLOYER — initial minter & veAura admin, handing off to timelock in setUp
- *    alice         = 2 M AURA — primary voter / proposer
- *    bob           = 1 M AURA — beneficiary of governance minting in full-cycle test
+ *    address(this) = DEPLOYER — initial minter & VeCeitnot admin, handing off to timelock in setUp
+ *    alice         = 2 M CEITNOT — primary voter / proposer
+ *    bob           = 1 M CEITNOT — beneficiary of governance minting in full-cycle test
  */
 contract GovernanceTest is Test {
     // ── contracts ────────────────────────────────────────────────────────────
-    AuraToken           public auraToken;
-    VeAura              public veAura;
-    AuraGovernor        public governor;
+    CeitnotToken           public govToken;
+    VeCeitnot              public veLock;
+    CeitnotGovernor        public governor;
     TimelockController  public timelock;
     MockERC20           public revenueToken;
 
@@ -48,11 +48,11 @@ contract GovernanceTest is Test {
 
         revenueToken = new MockERC20("Revenue", "REV", 18);
 
-        // 1. AuraToken — minter = address(this)
-        auraToken = new AuraToken(address(this));
+        // 1. CeitnotToken — minter = address(this)
+        govToken = new CeitnotToken(address(this));
 
-        // 2. VeAura — admin = address(this) initially
-        veAura = new VeAura(address(auraToken), address(this), address(revenueToken));
+        // 2. VeCeitnot — admin = address(this) initially
+        veLock = new VeCeitnot(address(govToken), address(this), address(revenueToken));
 
         // 3. TimelockController — minDelay 48h, no initial proposers,
         //    open executor (address(0) gets EXECUTOR_ROLE → anyone can execute)
@@ -61,165 +61,165 @@ contract GovernanceTest is Test {
         executors[0] = address(0);
         timelock = new TimelockController(48 hours, proposers, executors, address(this));
 
-        // 4. AuraGovernor
-        governor = new AuraGovernor(IVotes(address(veAura)), timelock);
+        // 4. CeitnotGovernor
+        governor = new CeitnotGovernor(IVotes(address(veLock)), timelock);
 
         // 5. Grant Governor the PROPOSER + CANCELLER roles on the timelock
         timelock.grantRole(timelock.PROPOSER_ROLE(),   address(governor));
         timelock.grantRole(timelock.CANCELLER_ROLE(),  address(governor));
 
         // 6. Mint tokens to test actors while address(this) is still minter
-        auraToken.mint(alice, TWO_MILLION);
-        auraToken.mint(bob,   ONE_MILLION);
+        govToken.mint(alice, TWO_MILLION);
+        govToken.mint(bob,   ONE_MILLION);
 
         // 7. Hand off minter & admin control to the timelock
-        auraToken.setMinter(address(timelock));
-        veAura.setAdmin(address(timelock));
+        govToken.setMinter(address(timelock));
+        veLock.setAdmin(address(timelock));
     }
 
     // ── helpers ───────────────────────────────────────────────────────────────
 
     /**
-     * @dev Lock `amount` AURA for alice at maximum lock duration, then
+     * @dev Lock `amount` CEITNOT for alice at maximum lock duration, then
      *      vm.warp(+1 second) so getPastVotes works at the lock timestamp.
      */
     function _aliceLockMaxAndWarp(uint256 amount) internal {
         uint256 unlock = (block.timestamp + MAX_LOCK) / EPOCH * EPOCH;
         vm.startPrank(alice);
-        auraToken.approve(address(veAura), amount);
-        veAura.lock(amount, unlock);
+        govToken.approve(address(veLock), amount);
+        veLock.lock(amount, unlock);
         vm.stopPrank();
         vm.warp(block.timestamp + 1);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // AuraToken
+    // CeitnotToken
     // ══════════════════════════════════════════════════════════════════════════
 
     /// Supply cap constant is correct.
     function test_token_supplyCap() public view {
-        assertEq(auraToken.SUPPLY_CAP(), 100_000_000 * WAD);
+        assertEq(govToken.SUPPLY_CAP(), 100_000_000 * WAD);
     }
 
     /// EIP-6372 clock uses block.timestamp.
     function test_token_clockModeIsTimestamp() public view {
-        assertEq(auraToken.CLOCK_MODE(), "mode=timestamp");
-        assertEq(auraToken.clock(), uint48(block.timestamp));
+        assertEq(govToken.CLOCK_MODE(), "mode=timestamp");
+        assertEq(govToken.clock(), uint48(block.timestamp));
     }
 
     /// Constructor mints were received by alice and bob.
     function test_token_initialBalances() public view {
-        assertEq(auraToken.balanceOf(alice), TWO_MILLION);
-        assertEq(auraToken.balanceOf(bob),   ONE_MILLION);
+        assertEq(govToken.balanceOf(alice), TWO_MILLION);
+        assertEq(govToken.balanceOf(bob),   ONE_MILLION);
     }
 
     /// Non-minter cannot mint.
     function test_token_mintByNonMinter_reverts() public {
         vm.prank(alice);
-        vm.expectRevert(AuraToken.Token__Unauthorized.selector);
-        auraToken.mint(alice, WAD);
+        vm.expectRevert(CeitnotToken.Token__Unauthorized.selector);
+        govToken.mint(alice, WAD);
     }
 
     /// Minting beyond the supply cap reverts.
     function test_token_mintExceedsCap_reverts() public {
-        AuraToken fresh = new AuraToken(address(this));
+        CeitnotToken fresh = new CeitnotToken(address(this));
         fresh.mint(alice, 99_999_999 * WAD);
-        vm.expectRevert(AuraToken.Token__SupplyCapExceeded.selector);
+        vm.expectRevert(CeitnotToken.Token__SupplyCapExceeded.selector);
         fresh.mint(alice, 2 * WAD); // would push totalSupply to 100_000_001e18
     }
 
     /// Non-minter cannot change the minter.
     function test_token_setMinterByNonMinter_reverts() public {
         vm.prank(alice);
-        vm.expectRevert(AuraToken.Token__Unauthorized.selector);
-        auraToken.setMinter(alice);
+        vm.expectRevert(CeitnotToken.Token__Unauthorized.selector);
+        govToken.setMinter(alice);
     }
 
     /// Minter role cannot be transferred to address(0).
     function test_token_setMinterZeroAddress_reverts() public {
-        AuraToken fresh = new AuraToken(address(this));
-        vm.expectRevert(AuraToken.Token__ZeroAddress.selector);
+        CeitnotToken fresh = new CeitnotToken(address(this));
+        vm.expectRevert(CeitnotToken.Token__ZeroAddress.selector);
         fresh.setMinter(address(0));
     }
 
     /// Constructor rejects zero minter.
     function test_token_constructorZeroMinter_reverts() public {
-        vm.expectRevert(AuraToken.Token__ZeroAddress.selector);
-        new AuraToken(address(0));
+        vm.expectRevert(CeitnotToken.Token__ZeroAddress.selector);
+        new CeitnotToken(address(0));
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // VeAura — lock mechanics
+    // VeCeitnot — lock mechanics
     // ══════════════════════════════════════════════════════════════════════════
 
     /// Lock stores amount and unlockTime; totalLocked is updated.
-    function test_veaura_lock_succeeds() public {
+    function test_VeCeitnot_lock_succeeds() public {
         uint256 amount = ONE_MILLION;
         uint256 unlock = (block.timestamp + MAX_LOCK) / EPOCH * EPOCH;
 
         vm.startPrank(alice);
-        auraToken.approve(address(veAura), amount);
-        veAura.lock(amount, unlock);
+        govToken.approve(address(veLock), amount);
+        veLock.lock(amount, unlock);
         vm.stopPrank();
 
-        (uint128 locked, uint48 unlockTime) = veAura.locks(alice);
+        (uint128 locked, uint48 unlockTime) = veLock.locks(alice);
         assertEq(locked, amount);
         assertEq(unlockTime, unlock);
-        assertEq(veAura.totalLocked(), amount);
+        assertEq(veLock.totalLocked(), amount);
     }
 
     /// Locking zero reverts.
-    function test_veaura_lock_zeroAmount_reverts() public {
+    function test_VeCeitnot_lock_zeroAmount_reverts() public {
         uint256 unlock = (block.timestamp + MAX_LOCK) / EPOCH * EPOCH;
         vm.prank(alice);
-        vm.expectRevert(VeAura.VeAura__ZeroAmount.selector);
-        veAura.lock(0, unlock);
+        vm.expectRevert(VeCeitnot.VeCeitnot__ZeroAmount.selector);
+        veLock.lock(0, unlock);
     }
 
     /// A second lock from the same user reverts.
-    function test_veaura_lock_existingLock_reverts() public {
+    function test_VeCeitnot_lock_existingLock_reverts() public {
         _aliceLockMaxAndWarp(ONE_MILLION);
 
         uint256 unlock = (block.timestamp + MAX_LOCK) / EPOCH * EPOCH;
         vm.startPrank(alice);
-        auraToken.approve(address(veAura), ONE_MILLION);
-        vm.expectRevert(VeAura.VeAura__LockExists.selector);
-        veAura.lock(ONE_MILLION, unlock);
+        govToken.approve(address(veLock), ONE_MILLION);
+        vm.expectRevert(VeCeitnot.VeCeitnot__LockExists.selector);
+        veLock.lock(ONE_MILLION, unlock);
         vm.stopPrank();
     }
 
     /// Voting power is non-zero after a lock and a block advance.
-    function test_veaura_votingPower_nonZeroAfterLock() public {
+    function test_VeCeitnot_votingPower_nonZeroAfterLock() public {
         _aliceLockMaxAndWarp(ONE_MILLION);
-        uint256 vp = veAura.getPastVotes(alice, block.timestamp - 1);
+        uint256 vp = veLock.getPastVotes(alice, block.timestamp - 1);
         assertGt(vp, 0);
-        assertGt(veAura.getVotes(alice), 0);
+        assertGt(veLock.getVotes(alice), 0);
     }
 
     /// increaseAmount adds to the existing lock.
-    function test_veaura_increaseAmount_succeeds() public {
+    function test_VeCeitnot_increaseAmount_succeeds() public {
         _aliceLockMaxAndWarp(ONE_MILLION);
 
         uint256 extra = 500_000 * WAD;
         vm.startPrank(alice);
-        auraToken.approve(address(veAura), extra);
-        veAura.increaseAmount(extra);
+        govToken.approve(address(veLock), extra);
+        veLock.increaseAmount(extra);
         vm.stopPrank();
 
-        (uint128 locked,) = veAura.locks(alice);
+        (uint128 locked,) = veLock.locks(alice);
         assertEq(locked, ONE_MILLION + extra);
-        assertEq(veAura.totalLocked(), ONE_MILLION + extra);
+        assertEq(veLock.totalLocked(), ONE_MILLION + extra);
     }
 
     /// extendLock increases the unlock time.
-    function test_veaura_extendLock_succeeds() public {
+    function test_VeCeitnot_extendLock_succeeds() public {
         uint256 amount  = ONE_MILLION;
         // Initial lock for 1 year
         uint256 unlock1 = (block.timestamp + 365 days) / EPOCH * EPOCH;
 
         vm.startPrank(alice);
-        auraToken.approve(address(veAura), amount);
-        veAura.lock(amount, unlock1);
+        govToken.approve(address(veLock), amount);
+        veLock.lock(amount, unlock1);
         vm.stopPrank();
         vm.warp(block.timestamp + 1);
 
@@ -227,54 +227,54 @@ contract GovernanceTest is Test {
         uint256 unlock2 = (block.timestamp + 2 * 365 days) / EPOCH * EPOCH;
 
         vm.prank(alice);
-        veAura.extendLock(unlock2);
+        veLock.extendLock(unlock2);
 
-        (, uint48 updated) = veAura.locks(alice);
+        (, uint48 updated) = veLock.locks(alice);
         assertEq(updated, uint48(unlock2));
     }
 
     /// Withdraw succeeds after lock expiry and returns tokens.
-    function test_veaura_withdraw_afterExpiry() public {
+    function test_VeCeitnot_withdraw_afterExpiry() public {
         uint256 amount = ONE_MILLION;
         // Short lock: 2 epochs from now
         uint256 unlock = (block.timestamp + 2 * EPOCH) / EPOCH * EPOCH;
 
         vm.startPrank(alice);
-        auraToken.approve(address(veAura), amount);
-        veAura.lock(amount, unlock);
+        govToken.approve(address(veLock), amount);
+        veLock.lock(amount, unlock);
         vm.stopPrank();
 
         vm.warp(unlock + 1);
 
-        uint256 before = auraToken.balanceOf(alice);
+        uint256 before = govToken.balanceOf(alice);
         vm.prank(alice);
-        veAura.withdraw();
+        veLock.withdraw();
 
-        assertEq(auraToken.balanceOf(alice), before + amount);
-        assertEq(veAura.totalLocked(), 0);
-        (uint128 locked,) = veAura.locks(alice);
+        assertEq(govToken.balanceOf(alice), before + amount);
+        assertEq(veLock.totalLocked(), 0);
+        (uint128 locked,) = veLock.locks(alice);
         assertEq(locked, 0);
     }
 
     /// Withdraw before expiry reverts.
-    function test_veaura_withdraw_beforeExpiry_reverts() public {
+    function test_VeCeitnot_withdraw_beforeExpiry_reverts() public {
         _aliceLockMaxAndWarp(ONE_MILLION);
         vm.prank(alice);
-        vm.expectRevert(VeAura.VeAura__LockNotExpired.selector);
-        veAura.withdraw();
+        vm.expectRevert(VeCeitnot.VeCeitnot__LockNotExpired.selector);
+        veLock.withdraw();
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // VeAura — revenue distribution
+    // VeCeitnot — revenue distribution
     // ══════════════════════════════════════════════════════════════════════════
 
     /**
-     * @dev Use a fresh VeAura instance (admin = address(this)) so that the
+     * @dev Use a fresh VeCeitnot instance (admin = address(this)) so that the
      *      test contract can call distributeRevenue without going through
      *      governance.
      */
-    function test_veaura_revenue_distributeAndClaim() public {
-        VeAura ve2 = new VeAura(address(auraToken), address(this), address(revenueToken));
+    function test_VeCeitnot_revenue_distributeAndClaim() public {
+        VeCeitnot ve2 = new VeCeitnot(address(govToken), address(this), address(revenueToken));
 
         uint256 lockAmt = ONE_MILLION;
         uint256 revAmt  = 1_000 * WAD;
@@ -282,7 +282,7 @@ contract GovernanceTest is Test {
 
         // Alice locks into ve2
         vm.startPrank(alice);
-        auraToken.approve(address(ve2), lockAmt);
+        govToken.approve(address(ve2), lockAmt);
         ve2.lock(lockAmt, unlock);
         vm.stopPrank();
 
@@ -303,22 +303,22 @@ contract GovernanceTest is Test {
     }
 
     /// Non-admin cannot distribute revenue.
-    function test_veaura_revenue_nonAdmin_reverts() public {
-        VeAura ve2 = new VeAura(address(auraToken), address(this), address(revenueToken));
+    function test_VeCeitnot_revenue_nonAdmin_reverts() public {
+        VeCeitnot ve2 = new VeCeitnot(address(govToken), address(this), address(revenueToken));
         uint256 unlock = (block.timestamp + MAX_LOCK) / EPOCH * EPOCH;
 
         vm.startPrank(alice);
-        auraToken.approve(address(ve2), ONE_MILLION);
+        govToken.approve(address(ve2), ONE_MILLION);
         ve2.lock(ONE_MILLION, unlock);
         vm.stopPrank();
 
         vm.prank(alice);
-        vm.expectRevert(VeAura.VeAura__Unauthorized.selector);
+        vm.expectRevert(VeCeitnot.VeCeitnot__Unauthorized.selector);
         ve2.distributeRevenue(100 * WAD);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // AuraGovernor — parameters & configuration
+    // CeitnotGovernor — parameters & configuration
     // ══════════════════════════════════════════════════════════════════════════
 
     function test_governor_parameters() public view {
@@ -326,7 +326,7 @@ contract GovernanceTest is Test {
         assertEq(governor.votingPeriod(),      7 days);
         assertEq(governor.proposalThreshold(), PROPOSAL_THRESH);
         assertEq(address(governor.timelock()), address(timelock));
-        assertEq(governor.name(),              "AuraGovernor");
+        assertEq(governor.name(),              "CeitnotGovernor");
     }
 
     function test_governor_quorumFraction() public view {
@@ -335,10 +335,10 @@ contract GovernanceTest is Test {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // AuraGovernor — proposal access control
+    // CeitnotGovernor — proposal access control
     // ══════════════════════════════════════════════════════════════════════════
 
-    /// Bob has tokens but no veAURA → 0 votes → below proposalThreshold → revert.
+    /// Bob has tokens but no VeCeitnot → 0 votes → below proposalThreshold → revert.
     function test_governor_propose_belowThreshold_reverts() public {
         address[] memory targets   = new address[](1);
         targets[0] = address(0x1);
@@ -352,27 +352,27 @@ contract GovernanceTest is Test {
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    // AuraGovernor — full governance lifecycle
+    // CeitnotGovernor — full governance lifecycle
     // ══════════════════════════════════════════════════════════════════════════
 
     /**
      * @notice Full cycle: Propose → (Active) → Vote → (Succeeded) →
      *         Queue → (Queued) → Execute → verify on-chain effect.
      *
-     *         The proposal mints 1000 AURA to bob via the timelock (which is the
+     *         The proposal mints 1000 CEITNOT to bob via the timelock (which is the
      *         token minter after setUp).
      */
     function test_governor_fullCycle_proposeVoteQueueExecute() public {
-        // ─── 1. Alice locks 2M AURA for max duration ────────────────────────
+        // ─── 1. Alice locks 2M CEITNOT for max duration ────────────────────────
         _aliceLockMaxAndWarp(TWO_MILLION);
 
-        // ─── 2. Build proposal: mint 1000 AURA to bob via timelock ──────────
+        // ─── 2. Build proposal: mint 1000 CEITNOT to bob via timelock ──────────
         address[] memory targets   = new address[](1);
-        targets[0] = address(auraToken);
+        targets[0] = address(govToken);
         uint256[] memory values    = new uint256[](1);
         bytes[]   memory calldatas = new bytes[](1);
         calldatas[0] = abi.encodeWithSignature("mint(address,uint256)", bob, 1_000 * WAD);
-        string  memory desc     = "Governance: mint 1000 AURA to bob";
+        string  memory desc     = "Governance: mint 1000 CEITNOT to bob";
         bytes32 descHash        = keccak256(bytes(desc));
 
         // ─── 3. Propose (requires votingPower at clock()-1 >= 100K) ─────────
@@ -402,10 +402,10 @@ contract GovernanceTest is Test {
         vm.warp(block.timestamp + 48 hours + 1);
 
         // ─── 9. Execute and verify on-chain effect ───────────────────────────
-        uint256 bobBefore = auraToken.balanceOf(bob);
+        uint256 bobBefore = govToken.balanceOf(bob);
         governor.execute(targets, values, calldatas, descHash);
 
-        assertEq(auraToken.balanceOf(bob), bobBefore + 1_000 * WAD);
+        assertEq(govToken.balanceOf(bob), bobBefore + 1_000 * WAD);
     }
 
     /**

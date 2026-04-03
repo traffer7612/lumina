@@ -2,11 +2,11 @@
 pragma solidity ^0.8.20;
 
 /**
- * @title IAuraEngine
+ * @title ICeitnotEngine
  * @author Sanzhik(traffer7612)
  * @notice Main entrypoint for the Autonomous Yield-Backed Credit Engine
  */
-interface IAuraEngine {
+interface ICeitnotEngine {
     // --- Core user functions
     function depositCollateral(address user, uint256 shares) external;
     function withdrawCollateral(address user, uint256 shares) external;

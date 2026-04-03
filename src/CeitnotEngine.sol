@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import { AuraStorage }            from "./AuraStorage.sol";
+import { CeitnotStorage }            from "./CeitnotStorage.sol";
 import { FixedPoint }             from "./FixedPoint.sol";
 import { InterestRateModel }      from "./InterestRateModel.sol";
 import { IERC4626 }               from "./interfaces/IERC4626.sol";
@@ -9,53 +9,53 @@ import { IOracleRelay }           from "./interfaces/IOracleRelay.sol";
 import { IMarketRegistry }        from "./interfaces/IMarketRegistry.sol";
 import { IERC3156FlashBorrower }  from "./interfaces/IERC3156FlashBorrower.sol";
 import { IERC3156FlashLender }    from "./interfaces/IERC3156FlashLender.sol";
-import { IAuraUSD }               from "./interfaces/IAuraUSD.sol";
+import { ICeitnotUSD }               from "./interfaces/ICeitnotUSD.sol";
 import { Multicall }              from "./Multicall.sol";
 
 /**
- * @title AuraEngine
+ * @title CeitnotEngine
  * @author Sanzhik(traffer7612)
  * @notice Autonomous Yield-Backed Credit Engine: deposit ERC-4626 yield-bearing collateral,
  *         borrow stablecoin; yield is programmatically applied to principal (Yield Siphon).
  * @dev Phase 2: multi-market. Uses EIP-7201 namespaced storage; UUPS upgradeable.
- *      Each market has its own collateral vault, oracle, and risk params (held in AuraMarketRegistry).
+ *      Each market has its own collateral vault, oracle, and risk params (held in CeitnotMarketRegistry).
  *      Debt is a single token across all markets; health factor is aggregated cross-collateral.
  */
-contract AuraEngine is Multicall {
+contract CeitnotEngine is Multicall {
     // ------------------------------- Custom errors
-    error Aura__Paused();
-    error Aura__EmergencyShutdown();
-    error Aura__ZeroAmount();
-    error Aura__InsufficientCollateral();
-    error Aura__ExceedsLTV();
-    error Aura__HealthFactorBelowOne();
-    error Aura__HealthFactorAboveOne();
-    error Aura__SameBlockInteraction();
-    error Aura__HeartbeatNotElapsed();
-    error Aura__HarvestTooSmall();
-    error Aura__Unauthorized();
-    error Aura__TimelockNotElapsed();
-    error Aura__InvalidParams();
-    error Aura__Reentrancy();
-    error Aura__AlreadyInitialized();
-    error Aura__NotContract();
-    error Aura__MarketNotFound();
-    error Aura__MarketFrozen();
-    error Aura__MarketInactive();
-    error Aura__SupplyCapExceeded();
-    error Aura__BorrowCapExceeded();
-    error Aura__IsolationViolation();
-    error Aura__InsufficientReserves();
-    error Aura__CloseFactorExceeded();
-    error Aura__AuctionNotStarted();
-    error Aura__AuctionAlreadyActive();
-    error Aura__InsufficientProtocolCollateral();
+    error Ceitnot__Paused();
+    error Ceitnot__EmergencyShutdown();
+    error Ceitnot__ZeroAmount();
+    error Ceitnot__InsufficientCollateral();
+    error Ceitnot__ExceedsLTV();
+    error Ceitnot__HealthFactorBelowOne();
+    error Ceitnot__HealthFactorAboveOne();
+    error Ceitnot__SameBlockInteraction();
+    error Ceitnot__HeartbeatNotElapsed();
+    error Ceitnot__HarvestTooSmall();
+    error Ceitnot__Unauthorized();
+    error Ceitnot__TimelockNotElapsed();
+    error Ceitnot__InvalidParams();
+    error Ceitnot__Reentrancy();
+    error Ceitnot__AlreadyInitialized();
+    error Ceitnot__NotContract();
+    error Ceitnot__MarketNotFound();
+    error Ceitnot__MarketFrozen();
+    error Ceitnot__MarketInactive();
+    error Ceitnot__SupplyCapExceeded();
+    error Ceitnot__BorrowCapExceeded();
+    error Ceitnot__IsolationViolation();
+    error Ceitnot__InsufficientReserves();
+    error Ceitnot__CloseFactorExceeded();
+    error Ceitnot__AuctionNotStarted();
+    error Ceitnot__AuctionAlreadyActive();
+    error Ceitnot__InsufficientProtocolCollateral();
     // ---- Phase 6: Flash Loans
-    error Aura__FlashLoanUnsupportedToken();
-    error Aura__FlashLoanExceedsBalance();
-    error Aura__FlashLoanCallbackFailed();
+    error Ceitnot__FlashLoanUnsupportedToken();
+    error Ceitnot__FlashLoanExceedsBalance();
+    error Ceitnot__FlashLoanCallbackFailed();
     // ---- Phase 9: CDP
-    error Aura__DebtCeilingExceeded();
+    error Ceitnot__DebtCeilingExceeded();
 
     // ------------------------------- Events
     event CollateralDeposited(address indexed user, uint256 indexed marketId, uint256 shares);
@@ -100,13 +100,13 @@ contract AuraEngine is Multicall {
     // ------------------------------- Constructor
     /// @dev Locks the implementation contract from being initialized directly.
     constructor() {
-        AuraStorage.getStorage().initializationVersion = type(uint256).max;
+        CeitnotStorage.getStorage().initializationVersion = type(uint256).max;
     }
 
     // ------------------------------- Initializer
     /// @notice Initializer (replaces constructor for proxy). Call once from proxy.
     /// @param debtToken_       Single stablecoin / debt token used across all markets
-    /// @param marketRegistry_  AuraMarketRegistry address
+    /// @param marketRegistry_  CeitnotMarketRegistry address
     /// @param heartbeat_       Min seconds between harvests (engine-wide default)
     /// @param timelockDelay_   Delay for critical param changes (seconds)
     function initialize(
@@ -115,9 +115,9 @@ contract AuraEngine is Multicall {
         uint256 heartbeat_,
         uint256 timelockDelay_
     ) external {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
-        if ($.initializationVersion != 0) revert Aura__AlreadyInitialized();
-        if (debtToken_ == address(0) || marketRegistry_ == address(0)) revert Aura__InvalidParams();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
+        if ($.initializationVersion != 0) revert Ceitnot__AlreadyInitialized();
+        if (debtToken_ == address(0) || marketRegistry_ == address(0)) revert Ceitnot__InvalidParams();
 
         $.debtToken           = debtToken_;
         $.marketRegistry      = marketRegistry_;
@@ -131,34 +131,34 @@ contract AuraEngine is Multicall {
     // ------------------------------- UUPS
     /// @notice Upgrade proxy to new implementation. Only admin.
     function upgradeToAndCall(address newImplementation, bytes memory data) external payable {
-        if (AuraStorage.getStorage().admin != msg.sender) revert Aura__Unauthorized();
-        if (newImplementation == address(0)) revert Aura__InvalidParams();
-        if (newImplementation.code.length == 0) revert Aura__NotContract();
+        if (CeitnotStorage.getStorage().admin != msg.sender) revert Ceitnot__Unauthorized();
+        if (newImplementation == address(0)) revert Ceitnot__InvalidParams();
+        if (newImplementation.code.length == 0) revert Ceitnot__NotContract();
         assembly { sstore(IMPLEMENTATION_SLOT, newImplementation) }
         if (data.length > 0) {
             (bool ok, ) = newImplementation.delegatecall(data);
-            if (!ok) revert Aura__InvalidParams();
+            if (!ok) revert Ceitnot__InvalidParams();
         }
     }
 
     // ------------------------------- Access modifiers
     modifier onlyAdmin() { _onlyAdmin(); _; }
     function _onlyAdmin() internal view {
-        if (AuraStorage.getStorage().admin != msg.sender) revert Aura__Unauthorized();
+        if (CeitnotStorage.getStorage().admin != msg.sender) revert Ceitnot__Unauthorized();
     }
 
     modifier onlyAdminOrGuardian() { _onlyAdminOrGuardian(); _; }
     function _onlyAdminOrGuardian() internal view {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
-        if ($.admin != msg.sender && !$.guardians[msg.sender]) revert Aura__Unauthorized();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
+        if ($.admin != msg.sender && !$.guardians[msg.sender]) revert Ceitnot__Unauthorized();
     }
 
-    modifier whenNotPaused()   { if (AuraStorage.getStorage().paused)             revert Aura__Paused();             _; }
-    modifier whenNotShutdown() { if (AuraStorage.getStorage().emergencyShutdown)  revert Aura__EmergencyShutdown(); _; }
+    modifier whenNotPaused()   { if (CeitnotStorage.getStorage().paused)             revert Ceitnot__Paused();             _; }
+    modifier whenNotShutdown() { if (CeitnotStorage.getStorage().emergencyShutdown)  revert Ceitnot__EmergencyShutdown(); _; }
 
     modifier nonReentrant() {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
-        if ($.reentrancyStatus == 2) revert Aura__Reentrancy();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
+        if ($.reentrancyStatus == 2) revert Ceitnot__Reentrancy();
         $.reentrancyStatus = 2;
         _;
         $.reentrancyStatus = 1;
@@ -166,44 +166,44 @@ contract AuraEngine is Multicall {
 
     /// @dev Per-user per-market same-block protection.
     modifier noSameBlock(address user, uint256 marketId) {
-        AuraStorage.MarketPosition storage pos = AuraStorage.getStorage().positions[user][marketId];
-        if (pos.lastInteractionBlock == block.number) revert Aura__SameBlockInteraction();
+        CeitnotStorage.MarketPosition storage pos = CeitnotStorage.getStorage().positions[user][marketId];
+        if (pos.lastInteractionBlock == block.number) revert Ceitnot__SameBlockInteraction();
         pos.lastInteractionBlock = block.number;
         _;
     }
 
     // ------------------------------- Governance
     function setPaused(bool paused_) external onlyAdminOrGuardian {
-        AuraStorage.getStorage().paused = paused_;
+        CeitnotStorage.getStorage().paused = paused_;
         emit PausedSet(paused_);
     }
 
     function setEmergencyShutdown(bool shutdown_) external onlyAdminOrGuardian {
-        AuraStorage.getStorage().emergencyShutdown = shutdown_;
+        CeitnotStorage.getStorage().emergencyShutdown = shutdown_;
         emit EmergencyShutdownSet(shutdown_);
     }
 
     function setMinHarvestYieldDebt(uint256 value) external onlyAdmin {
-        AuraStorage.getStorage().minHarvestYieldDebt = value;
+        CeitnotStorage.getStorage().minHarvestYieldDebt = value;
         emit EngineParamUpdated("minHarvestYieldDebt", value);
     }
 
     function setHeartbeat(uint256 value) external onlyAdmin {
-        AuraStorage.getStorage().heartbeat = value;
+        CeitnotStorage.getStorage().heartbeat = value;
         emit EngineParamUpdated("heartbeat", value);
     }
 
     /// @notice Propose engine-level timelocked param (heartbeat, minHarvestYieldDebt).
     function proposeParam(bytes32 paramId, uint256 value) external onlyAdmin {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         $.timelockDeadline[paramId]   = block.timestamp + $.constantTimelockDelay;
         $.pendingParamValue[paramId]  = value;
     }
 
     /// @notice Execute engine-level timelocked param after delay.
     function executeParam(bytes32 paramId) external onlyAdmin {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
-        if (block.timestamp < $.timelockDeadline[paramId]) revert Aura__TimelockNotElapsed();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
+        if (block.timestamp < $.timelockDeadline[paramId]) revert Ceitnot__TimelockNotElapsed();
         uint256 value = $.pendingParamValue[paramId];
         delete $.timelockDeadline[paramId];
         delete $.pendingParamValue[paramId];
@@ -214,7 +214,7 @@ contract AuraEngine is Multicall {
             $.minHarvestYieldDebt = value;
             emit EngineParamUpdated("minHarvestYieldDebt", value);
         } else {
-            revert Aura__InvalidParams();
+            revert Ceitnot__InvalidParams();
         }
     }
 
@@ -223,9 +223,9 @@ contract AuraEngine is Multicall {
     /// @param paramId   keccak256("ltvBps") | keccak256("liquidationThresholdBps") | keccak256("liquidationPenaltyBps")
     /// @param value     New value
     function proposeMarketParam(uint256 marketId, bytes32 paramId, uint256 value) external onlyAdmin {
-        if (!IMarketRegistry(AuraStorage.getStorage().marketRegistry).marketExists(marketId))
-            revert Aura__MarketNotFound();
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        if (!IMarketRegistry(CeitnotStorage.getStorage().marketRegistry).marketExists(marketId))
+            revert Ceitnot__MarketNotFound();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         bytes32 key = keccak256(abi.encode(marketId, paramId));
         $.timelockDeadline[key]             = block.timestamp + $.constantTimelockDelay;
         $.pendingMarketParamValue[key]       = value;
@@ -234,9 +234,9 @@ contract AuraEngine is Multicall {
 
     /// @notice Execute a per-market risk param change after timelock has elapsed.
     function executeMarketParam(uint256 marketId, bytes32 paramId) external onlyAdmin {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         bytes32 key = keccak256(abi.encode(marketId, paramId));
-        if (block.timestamp < $.timelockDeadline[key]) revert Aura__TimelockNotElapsed();
+        if (block.timestamp < $.timelockDeadline[key]) revert Ceitnot__TimelockNotElapsed();
         uint256 value = $.pendingMarketParamValue[key];
         delete $.timelockDeadline[key];
         delete $.pendingMarketParamValue[key];
@@ -249,29 +249,29 @@ contract AuraEngine is Multicall {
         uint16 newPen   = cfg.liquidationPenaltyBps;
 
         if (paramId == keccak256("ltvBps")) {
-            if (value > 10_000 || value > cfg.liquidationThresholdBps) revert Aura__InvalidParams();
+            if (value > 10_000 || value > cfg.liquidationThresholdBps) revert Ceitnot__InvalidParams();
             newLtv = uint16(value);
         } else if (paramId == keccak256("liquidationThresholdBps")) {
-            if (value < cfg.ltvBps || value > 10_000) revert Aura__InvalidParams();
+            if (value < cfg.ltvBps || value > 10_000) revert Ceitnot__InvalidParams();
             newLt = uint16(value);
         } else if (paramId == keccak256("liquidationPenaltyBps")) {
             newPen = uint16(value);
         } else {
-            revert Aura__InvalidParams();
+            revert Ceitnot__InvalidParams();
         }
         reg.updateMarketRiskParams(marketId, newLtv, newLt, newPen);
         emit MarketParamExecuted(marketId, paramId, value);
     }
 
     function proposeAdmin(address newAdmin) external onlyAdmin {
-        if (newAdmin == address(0)) revert Aura__InvalidParams();
-        AuraStorage.getStorage().pendingAdmin = newAdmin;
+        if (newAdmin == address(0)) revert Ceitnot__InvalidParams();
+        CeitnotStorage.getStorage().pendingAdmin = newAdmin;
         emit AdminProposed(msg.sender, newAdmin);
     }
 
     function acceptAdmin() external {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
-        if (msg.sender != $.pendingAdmin) revert Aura__Unauthorized();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
+        if (msg.sender != $.pendingAdmin) revert Ceitnot__Unauthorized();
         address oldAdmin = $.admin;
         $.admin = msg.sender;
         $.pendingAdmin = address(0);
@@ -279,12 +279,12 @@ contract AuraEngine is Multicall {
     }
 
     function setGuardian(address guardian, bool status) external onlyAdmin {
-        AuraStorage.getStorage().guardians[guardian] = status;
+        CeitnotStorage.getStorage().guardians[guardian] = status;
         emit GuardianSet(guardian, status);
     }
 
     function setKeeper(address keeper, bool status) external onlyAdmin {
-        AuraStorage.getStorage().keepers[keeper] = status;
+        CeitnotStorage.getStorage().keepers[keeper] = status;
         emit KeeperSet(keeper, status);
     }
 
@@ -293,23 +293,23 @@ contract AuraEngine is Multicall {
      * @notice Approve or revoke `delegate` to act on behalf of msg.sender.
      *         Delegates can call borrow, repay, withdrawCollateral, depositAndBorrow,
      *         and repayAndWithdraw on behalf of the authorising user.
-     * @param delegate Address to authorise (e.g. AuraRouter).
+     * @param delegate Address to authorise (e.g. CeitnotRouter).
      * @param approved True = grant access; false = revoke.
      */
     function setDelegate(address delegate, bool approved) external {
-        AuraStorage.getStorage().delegates[msg.sender][delegate] = approved;
+        CeitnotStorage.getStorage().delegates[msg.sender][delegate] = approved;
         emit DelegateSet(msg.sender, delegate, approved);
     }
 
     /// @notice Returns true if `delegate` is authorised to act for `user`.
     function isDelegate(address user, address delegate) external view returns (bool) {
-        return AuraStorage.getStorage().delegates[user][delegate];
+        return CeitnotStorage.getStorage().delegates[user][delegate];
     }
 
     /// @dev Auth helper — passes if msg.sender is the user or an approved delegate.
     function _authorizedFor(address user) internal view {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
-        if (msg.sender != user && !$.delegates[user][msg.sender]) revert Aura__Unauthorized();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
+        if (msg.sender != user && !$.delegates[user][msg.sender]) revert Ceitnot__Unauthorized();
     }
 
     // ---- Phase 9: CDP mode
@@ -321,7 +321,7 @@ contract AuraEngine is Multicall {
      * @param enabled True to enable CDP mode; false to revert to transfer mode.
      */
     function setMintableDebtToken(bool enabled) external onlyAdmin {
-        AuraStorage.getStorage().mintableDebtToken = enabled;
+        CeitnotStorage.getStorage().mintableDebtToken = enabled;
         emit MintableDebtTokenSet(enabled);
     }
 
@@ -336,15 +336,15 @@ contract AuraEngine is Multicall {
         address user,
         uint256 marketId
     ) external whenNotPaused whenNotShutdown nonReentrant {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         _getMarketCfg($.marketRegistry, marketId); // validate market
         _accrueInterest($, marketId);
         _settlePosition($, user, marketId);
 
-        if (_healthFactor($, user) >= AuraStorage.WAD) revert Aura__HealthFactorAboveOne();
+        if (_healthFactor($, user) >= CeitnotStorage.WAD) revert Ceitnot__HealthFactorAboveOne();
 
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
-        if (pos.auctionStartTime != 0) revert Aura__AuctionAlreadyActive();
+        CeitnotStorage.MarketPosition storage pos = $.positions[user][marketId];
+        if (pos.auctionStartTime != 0) revert Ceitnot__AuctionAlreadyActive();
         pos.auctionStartTime = block.timestamp;
         emit LiquidationInitiated(user, marketId, block.timestamp);
     }
@@ -360,15 +360,15 @@ contract AuraEngine is Multicall {
         uint256 shares,
         address to
     ) external onlyAdmin {
-        if (shares == 0) revert Aura__ZeroAmount();
-        if (to == address(0)) revert Aura__InvalidParams();
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        if (shares == 0) revert Ceitnot__ZeroAmount();
+        if (to == address(0)) revert Ceitnot__InvalidParams();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         IMarketRegistry.MarketConfig memory cfg = _getMarketCfg($.marketRegistry, marketId);
-        AuraStorage.MarketState storage ms = $.marketStates[marketId];
-        if (ms.protocolCollateralReserves < shares) revert Aura__InsufficientProtocolCollateral();
+        CeitnotStorage.MarketState storage ms = $.marketStates[marketId];
+        if (ms.protocolCollateralReserves < shares) revert Ceitnot__InsufficientProtocolCollateral();
         unchecked { ms.protocolCollateralReserves -= shares; }
         bool ok = IERC4626(cfg.vault).transfer(to, shares);
-        if (!ok) revert Aura__InvalidParams();
+        if (!ok) revert Ceitnot__InvalidParams();
         emit ProtocolCollateralWithdrawn(marketId, to, shares);
     }
 
@@ -378,8 +378,8 @@ contract AuraEngine is Multicall {
      * @param marketId Target market
      */
     function accrueInterest(uint256 marketId) external nonReentrant {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
-        if (!IMarketRegistry($.marketRegistry).marketExists(marketId)) revert Aura__MarketNotFound();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
+        if (!IMarketRegistry($.marketRegistry).marketExists(marketId)) revert Ceitnot__MarketNotFound();
         _accrueInterest($, marketId);
     }
 
@@ -390,11 +390,11 @@ contract AuraEngine is Multicall {
      * @param to       Recipient address
      */
     function withdrawReserves(uint256 marketId, uint256 amount, address to) external onlyAdmin {
-        if (amount == 0) revert Aura__ZeroAmount();
-        if (to == address(0)) revert Aura__InvalidParams();
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
-        AuraStorage.MarketState storage ms = $.marketStates[marketId];
-        if (ms.totalReserves < amount) revert Aura__InsufficientReserves();
+        if (amount == 0) revert Ceitnot__ZeroAmount();
+        if (to == address(0)) revert Ceitnot__InvalidParams();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
+        CeitnotStorage.MarketState storage ms = $.marketStates[marketId];
+        if (ms.totalReserves < amount) revert Ceitnot__InsufficientReserves();
         unchecked { ms.totalReserves -= amount; }
         _transferOut($.debtToken, to, amount);
         emit ReservesWithdrawn(marketId, to, amount);
@@ -414,7 +414,7 @@ contract AuraEngine is Multicall {
         uint256 marketId,
         uint256 shares
     ) external whenNotPaused whenNotShutdown noSameBlock(user, marketId) nonReentrant {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         IMarketRegistry.MarketConfig memory cfg = _requireActiveMarket($.marketRegistry, marketId);
         _accrueInterest($, marketId);
         _depositCollateralCore($, cfg, user, marketId, shares);
@@ -434,7 +434,7 @@ contract AuraEngine is Multicall {
         uint256 shares
     ) external whenNotPaused noSameBlock(user, marketId) nonReentrant {
         _authorizedFor(user);
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         IMarketRegistry.MarketConfig memory cfg = _getMarketCfg($.marketRegistry, marketId);
         _accrueInterest($, marketId);
         _withdrawCollateralCore($, cfg, user, marketId, shares);
@@ -455,7 +455,7 @@ contract AuraEngine is Multicall {
         uint256 amount
     ) external whenNotPaused whenNotShutdown noSameBlock(user, marketId) nonReentrant {
         _authorizedFor(user);
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         IMarketRegistry.MarketConfig memory cfg = _requireActiveMarket($.marketRegistry, marketId);
         _accrueInterest($, marketId);
         _borrowCore($, cfg, user, marketId, amount);
@@ -475,7 +475,7 @@ contract AuraEngine is Multicall {
         uint256 amount
     ) external whenNotPaused noSameBlock(user, marketId) nonReentrant {
         _authorizedFor(user);
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         _getMarketCfg($.marketRegistry, marketId); // ensures market exists
         _accrueInterest($, marketId);
         _repayCore($, user, marketId, amount);
@@ -499,8 +499,8 @@ contract AuraEngine is Multicall {
         uint256 borrowAmount
     ) external whenNotPaused whenNotShutdown noSameBlock(user, marketId) nonReentrant {
         _authorizedFor(user);
-        if (shares == 0 || borrowAmount == 0) revert Aura__ZeroAmount();
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        if (shares == 0 || borrowAmount == 0) revert Ceitnot__ZeroAmount();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         IMarketRegistry.MarketConfig memory cfg = _requireActiveMarket($.marketRegistry, marketId);
         _accrueInterest($, marketId);
         _depositCollateralCore($, cfg, user, marketId, shares);
@@ -525,8 +525,8 @@ contract AuraEngine is Multicall {
         uint256 withdrawShares
     ) external whenNotPaused noSameBlock(user, marketId) nonReentrant {
         _authorizedFor(user);
-        if (repayAmount == 0 && withdrawShares == 0) revert Aura__ZeroAmount();
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        if (repayAmount == 0 && withdrawShares == 0) revert Ceitnot__ZeroAmount();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         IMarketRegistry.MarketConfig memory cfg = _getMarketCfg($.marketRegistry, marketId);
         _accrueInterest($, marketId);
         if (repayAmount > 0)    _repayCore($, user, marketId, repayAmount);
@@ -543,16 +543,16 @@ contract AuraEngine is Multicall {
     function harvestYield(
         uint256 marketId
     ) external whenNotPaused whenNotShutdown nonReentrant returns (uint256 yieldApplied) {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         IMarketRegistry.MarketConfig memory cfg = _getMarketCfg($.marketRegistry, marketId);
-        AuraStorage.MarketState storage ms = $.marketStates[marketId];
+        CeitnotStorage.MarketState storage ms = $.marketStates[marketId];
 
-        if (ms.globalDebtScale == 0) revert Aura__MarketNotFound(); // market never had a deposit
+        if (ms.globalDebtScale == 0) revert Ceitnot__MarketNotFound(); // market never had a deposit
         _accrueInterest($, marketId);
-        if (block.timestamp < ms.lastHarvestTimestamp + $.heartbeat) revert Aura__HeartbeatNotElapsed();
+        if (block.timestamp < ms.lastHarvestTimestamp + $.heartbeat) revert Ceitnot__HeartbeatNotElapsed();
 
         uint256 totalShares = ms.totalCollateralShares;
-        uint256 currentPrice = IERC4626(cfg.vault).convertToAssets(AuraStorage.WAD);
+        uint256 currentPrice = IERC4626(cfg.vault).convertToAssets(CeitnotStorage.WAD);
 
         if (totalShares == 0 || currentPrice <= ms.lastHarvestPricePerShare) {
             ms.lastHarvestPricePerShare = currentPrice;
@@ -562,7 +562,7 @@ contract AuraEngine is Multicall {
 
         uint256 yieldUnderlying;
         unchecked {
-            yieldUnderlying = (totalShares * (currentPrice - ms.lastHarvestPricePerShare)) / AuraStorage.WAD;
+            yieldUnderlying = (totalShares * (currentPrice - ms.lastHarvestPricePerShare)) / CeitnotStorage.WAD;
         }
 
         (uint256 price, ) = IOracleRelay(cfg.oracle).getLatestPrice();
@@ -572,10 +572,10 @@ contract AuraEngine is Multicall {
             return 0;
         }
 
-        uint256 yieldDebt = (yieldUnderlying * price) / AuraStorage.WAD;
-        if ($.minHarvestYieldDebt != 0 && yieldDebt < $.minHarvestYieldDebt) revert Aura__HarvestTooSmall();
+        uint256 yieldDebt = (yieldUnderlying * price) / CeitnotStorage.WAD;
+        if ($.minHarvestYieldDebt != 0 && yieldDebt < $.minHarvestYieldDebt) revert Ceitnot__HarvestTooSmall();
 
-        uint256 totalDebtNow = (ms.totalPrincipalDebt * _effectiveScale(ms)) / AuraStorage.RAY;
+        uint256 totalDebtNow = (ms.totalPrincipalDebt * _effectiveScale(ms)) / CeitnotStorage.RAY;
         if (totalDebtNow == 0) {
             ms.lastHarvestPricePerShare = currentPrice;
             ms.lastHarvestTimestamp     = block.timestamp;
@@ -612,39 +612,39 @@ contract AuraEngine is Multicall {
         uint256 marketId,
         uint256 repayAmount
     ) external whenNotPaused whenNotShutdown noSameBlock(user, marketId) nonReentrant {
-        if (repayAmount == 0) revert Aura__ZeroAmount();
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        if (repayAmount == 0) revert Ceitnot__ZeroAmount();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         IMarketRegistry.MarketConfig memory cfg = _getMarketCfg($.marketRegistry, marketId);
         _accrueInterest($, marketId);
         _settlePosition($, user, marketId);
 
         // HF check
         uint256 hf = _healthFactor($, user);
-        if (hf >= AuraStorage.WAD) revert Aura__HealthFactorAboveOne();
+        if (hf >= CeitnotStorage.WAD) revert Ceitnot__HealthFactorAboveOne();
 
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
-        AuraStorage.MarketState    storage ms  = $.marketStates[marketId];
+        CeitnotStorage.MarketPosition storage pos = $.positions[user][marketId];
+        CeitnotStorage.MarketState    storage ms  = $.marketStates[marketId];
 
         uint256 debt = _currentDebtInMarket($, user, marketId);
 
         // ---- 4.1 Close Factor
         if (cfg.closeFactorBps > 0) {
             bool fullLiqAllowed = cfg.fullLiquidationThresholdBps > 0
-                && hf < (uint256(cfg.fullLiquidationThresholdBps) * AuraStorage.WAD / 10_000);
+                && hf < (uint256(cfg.fullLiquidationThresholdBps) * CeitnotStorage.WAD / 10_000);
             if (!fullLiqAllowed) {
                 uint256 maxRepay = (debt * cfg.closeFactorBps) / 10_000;
-                if (repayAmount > maxRepay) revert Aura__CloseFactorExceeded();
+                if (repayAmount > maxRepay) revert Ceitnot__CloseFactorExceeded();
             }
         }
         if (repayAmount > debt) repayAmount = debt;
 
         uint256 valuePerShare = _collateralValuePerShare(cfg);
-        if (valuePerShare == 0) revert Aura__InvalidParams();
+        if (valuePerShare == 0) revert Ceitnot__InvalidParams();
 
         // ---- 4.2 Dutch Auction penalty
         uint256 effectivePenaltyBps;
         if (cfg.dutchAuctionEnabled) {
-            if (pos.auctionStartTime == 0) revert Aura__AuctionNotStarted();
+            if (pos.auctionStartTime == 0) revert Ceitnot__AuctionNotStarted();
             uint256 elapsed = block.timestamp - pos.auctionStartTime;
             if (cfg.auctionDuration == 0 || elapsed >= cfg.auctionDuration) {
                 effectivePenaltyBps = cfg.liquidationPenaltyBps;
@@ -655,7 +655,7 @@ contract AuraEngine is Multicall {
             effectivePenaltyBps = cfg.liquidationPenaltyBps;
         }
 
-        uint256 collateralToSeize = (repayAmount * (10_000 + effectivePenaltyBps) * AuraStorage.WAD)
+        uint256 collateralToSeize = (repayAmount * (10_000 + effectivePenaltyBps) * CeitnotStorage.WAD)
             / (10_000 * valuePerShare);
         if (collateralToSeize > pos.collateralShares) collateralToSeize = pos.collateralShares;
 
@@ -698,7 +698,7 @@ contract AuraEngine is Multicall {
         _recoverDebtToken($, msg.sender, repayAmount);
         if (liquidatorShares > 0) {
             bool ok = IERC4626(cfg.vault).transfer(msg.sender, liquidatorShares);
-            if (!ok) revert Aura__InvalidParams();
+            if (!ok) revert Ceitnot__InvalidParams();
         }
         emit Liquidated(user, msg.sender, marketId, repayAmount, liquidatorShares);
     }
@@ -706,118 +706,118 @@ contract AuraEngine is Multicall {
     // ------------------------------- View
     /// @notice Current debt for a user in a specific market.
     function getPositionDebt(address user, uint256 marketId) external view returns (uint256) {
-        return _currentDebtInMarket(AuraStorage.getStorage(), user, marketId);
+        return _currentDebtInMarket(CeitnotStorage.getStorage(), user, marketId);
     }
 
     /// @notice Collateral shares held by a user in a specific market.
     function getPositionCollateralShares(address user, uint256 marketId) external view returns (uint256) {
-        return AuraStorage.getStorage().positions[user][marketId].collateralShares;
+        return CeitnotStorage.getStorage().positions[user][marketId].collateralShares;
     }
 
     /// @notice Cross-collateral health factor (WAD). < 1e18 = liquidatable.
     function getHealthFactor(address user) external view returns (uint256) {
-        return _healthFactor(AuraStorage.getStorage(), user);
+        return _healthFactor(CeitnotStorage.getStorage(), user);
     }
 
     /// @notice Total effective debt in a market (principal * effectiveScale / RAY).
     function totalDebt(uint256 marketId) external view returns (uint256) {
-        AuraStorage.MarketState storage ms = AuraStorage.getStorage().marketStates[marketId];
+        CeitnotStorage.MarketState storage ms = CeitnotStorage.getStorage().marketStates[marketId];
         if (ms.globalDebtScale == 0) return 0;
-        return (ms.totalPrincipalDebt * _effectiveScale(ms)) / AuraStorage.RAY;
+        return (ms.totalPrincipalDebt * _effectiveScale(ms)) / CeitnotStorage.RAY;
     }
 
     /// @notice Total collateral in underlying assets for a market.
     function totalCollateralAssets(uint256 marketId) external view returns (uint256) {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         IMarketRegistry.MarketConfig memory cfg = _getMarketCfg($.marketRegistry, marketId);
         return IERC4626(cfg.vault).convertToAssets($.marketStates[marketId].totalCollateralShares);
     }
 
     /// @notice Debt token address.
     function debtToken() external view returns (address) {
-        return AuraStorage.getStorage().debtToken;
+        return CeitnotStorage.getStorage().debtToken;
     }
 
     /// @notice Market registry address.
     function marketRegistry() external view returns (address) {
-        return AuraStorage.getStorage().marketRegistry;
+        return CeitnotStorage.getStorage().marketRegistry;
     }
 
     /// @notice Fetch market config from registry.
     function getMarket(uint256 marketId) external view returns (IMarketRegistry.MarketConfig memory) {
-        return _getMarketCfg(AuraStorage.getStorage().marketRegistry, marketId);
+        return _getMarketCfg(CeitnotStorage.getStorage().marketRegistry, marketId);
     }
 
     /// @notice Collateral value (in debt-token units) for a user's position in one market.
     function getPositionCollateralValue(address user, uint256 marketId) external view returns (uint256) {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         IMarketRegistry.MarketConfig memory cfg = _getMarketCfg($.marketRegistry, marketId);
         uint256 assets = IERC4626(cfg.vault).convertToAssets($.positions[user][marketId].collateralShares);
         (uint256 price, ) = IOracleRelay(cfg.oracle).getLatestPrice();
-        return (assets * price) / AuraStorage.WAD;
+        return (assets * price) / CeitnotStorage.WAD;
     }
 
     /// @notice List of market IDs where a user has an active position.
     function getUserMarkets(address user) external view returns (uint256[] memory) {
-        return AuraStorage.getStorage().userMarketIds[user];
+        return CeitnotStorage.getStorage().userMarketIds[user];
     }
 
     /// @notice Current borrow index for a market (RAY; RAY = uninitialized/no interest).
     function getMarketBorrowIndex(uint256 marketId) external view returns (uint256) {
-        uint256 idx = AuraStorage.getStorage().marketStates[marketId].borrowIndex;
-        return idx == 0 ? AuraStorage.RAY : idx;
+        uint256 idx = CeitnotStorage.getStorage().marketStates[marketId].borrowIndex;
+        return idx == 0 ? CeitnotStorage.RAY : idx;
     }
 
     /// @notice Total accumulated protocol reserves for a market (WAD).
     function getMarketTotalReserves(uint256 marketId) external view returns (uint256) {
-        return AuraStorage.getStorage().marketStates[marketId].totalReserves;
+        return CeitnotStorage.getStorage().marketStates[marketId].totalReserves;
     }
 
     /// @notice Vault shares accumulated as protocol liquidation fee for a market.
     function getProtocolCollateralReserves(uint256 marketId) external view returns (uint256) {
-        return AuraStorage.getStorage().marketStates[marketId].protocolCollateralReserves;
+        return CeitnotStorage.getStorage().marketStates[marketId].protocolCollateralReserves;
     }
 
     /// @notice Raw total collateral shares deposited into a market (WAD).
     ///         Equals the sum of all user `collateralShares` for this market.
     function getMarketTotalCollateralShares(uint256 marketId) external view returns (uint256) {
-        return AuraStorage.getStorage().marketStates[marketId].totalCollateralShares;
+        return CeitnotStorage.getStorage().marketStates[marketId].totalCollateralShares;
     }
 
     /// @notice Raw total principal debt in a market (WAD, before scale adjustment).
     ///         Use `totalDebt(marketId)` for the effective (scaled) value.
     function getMarketTotalPrincipalDebt(uint256 marketId) external view returns (uint256) {
-        return AuraStorage.getStorage().marketStates[marketId].totalPrincipalDebt;
+        return CeitnotStorage.getStorage().marketStates[marketId].totalPrincipalDebt;
     }
 
     /// @notice Current global debt scale for a market (RAY). Starts at RAY and decreases
     ///         as yield is harvested. Returns RAY when the market has had no interactions.
     function getGlobalDebtScale(uint256 marketId) external view returns (uint256) {
-        uint256 scale = AuraStorage.getStorage().marketStates[marketId].globalDebtScale;
-        return scale == 0 ? AuraStorage.RAY : scale;
+        uint256 scale = CeitnotStorage.getStorage().marketStates[marketId].globalDebtScale;
+        return scale == 0 ? CeitnotStorage.RAY : scale;
     }
 
     /// @notice Returns the engine admin address.
     function admin() external view returns (address) {
-        return AuraStorage.getStorage().admin;
+        return CeitnotStorage.getStorage().admin;
     }
 
     /// @notice Returns true if the engine is paused (deposits, borrows, liquidations blocked).
     function paused() external view returns (bool) {
-        return AuraStorage.getStorage().paused;
+        return CeitnotStorage.getStorage().paused;
     }
 
     /// @notice Returns true if the engine is in emergency shutdown (only repay/withdraw allowed).
     function emergencyShutdown() external view returns (bool) {
-        return AuraStorage.getStorage().emergencyShutdown;
+        return CeitnotStorage.getStorage().emergencyShutdown;
     }
 
     // ------------------------------- Phase 6: Flash Loans (EIP-3156)
 
     /// @notice Set the flash loan fee. Admin only. Max 10_000 bps (100%).
     function setFlashLoanFee(uint16 feeBps) external onlyAdmin {
-        if (feeBps > 10_000) revert Aura__InvalidParams();
-        AuraStorage.getStorage().flashLoanFeeBps = feeBps;
+        if (feeBps > 10_000) revert Ceitnot__InvalidParams();
+        CeitnotStorage.getStorage().flashLoanFeeBps = feeBps;
         emit FlashLoanFeeUpdated(feeBps);
     }
 
@@ -825,12 +825,12 @@ contract AuraEngine is Multicall {
     ///         Returns 0 for any token other than the debt token.
     ///         In CDP mode: headroom under the global debt ceiling (unlimited if no ceiling).
     function maxFlashLoan(address token) external view returns (uint256) {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
         if (token != $.debtToken) return 0;
         if ($.mintableDebtToken) {
-            uint256 ceiling_ = IAuraUSD($.debtToken).globalDebtCeiling();
+            uint256 ceiling_ = ICeitnotUSD($.debtToken).globalDebtCeiling();
             if (ceiling_ == 0) return type(uint256).max;
-            uint256 supply   = IAuraUSD($.debtToken).totalSupply();
+            uint256 supply   = ICeitnotUSD($.debtToken).totalSupply();
             return supply >= ceiling_ ? 0 : ceiling_ - supply;
         }
         (bool ok, bytes memory data) = token.staticcall(
@@ -844,14 +844,14 @@ contract AuraEngine is Multicall {
     /// @notice Fee charged for a flash loan of `amount` of `token`.
     ///         Reverts for unsupported tokens.
     function flashFee(address token, uint256 amount) external view returns (uint256) {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
-        if (token != $.debtToken) revert Aura__FlashLoanUnsupportedToken();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
+        if (token != $.debtToken) revert Ceitnot__FlashLoanUnsupportedToken();
         return (amount * $.flashLoanFeeBps) / 10_000;
     }
 
     /// @notice Accumulated flash loan fee reserves (engine-wide).
     function getFlashLoanReserves() external view returns (uint256) {
-        return AuraStorage.getStorage().flashLoanReserves;
+        return CeitnotStorage.getStorage().flashLoanReserves;
     }
 
     /**
@@ -865,17 +865,17 @@ contract AuraEngine is Multicall {
         uint256 amount,
         bytes calldata data
     ) external whenNotPaused whenNotShutdown nonReentrant returns (bool) {
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
-        if (token != $.debtToken)  revert Aura__FlashLoanUnsupportedToken();
-        if (amount == 0)           revert Aura__ZeroAmount();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
+        if (token != $.debtToken)  revert Ceitnot__FlashLoanUnsupportedToken();
+        if (amount == 0)           revert Ceitnot__ZeroAmount();
 
         // Check available liquidity
         if ($.mintableDebtToken) {
-            // CDP mode: AuraUSD.mint enforces global debt ceiling; no pre-funded balance needed.
-            uint256 ceiling_ = IAuraUSD(token).globalDebtCeiling();
+            // CDP mode: CeitnotUSD.mint enforces global debt ceiling; no pre-funded balance needed.
+            uint256 ceiling_ = ICeitnotUSD(token).globalDebtCeiling();
             if (ceiling_ != 0) {
-                uint256 supply = IAuraUSD(token).totalSupply();
-                if (supply + amount > ceiling_) revert Aura__FlashLoanExceedsBalance();
+                uint256 supply = ICeitnotUSD(token).totalSupply();
+                if (supply + amount > ceiling_) revert Ceitnot__FlashLoanExceedsBalance();
             }
         } else {
             (bool ok, bytes memory balData) = token.staticcall(
@@ -883,7 +883,7 @@ contract AuraEngine is Multicall {
             );
             uint256 bal = (ok && balData.length >= 32) ? abi.decode(balData, (uint256)) : 0;
             uint256 available = bal > $.flashLoanReserves ? bal - $.flashLoanReserves : 0;
-            if (amount > available) revert Aura__FlashLoanExceedsBalance();
+            if (amount > available) revert Ceitnot__FlashLoanExceedsBalance();
         }
 
         uint256 fee = (amount * $.flashLoanFeeBps) / 10_000;
@@ -894,7 +894,7 @@ contract AuraEngine is Multicall {
         // 2. Callback
         bytes32 result = receiver.onFlashLoan(msg.sender, token, amount, fee, data);
         if (result != keccak256("ERC3156FlashBorrower.onFlashLoan"))
-            revert Aura__FlashLoanCallbackFailed();
+            revert Ceitnot__FlashLoanCallbackFailed();
 
         // 3. Pull back (or burn) principal + fee
         _recoverDebtToken($, address(receiver), amount + fee);
@@ -910,14 +910,14 @@ contract AuraEngine is Multicall {
 
     /**
      * @notice Withdraw accumulated flash loan fee reserves. Admin only.
-     * @param to     Recipient address (e.g. AuraTreasury)
+     * @param to     Recipient address (e.g. CeitnotTreasury)
      * @param amount Amount of debt token to withdraw
      */
     function withdrawFlashLoanReserves(address to, uint256 amount) external onlyAdmin {
-        if (to == address(0)) revert Aura__InvalidParams();
-        if (amount == 0)      revert Aura__ZeroAmount();
-        AuraStorage.EngineStorage storage $ = AuraStorage.getStorage();
-        if (amount > $.flashLoanReserves) revert Aura__InsufficientReserves();
+        if (to == address(0)) revert Ceitnot__InvalidParams();
+        if (amount == 0)      revert Ceitnot__ZeroAmount();
+        CeitnotStorage.EngineStorage storage $ = CeitnotStorage.getStorage();
+        if (amount > $.flashLoanReserves) revert Ceitnot__InsufficientReserves();
         unchecked { $.flashLoanReserves -= amount; }
         _transferOut($.debtToken, to, amount);
         emit FlashLoanReservesWithdrawn(to, amount);
@@ -930,24 +930,24 @@ contract AuraEngine is Multicall {
      *      Vault shares are pulled from msg.sender.
      */
     function _depositCollateralCore(
-        AuraStorage.EngineStorage storage $,
+        CeitnotStorage.EngineStorage storage $,
         IMarketRegistry.MarketConfig memory cfg,
         address user,
         uint256 marketId,
         uint256 shares
     ) internal {
-        if (shares == 0) revert Aura__ZeroAmount();
+        if (shares == 0) revert Ceitnot__ZeroAmount();
 
-        AuraStorage.MarketState storage ms = $.marketStates[marketId];
+        CeitnotStorage.MarketState storage ms = $.marketStates[marketId];
         if (cfg.supplyCap != 0 && ms.totalCollateralShares + shares > cfg.supplyCap)
-            revert Aura__SupplyCapExceeded();
+            revert Ceitnot__SupplyCapExceeded();
 
         _checkIsolationOnDeposit($, user, marketId, cfg.isIsolated);
 
         bool ok = IERC4626(cfg.vault).transferFrom(msg.sender, address(this), shares);
-        if (!ok) revert Aura__InvalidParams();
+        if (!ok) revert Ceitnot__InvalidParams();
 
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
+        CeitnotStorage.MarketPosition storage pos = $.positions[user][marketId];
         if (!$.userInMarket[user][marketId]) {
             $.userInMarket[user][marketId] = true;
             $.userMarketIds[user].push(marketId);
@@ -956,11 +956,11 @@ contract AuraEngine is Multicall {
         ms.totalCollateralShares += shares;
 
         if (ms.globalDebtScale == 0) {
-            ms.globalDebtScale = AuraStorage.RAY;
-            try IERC4626(cfg.vault).convertToAssets(AuraStorage.WAD) returns (uint256 p) {
+            ms.globalDebtScale = CeitnotStorage.RAY;
+            try IERC4626(cfg.vault).convertToAssets(CeitnotStorage.WAD) returns (uint256 p) {
                 ms.lastHarvestPricePerShare = p;
             } catch {
-                ms.lastHarvestPricePerShare = AuraStorage.WAD;
+                ms.lastHarvestPricePerShare = CeitnotStorage.WAD;
             }
             ms.lastHarvestTimestamp = block.timestamp;
         }
@@ -972,22 +972,22 @@ contract AuraEngine is Multicall {
      *      Borrowed tokens are sent to `user`.
      */
     function _borrowCore(
-        AuraStorage.EngineStorage storage $,
+        CeitnotStorage.EngineStorage storage $,
         IMarketRegistry.MarketConfig memory cfg,
         address user,
         uint256 marketId,
         uint256 amount
     ) internal {
-        if (amount == 0) revert Aura__ZeroAmount();
+        if (amount == 0) revert Ceitnot__ZeroAmount();
         _settlePosition($, user, marketId);
 
-        AuraStorage.MarketState    storage ms  = $.marketStates[marketId];
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
+        CeitnotStorage.MarketState    storage ms  = $.marketStates[marketId];
+        CeitnotStorage.MarketPosition storage pos = $.positions[user][marketId];
 
         if (cfg.isIsolated && cfg.isolatedBorrowCap != 0) {
-            uint256 currentIsolatedDebt = (ms.totalPrincipalDebt * _effectiveScale(ms)) / AuraStorage.RAY;
+            uint256 currentIsolatedDebt = (ms.totalPrincipalDebt * _effectiveScale(ms)) / CeitnotStorage.RAY;
             if (currentIsolatedDebt + amount > cfg.isolatedBorrowCap)
-                revert Aura__BorrowCapExceeded();
+                revert Ceitnot__BorrowCapExceeded();
         }
 
         uint256 originationFee;
@@ -997,7 +997,7 @@ contract AuraEngine is Multicall {
         uint256 totalDebtAdded = amount + originationFee;
 
         if (cfg.borrowCap != 0 && ms.totalPrincipalDebt + totalDebtAdded > cfg.borrowCap)
-            revert Aura__BorrowCapExceeded();
+            revert Ceitnot__BorrowCapExceeded();
 
         pos.principalDebt     += totalDebtAdded;
         pos.scaleAtLastUpdate  = _effectiveScale(ms);
@@ -1010,7 +1010,7 @@ contract AuraEngine is Multicall {
 
         if ($.mintableDebtToken && cfg.debtCeiling != 0 &&
                 ms.totalPrincipalDebt > cfg.debtCeiling)
-            revert Aura__DebtCeilingExceeded();
+            revert Ceitnot__DebtCeilingExceeded();
 
         _requireLtv($, user, marketId, cfg);
         _lendDebtToken($, user, amount);
@@ -1022,14 +1022,14 @@ contract AuraEngine is Multicall {
      *      Debt tokens are recovered from `user` (requires user's approval to engine in CDP mode).
      */
     function _repayCore(
-        AuraStorage.EngineStorage storage $,
+        CeitnotStorage.EngineStorage storage $,
         address user,
         uint256 marketId,
         uint256 amount
     ) internal {
-        if (amount == 0) revert Aura__ZeroAmount();
+        if (amount == 0) revert Ceitnot__ZeroAmount();
         _settlePosition($, user, marketId);
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
+        CeitnotStorage.MarketPosition storage pos = $.positions[user][marketId];
         uint256 debt = pos.principalDebt;
         if (amount > debt) amount = debt;
         unchecked {
@@ -1046,22 +1046,22 @@ contract AuraEngine is Multicall {
      *      Vault shares are transferred to `user` (position owner).
      */
     function _withdrawCollateralCore(
-        AuraStorage.EngineStorage storage $,
+        CeitnotStorage.EngineStorage storage $,
         IMarketRegistry.MarketConfig memory cfg,
         address user,
         uint256 marketId,
         uint256 shares
     ) internal {
-        if (shares == 0) revert Aura__ZeroAmount();
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
-        if (pos.collateralShares < shares) revert Aura__InsufficientCollateral();
+        if (shares == 0) revert Ceitnot__ZeroAmount();
+        CeitnotStorage.MarketPosition storage pos = $.positions[user][marketId];
+        if (pos.collateralShares < shares) revert Ceitnot__InsufficientCollateral();
         _settlePosition($, user, marketId);
         pos.collateralShares                          -= shares;
         $.marketStates[marketId].totalCollateralShares -= shares;
         _tryExitMarket($, user, marketId);
         _requireHealthy($, user);
         bool ok = IERC4626(cfg.vault).transfer(user, shares);
-        if (!ok) revert Aura__InvalidParams();
+        if (!ok) revert Ceitnot__InvalidParams();
         emit CollateralWithdrawn(user, marketId, shares);
     }
 
@@ -1071,21 +1071,21 @@ contract AuraEngine is Multicall {
         uint256 marketId
     ) internal view returns (IMarketRegistry.MarketConfig memory cfg) {
         cfg = _getMarketCfg(registry, marketId);
-        if (!cfg.isActive)  revert Aura__MarketInactive();
-        if (cfg.isFrozen)   revert Aura__MarketFrozen();
+        if (!cfg.isActive)  revert Ceitnot__MarketInactive();
+        if (cfg.isFrozen)   revert Ceitnot__MarketFrozen();
     }
 
     function _getMarketCfg(
         address registry,
         uint256 marketId
     ) internal view returns (IMarketRegistry.MarketConfig memory) {
-        if (!IMarketRegistry(registry).marketExists(marketId)) revert Aura__MarketNotFound();
+        if (!IMarketRegistry(registry).marketExists(marketId)) revert Ceitnot__MarketNotFound();
         return IMarketRegistry(registry).getMarket(marketId);
     }
 
     // ------------------------------- Internal: isolation mode
     function _checkIsolationOnDeposit(
-        AuraStorage.EngineStorage storage $,
+        CeitnotStorage.EngineStorage storage $,
         address user,
         uint256 marketId,
         bool    isIsolated
@@ -1095,8 +1095,8 @@ contract AuraEngine is Multicall {
             uint256[] storage mids = $.userMarketIds[user];
             for (uint256 i = 0; i < mids.length; i++) {
                 if (mids[i] != marketId) {
-                    AuraStorage.MarketPosition storage p = $.positions[user][mids[i]];
-                    if (p.collateralShares > 0 || p.principalDebt > 0) revert Aura__IsolationViolation();
+                    CeitnotStorage.MarketPosition storage p = $.positions[user][mids[i]];
+                    if (p.collateralShares > 0 || p.principalDebt > 0) revert Ceitnot__IsolationViolation();
                 }
             }
             $.userInIsolation[user]   = true;
@@ -1104,17 +1104,17 @@ contract AuraEngine is Multicall {
         } else {
             // User must not be in isolation mode (unless entering their own isolated market)
             if ($.userInIsolation[user] && $.userIsolatedMarket[user] != marketId)
-                revert Aura__IsolationViolation();
+                revert Ceitnot__IsolationViolation();
         }
     }
 
     /// @dev Remove market from user tracking when position fully zeroed.
     function _tryExitMarket(
-        AuraStorage.EngineStorage storage $,
+        CeitnotStorage.EngineStorage storage $,
         address user,
         uint256 marketId
     ) internal {
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
+        CeitnotStorage.MarketPosition storage pos = $.positions[user][marketId];
         if (pos.collateralShares == 0 && pos.principalDebt == 0) {
             $.userInMarket[user][marketId] = false;
             // Remove from array (swap-and-pop)
@@ -1137,14 +1137,14 @@ contract AuraEngine is Multicall {
 
     // ------------------------------- Internal: settle & health
     function _settlePosition(
-        AuraStorage.EngineStorage storage $,
+        CeitnotStorage.EngineStorage storage $,
         address user,
         uint256 marketId
     ) internal {
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
-        AuraStorage.MarketState    storage ms  = $.marketStates[marketId];
+        CeitnotStorage.MarketPosition storage pos = $.positions[user][marketId];
+        CeitnotStorage.MarketState    storage ms  = $.marketStates[marketId];
         uint256 scale   = _effectiveScale(ms);
-        uint256 scaleAt = pos.scaleAtLastUpdate == 0 ? AuraStorage.RAY : pos.scaleAtLastUpdate;
+        uint256 scaleAt = pos.scaleAtLastUpdate == 0 ? CeitnotStorage.RAY : pos.scaleAtLastUpdate;
         uint256 oldPrincipal = pos.principalDebt;
         uint256 currentDebt  = FixedPoint.currentDebt(oldPrincipal, scale, scaleAt);
         pos.principalDebt     = currentDebt;
@@ -1154,22 +1154,22 @@ contract AuraEngine is Multicall {
     }
 
     function _currentDebtInMarket(
-        AuraStorage.EngineStorage storage $,
+        CeitnotStorage.EngineStorage storage $,
         address user,
         uint256 marketId
     ) internal view returns (uint256) {
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
+        CeitnotStorage.MarketPosition storage pos = $.positions[user][marketId];
         if (pos.scaleAtLastUpdate == 0 && pos.principalDebt == 0) return 0;
-        AuraStorage.MarketState storage ms = $.marketStates[marketId];
+        CeitnotStorage.MarketState storage ms = $.marketStates[marketId];
         uint256 scale   = _effectiveScale(ms);
-        uint256 scaleAt = pos.scaleAtLastUpdate == 0 ? AuraStorage.RAY : pos.scaleAtLastUpdate;
+        uint256 scaleAt = pos.scaleAtLastUpdate == 0 ? CeitnotStorage.RAY : pos.scaleAtLastUpdate;
         return FixedPoint.currentDebt(pos.principalDebt, scale, scaleAt);
     }
 
     /// @dev Cross-collateral health factor:
     ///      HF = Σ(collateralValue_i * liquidationThreshold_i / 10000) / Σ(debt_i)
     function _healthFactor(
-        AuraStorage.EngineStorage storage $,
+        CeitnotStorage.EngineStorage storage $,
         address user
     ) internal view returns (uint256) {
         uint256[] storage mids = $.userMarketIds[user];
@@ -1178,44 +1178,44 @@ contract AuraEngine is Multicall {
         uint256 len = mids.length;
         for (uint256 i = 0; i < len; i++) {
             uint256 mid = mids[i];
-            AuraStorage.MarketPosition storage pos = $.positions[user][mid];
+            CeitnotStorage.MarketPosition storage pos = $.positions[user][mid];
             if (pos.collateralShares == 0 && pos.principalDebt == 0) continue;
             IMarketRegistry.MarketConfig memory cfg = IMarketRegistry($.marketRegistry).getMarket(mid);
             uint256 assets = IERC4626(cfg.vault).convertToAssets(pos.collateralShares);
             (uint256 price, ) = IOracleRelay(cfg.oracle).getLatestPrice();
-            uint256 collateralValue = (assets * price) / AuraStorage.WAD;
+            uint256 collateralValue = (assets * price) / CeitnotStorage.WAD;
             totalWeightedCollateral += (collateralValue * cfg.liquidationThresholdBps) / 10_000;
             totalUserDebt           += _currentDebtInMarket($, user, mid);
         }
         if (totalUserDebt == 0) return type(uint256).max;
-        return (totalWeightedCollateral * AuraStorage.WAD) / totalUserDebt;
+        return (totalWeightedCollateral * CeitnotStorage.WAD) / totalUserDebt;
     }
 
-    function _requireHealthy(AuraStorage.EngineStorage storage $, address user) internal view {
-        if (_healthFactor($, user) < AuraStorage.WAD) revert Aura__HealthFactorBelowOne();
+    function _requireHealthy(CeitnotStorage.EngineStorage storage $, address user) internal view {
+        if (_healthFactor($, user) < CeitnotStorage.WAD) revert Ceitnot__HealthFactorBelowOne();
     }
 
     function _requireLtv(
-        AuraStorage.EngineStorage storage $,
+        CeitnotStorage.EngineStorage storage $,
         address user,
         uint256 marketId,
         IMarketRegistry.MarketConfig memory cfg
     ) internal view {
         uint256 debt = _currentDebtInMarket($, user, marketId);
         if (debt == 0) return;
-        AuraStorage.MarketPosition storage pos = $.positions[user][marketId];
+        CeitnotStorage.MarketPosition storage pos = $.positions[user][marketId];
         uint256 assets = IERC4626(cfg.vault).convertToAssets(pos.collateralShares);
         (uint256 price, ) = IOracleRelay(cfg.oracle).getLatestPrice();
-        uint256 collateralValue = (assets * price) / AuraStorage.WAD;
-        if ((debt * 10_000) > (collateralValue * cfg.ltvBps)) revert Aura__ExceedsLTV();
+        uint256 collateralValue = (assets * price) / CeitnotStorage.WAD;
+        if ((debt * 10_000) > (collateralValue * cfg.ltvBps)) revert Ceitnot__ExceedsLTV();
     }
 
     function _collateralValuePerShare(
         IMarketRegistry.MarketConfig memory cfg
     ) internal view returns (uint256) {
-        uint256 assetsPerShare = IERC4626(cfg.vault).convertToAssets(AuraStorage.WAD);
+        uint256 assetsPerShare = IERC4626(cfg.vault).convertToAssets(CeitnotStorage.WAD);
         (uint256 price, ) = IOracleRelay(cfg.oracle).getLatestPrice();
-        return (assetsPerShare * price) / AuraStorage.WAD;
+        return (assetsPerShare * price) / CeitnotStorage.WAD;
     }
 
     // ------------------------------- Internal: interest accrual
@@ -1226,11 +1226,11 @@ contract AuraEngine is Multicall {
      *      Falls back to RAY if either component is uninitialized (== 0).
      */
     function _effectiveScale(
-        AuraStorage.MarketState storage ms
+        CeitnotStorage.MarketState storage ms
     ) internal view returns (uint256) {
-        uint256 gds = ms.globalDebtScale == 0 ? AuraStorage.RAY : ms.globalDebtScale;
-        uint256 bi  = ms.borrowIndex     == 0 ? AuraStorage.RAY : ms.borrowIndex;
-        return (gds * bi) / AuraStorage.RAY;
+        uint256 gds = ms.globalDebtScale == 0 ? CeitnotStorage.RAY : ms.globalDebtScale;
+        uint256 bi  = ms.borrowIndex     == 0 ? CeitnotStorage.RAY : ms.borrowIndex;
+        return (gds * bi) / CeitnotStorage.RAY;
     }
 
     /**
@@ -1240,14 +1240,14 @@ contract AuraEngine is Multicall {
      *      - Skips when deltaT == 0 or IRM rates are all zero.
      */
     function _accrueInterest(
-        AuraStorage.EngineStorage storage $,
+        CeitnotStorage.EngineStorage storage $,
         uint256 marketId
     ) internal {
-        AuraStorage.MarketState storage ms = $.marketStates[marketId];
+        CeitnotStorage.MarketState storage ms = $.marketStates[marketId];
 
         // Initialise on first touch
         if (ms.borrowIndex == 0) {
-            ms.borrowIndex          = AuraStorage.RAY;
+            ms.borrowIndex          = CeitnotStorage.RAY;
             ms.lastAccrualTimestamp = block.timestamp;
             return;
         }
@@ -1280,12 +1280,12 @@ contract AuraEngine is Multicall {
         // borrowIndex grows: newIndex = oldIndex * (1 + rate * deltaT)
         // Using: newIndex = oldIndex + oldIndex * rate * deltaT / RAY
         uint256 interestFactor = (ratePerSec * deltaT); // RAY * seconds
-        uint256 indexDelta     = (ms.borrowIndex * interestFactor) / AuraStorage.RAY;
+        uint256 indexDelta     = (ms.borrowIndex * interestFactor) / CeitnotStorage.RAY;
         uint256 newBorrowIndex = ms.borrowIndex + indexDelta;
 
         // Compute gross interest on total debt (WAD)
-        uint256 effectiveDebt = (ms.totalPrincipalDebt * ms.borrowIndex) / AuraStorage.RAY;
-        uint256 interestAccrued = (effectiveDebt * interestFactor) / AuraStorage.RAY;
+        uint256 effectiveDebt = (ms.totalPrincipalDebt * ms.borrowIndex) / CeitnotStorage.RAY;
+        uint256 interestAccrued = (effectiveDebt * interestFactor) / CeitnotStorage.RAY;
 
         // Reserve accrual
         uint256 reservesAccrued;
@@ -1301,12 +1301,12 @@ contract AuraEngine is Multicall {
 
     function _transferIn(address token, address from, uint256 amount) internal {
         (bool ok, bytes memory ret) = token.call(abi.encodeWithSelector(0x23b872dd, from, address(this), amount));
-        if (!ok || (ret.length != 0 && !abi.decode(ret, (bool)))) revert Aura__InvalidParams();
+        if (!ok || (ret.length != 0 && !abi.decode(ret, (bool)))) revert Ceitnot__InvalidParams();
     }
 
     function _transferOut(address token, address to, uint256 amount) internal {
         (bool ok, bytes memory ret) = token.call(abi.encodeWithSelector(0xa9059cbb, to, amount));
-        if (!ok || (ret.length != 0 && !abi.decode(ret, (bool)))) revert Aura__InvalidParams();
+        if (!ok || (ret.length != 0 && !abi.decode(ret, (bool)))) revert Ceitnot__InvalidParams();
     }
 
     // ------------------------------- Phase 9: CDP helpers
@@ -1317,12 +1317,12 @@ contract AuraEngine is Multicall {
      *      Legacy mode → ERC-20 transfer from engine balance.
      */
     function _lendDebtToken(
-        AuraStorage.EngineStorage storage $,
+        CeitnotStorage.EngineStorage storage $,
         address to,
         uint256 amount
     ) internal {
         if ($.mintableDebtToken) {
-            IAuraUSD($.debtToken).mint(to, amount);
+            ICeitnotUSD($.debtToken).mint(to, amount);
         } else {
             _transferOut($.debtToken, to, amount);
         }
@@ -1334,12 +1334,12 @@ contract AuraEngine is Multicall {
      *      Legacy mode → transferFrom into engine balance.
      */
     function _recoverDebtToken(
-        AuraStorage.EngineStorage storage $,
+        CeitnotStorage.EngineStorage storage $,
         address from,
         uint256 amount
     ) internal {
         if ($.mintableDebtToken) {
-            IAuraUSD($.debtToken).burnFrom(from, amount);
+            ICeitnotUSD($.debtToken).burnFrom(from, amount);
         } else {
             _transferIn($.debtToken, from, amount);
         }

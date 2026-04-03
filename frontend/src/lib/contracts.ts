@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useReadContract } from 'wagmi';
 import type { Address } from 'viem';
-import { auraEngineAbi } from '../abi/auraEngine';
+import { ceitnotEngineAbi } from '../abi/ceitnotEngine';
 import { TARGET_CHAIN_ID } from './chainEnv';
 
 export { TARGET_CHAIN_ID };
@@ -40,7 +40,7 @@ export function useContractAddresses() {
   const needsOnChainRegistry = !!engine && !hasEnvRegistry && !apiRegistry;
   const { data: onChainRegistry } = useReadContract({
     address: engine,
-    abi: auraEngineAbi,
+    abi: ceitnotEngineAbi,
     functionName: 'marketRegistry',
     chainId: TARGET_CHAIN_ID,
     query: { enabled: needsOnChainRegistry, staleTime: Infinity },

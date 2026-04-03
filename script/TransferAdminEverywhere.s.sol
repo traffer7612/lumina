@@ -10,12 +10,12 @@ interface IProposableAdmin {
     function acceptAdmin() external;
 }
 
-interface IAuraOracleAdmin {
+interface ICeitnotOracleAdmin {
     function admin() external view returns (address);
     function setAdmin(address newAdmin) external;
 }
 
-interface IVeAuraAdmin {
+interface IVeCeitnotAdmin {
     function admin() external view returns (address);
     function setAdmin(address newAdmin) external;
 }
@@ -25,14 +25,14 @@ interface IVeAuraAdmin {
  * @notice Admin rotation helper across the main protocol components on Arbitrum.
  *
  * Two-step admin transfers (propose/accept) are used by:
- *  - AuraEngine
- *  - AuraMarketRegistry
- *  - AuraPSM
- *  - AuraUSD (aUSD token)
- *  - AuraTreasury
+ *  - CeitnotEngine
+ *  - CeitnotMarketRegistry
+ *  - CeitnotPSM
+ *  - CeitnotUSD (aUSD token)
+ *  - CeitnotTreasury
  *
  * One-step admin transfer is used by:
- *  - VeAura (setAdmin)
+ *  - VeCeitnot (setAdmin)
  *
  * Usage:
  *   MODE=propose forge script script/TransferAdminEverywhere.s.sol \
@@ -42,7 +42,7 @@ interface IVeAuraAdmin {
  *     --rpc-url <RPC> --broadcast --private-key <NEW_ADMIN_PK>
  *
  * Required env vars:
- *  - ENGINE_PROXY, REGISTRY_ADDRESS, PSM_ADDRESS, AUSD_ADDRESS, TREASURY_ADDRESS, VE_AURA_ADDRESS
+ *  - ENGINE_PROXY, REGISTRY_ADDRESS, PSM_ADDRESS, AUSD_ADDRESS, TREASURY_ADDRESS, CEITNOT_VE_ADDRESS
  *  - TARGET_ADMIN_ADDRESS (the new admin EOA / Safe)
  *
  * Optional:
@@ -66,7 +66,7 @@ contract TransferAdminEverywhere is Script {
         address psmAddr = vm.envAddress("PSM_ADDRESS");
         address ausdAddr = vm.envAddress("AUSD_ADDRESS");
         address treasuryAddr = vm.envAddress("TREASURY_ADDRESS");
-        address veAuraAddr = vm.envAddress("VE_AURA_ADDRESS");
+        address VeCeitnotAddr = vm.envAddress("CEITNOT_VE_ADDRESS");
         address targetAdmin = vm.envAddress("TARGET_ADMIN_ADDRESS");
 
         address oracleV2 = vm.envOr("ORACLE_V2_ADDRESS", address(0));
@@ -77,7 +77,7 @@ contract TransferAdminEverywhere is Script {
         require(psmAddr != address(0), "TransferAdminEverywhere: PSM_ADDRESS required");
         require(ausdAddr != address(0), "TransferAdminEverywhere: AUSD_ADDRESS required");
         require(treasuryAddr != address(0), "TransferAdminEverywhere: TREASURY_ADDRESS required");
-        require(veAuraAddr != address(0), "TransferAdminEverywhere: VE_AURA_ADDRESS required");
+        require(VeCeitnotAddr != address(0), "TransferAdminEverywhere: CEITNOT_VE_ADDRESS required");
 
         console.log("Mode: %s", mode == Mode.Propose ? "propose" : "accept");
         console.log("Target admin: %s", targetAdmin);
@@ -87,17 +87,17 @@ contract TransferAdminEverywhere is Script {
         IProposableAdmin psm = IProposableAdmin(psmAddr);
         IProposableAdmin ausd = IProposableAdmin(ausdAddr);
         IProposableAdmin treasury = IProposableAdmin(treasuryAddr);
-        IVeAuraAdmin veAura = IVeAuraAdmin(veAuraAddr);
+        IVeCeitnotAdmin VeCeitnot = IVeCeitnotAdmin(VeCeitnotAddr);
 
         console.log("Current engine admin:   %s", engine.admin());
         console.log("Current registry admin: %s", registry.admin());
         console.log("Current PSM admin:      %s", psm.admin());
         console.log("Current aUSD admin:     %s", ausd.admin());
         console.log("Current treasury admin: %s", treasury.admin());
-        console.log("Current veAura admin:   %s", veAura.admin());
+        console.log("Current VeCeitnot admin:   %s", VeCeitnot.admin());
 
         if (oracleV2 != address(0)) {
-            IAuraOracleAdmin oracle = IAuraOracleAdmin(oracleV2);
+            ICeitnotOracleAdmin oracle = ICeitnotOracleAdmin(oracleV2);
             console.log("Current oracleV2 admin: %s", oracle.admin());
         }
 
@@ -121,7 +121,7 @@ contract TransferAdminEverywhere is Script {
             console.log("4) aUSD.acceptAdmin()        target=%s data=%s", ausdAddr, bytesToHex(acceptData));
             console.log("5) treasury.acceptAdmin()    target=%s data=%s", treasuryAddr, bytesToHex(acceptData));
             console.log("\nNext step (run as CURRENT admin signer, one-step):");
-            console.log("6) veAura.setAdmin(new)      target=%s data=%s", veAuraAddr, bytesToHex(setVeData));
+            console.log("6) VeCeitnot.setAdmin(new)      target=%s data=%s", VeCeitnotAddr, bytesToHex(setVeData));
         } else {
             if (mode == Mode.Accept) {
                 vm.startBroadcast();
@@ -137,14 +137,14 @@ contract TransferAdminEverywhere is Script {
             } else if (mode == Mode.OneStep) {
                 vm.startBroadcast();
                 // one-step admin setters require CURRENT admin signature
-                veAura.setAdmin(targetAdmin);
+                VeCeitnot.setAdmin(targetAdmin);
                 if (oracleV2 != address(0)) {
-                    IAuraOracleAdmin oracle = IAuraOracleAdmin(oracleV2);
+                    ICeitnotOracleAdmin oracle = ICeitnotOracleAdmin(oracleV2);
                     oracle.setAdmin(targetAdmin);
                 }
                 vm.stopBroadcast();
 
-                console.log("\nOne-step admin updates completed (veAura/optional oracleV2).");
+                console.log("\nOne-step admin updates completed (VeCeitnot/optional oracleV2).");
             } else {
                 revert("TransferAdminEverywhere: unknown mode");
             }

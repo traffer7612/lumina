@@ -3,9 +3,9 @@ pragma solidity ^0.8.20;
 
 import { Script }             from "forge-std/Script.sol";
 import { console }            from "forge-std/console.sol";
-import { AuraEngine }         from "../src/AuraEngine.sol";
-import { AuraProxy }          from "../src/AuraProxy.sol";
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotEngine }         from "../src/CeitnotEngine.sol";
+import { CeitnotProxy }          from "../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 import { OracleRelayV2 }      from "../src/OracleRelayV2.sol";
 import { IOracleRelayV2 }     from "../src/interfaces/IOracleRelayV2.sol";
 
@@ -19,7 +19,7 @@ import { IOracleRelayV2 }     from "../src/interfaces/IOracleRelayV2.sol";
  * Required env vars:
  *   MULTISIG_ADDRESS    - Gnosis Safe address (3/5 or 4/7) that will govern the protocol
  *   COLLATERAL_VAULT    - ERC-4626 vault address used as collateral
- *   USDC_ADDRESS        - Debt token address (USDC or AuraUSD)
+ *   USDC_ADDRESS        - Debt token address (USDC or CeitnotUSD)
  *   CHAINLINK_FEED      - Primary Chainlink AggregatorV3Interface for collateral price
  *
  * Optional env vars:
@@ -103,7 +103,7 @@ contract DeployMultisig is Script {
         // ------------------------------------------------------------------ 2. Registry
         // Deployer EOA is initial admin so we can call addMarket + setEngine here.
         // Admin is proposed to multisig at the end of this script.
-        AuraMarketRegistry reg = new AuraMarketRegistry(msg.sender);
+        CeitnotMarketRegistry reg = new CeitnotMarketRegistry(msg.sender);
         registry = address(reg);
 
         reg.addMarket(
@@ -119,12 +119,12 @@ contract DeployMultisig is Script {
         );
 
         // ------------------------------------------------------------------ 3. Engine
-        AuraEngine implementation = new AuraEngine();
+        CeitnotEngine implementation = new CeitnotEngine();
         bytes memory initData = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (usdc, registry, timelockDelay, timelockDelay)
         );
-        AuraProxy proxyContract = new AuraProxy(address(implementation), initData);
+        CeitnotProxy proxyContract = new CeitnotProxy(address(implementation), initData);
         proxy = address(proxyContract);
 
         // Wire engine into registry
@@ -132,15 +132,15 @@ contract DeployMultisig is Script {
 
         // ------------------------------------------------------------------ 4. Propose admin to multisig
         // Two-step admin transfer: deployer proposes, multisig must call acceptAdmin().
-        AuraEngine(proxy).proposeAdmin(multisig);
+        CeitnotEngine(proxy).proposeAdmin(multisig);
         reg.proposeAdmin(multisig);
 
         vm.stopBroadcast();
 
         // ------------------------------------------------------------------ Log
-        console.log("=== Aura Protocol Multisig Deployment ===");
-        console.log("AURA_ENGINE_PROXY=%s",     proxy);
-        console.log("AURA_REGISTRY=%s",          registry);
+        console.log("=== Ceitnot Protocol Multisig Deployment ===");
+        console.log("CEITNOT_ENGINE_PROXY=%s",     proxy);
+        console.log("CEITNOT_REGISTRY=%s",          registry);
         console.log("ORACLE_RELAY_V2=%s",        oracle);
         console.log("MULTISIG=%s",               multisig);
         console.log("");

@@ -6,9 +6,9 @@ import { IERC6372 }  from "@openzeppelin/contracts/interfaces/IERC6372.sol";
 import { SafeCast }  from "@openzeppelin/contracts/utils/math/SafeCast.sol";
 
 /**
- * @title  VeAura
+ * @title  VeCeitnot
  * @author Sanzhik(traffer7612)
- * @notice Vote-Escrow AURA (veAURA). Lock AURA for up to 4 years to receive:
+ * @notice Vote-Escrow CEITNOT (VeCeitnot). Lock CEITNOT for up to 4 years to receive:
  *         1. Voting power (linear decay: more lock time = more power)
  *         2. Share of protocol revenue (proportional to locked amount, not decayed power)
  *
@@ -25,21 +25,21 @@ import { SafeCast }  from "@openzeppelin/contracts/utils/math/SafeCast.sol";
  *           revenuePerTokenStored += revenue / totalLocked
  *           userRevenue = lockedAmount * (revenuePerTokenStored - userRevenuePerTokenPaid)
  */
-contract VeAura {
+contract VeCeitnot {
     using SafeCast for uint256;
 
     // ------------------------------- Errors
-    error VeAura__LockExists();
-    error VeAura__NoLock();
-    error VeAura__LockNotExpired();
-    error VeAura__LockExpired();
-    error VeAura__InvalidDuration();
-    error VeAura__InvalidUnlockTime();
-    error VeAura__ZeroAmount();
-    error VeAura__Unauthorized();
-    error VeAura__ZeroAddress();
-    error VeAura__TransferFailed();
-    error VeAura__NoRevenue();
+    error VeCeitnot__LockExists();
+    error VeCeitnot__NoLock();
+    error VeCeitnot__LockNotExpired();
+    error VeCeitnot__LockExpired();
+    error VeCeitnot__InvalidDuration();
+    error VeCeitnot__InvalidUnlockTime();
+    error VeCeitnot__ZeroAmount();
+    error VeCeitnot__Unauthorized();
+    error VeCeitnot__ZeroAddress();
+    error VeCeitnot__TransferFailed();
+    error VeCeitnot__NoRevenue();
 
     // ------------------------------- Events
     event Locked(address indexed user, uint256 amount, uint256 unlockTime);
@@ -58,7 +58,7 @@ contract VeAura {
 
     // ------------------------------- Structs
     struct LockedBalance {
-        uint128 amount;     // AURA locked (WAD)
+        uint128 amount;     // CEITNOT locked (WAD)
         uint48  unlockTime; // timestamp when lock expires
     }
 
@@ -69,7 +69,7 @@ contract VeAura {
     }
 
     // ------------------------------- State
-    /// @notice AURA token contract
+    /// @notice CEITNOT token contract
     address public immutable token;
 
     /// @notice Admin — can call distributeRevenue; should be TimelockController/Treasury
@@ -78,7 +78,7 @@ contract VeAura {
     /// @notice Revenue token (debt token / stablecoin)
     address public revenueToken;
 
-    /// @notice Total amount of AURA currently locked
+    /// @notice Total amount of CEITNOT currently locked
     uint256 public totalLocked;
 
     /// @notice Per-user lock data
@@ -100,7 +100,7 @@ contract VeAura {
 
     // ------------------------------- Constructor
     constructor(address token_, address admin_, address revenueToken_) {
-        if (token_ == address(0) || admin_ == address(0)) revert VeAura__ZeroAddress();
+        if (token_ == address(0) || admin_ == address(0)) revert VeCeitnot__ZeroAddress();
         token        = token_;
         admin        = admin_;
         revenueToken = revenueToken_;
@@ -119,18 +119,18 @@ contract VeAura {
     // ------------------------------- Lock mechanics
 
     /**
-     * @notice Lock AURA for `unlockTime` (rounded to epoch). Requires no existing lock.
-     * @param amount     Amount of AURA to lock (WAD)
+     * @notice Lock CEITNOT for `unlockTime` (rounded to epoch). Requires no existing lock.
+     * @param amount     Amount of CEITNOT to lock (WAD)
      * @param unlockTime Desired unlock timestamp (rounded down to week boundary)
      */
     function lock(uint256 amount, uint256 unlockTime) external {
-        if (amount == 0) revert VeAura__ZeroAmount();
+        if (amount == 0) revert VeCeitnot__ZeroAmount();
         LockedBalance storage lb = locks[msg.sender];
-        if (lb.amount > 0) revert VeAura__LockExists();
+        if (lb.amount > 0) revert VeCeitnot__LockExists();
 
         uint256 rounded = (unlockTime / EPOCH) * EPOCH;
-        if (rounded <= block.timestamp)              revert VeAura__InvalidUnlockTime();
-        if (rounded > block.timestamp + MAX_LOCK_DURATION) revert VeAura__InvalidDuration();
+        if (rounded <= block.timestamp)              revert VeCeitnot__InvalidUnlockTime();
+        if (rounded > block.timestamp + MAX_LOCK_DURATION) revert VeCeitnot__InvalidDuration();
 
         _updateRevenue(msg.sender);
 
@@ -150,13 +150,13 @@ contract VeAura {
 
     /**
      * @notice Increase the locked amount of an existing lock. Lock time is unchanged.
-     * @param extra Additional AURA to lock
+     * @param extra Additional CEITNOT to lock
      */
     function increaseAmount(uint256 extra) external {
-        if (extra == 0) revert VeAura__ZeroAmount();
+        if (extra == 0) revert VeCeitnot__ZeroAmount();
         LockedBalance storage lb = locks[msg.sender];
-        if (lb.amount == 0) revert VeAura__NoLock();
-        if (block.timestamp >= lb.unlockTime) revert VeAura__LockExpired();
+        if (lb.amount == 0) revert VeCeitnot__NoLock();
+        if (block.timestamp >= lb.unlockTime) revert VeCeitnot__LockExpired();
 
         _updateRevenue(msg.sender);
 
@@ -180,12 +180,12 @@ contract VeAura {
      */
     function extendLock(uint256 newUnlockTime) external {
         LockedBalance storage lb = locks[msg.sender];
-        if (lb.amount == 0) revert VeAura__NoLock();
-        if (block.timestamp >= lb.unlockTime) revert VeAura__LockExpired();
+        if (lb.amount == 0) revert VeCeitnot__NoLock();
+        if (block.timestamp >= lb.unlockTime) revert VeCeitnot__LockExpired();
 
         uint256 rounded = (newUnlockTime / EPOCH) * EPOCH;
-        if (rounded <= lb.unlockTime) revert VeAura__InvalidUnlockTime();
-        if (rounded > block.timestamp + MAX_LOCK_DURATION) revert VeAura__InvalidDuration();
+        if (rounded <= lb.unlockTime) revert VeCeitnot__InvalidUnlockTime();
+        if (rounded > block.timestamp + MAX_LOCK_DURATION) revert VeCeitnot__InvalidDuration();
 
         lb.unlockTime = uint48(rounded);
 
@@ -197,12 +197,12 @@ contract VeAura {
     }
 
     /**
-     * @notice Withdraw AURA after lock has expired.
+     * @notice Withdraw CEITNOT after lock has expired.
      */
     function withdraw() external {
         LockedBalance storage lb = locks[msg.sender];
-        if (lb.amount == 0) revert VeAura__NoLock();
-        if (block.timestamp < lb.unlockTime) revert VeAura__LockNotExpired();
+        if (lb.amount == 0) revert VeCeitnot__NoLock();
+        if (block.timestamp < lb.unlockTime) revert VeCeitnot__LockNotExpired();
 
         _updateRevenue(msg.sender);
 
@@ -238,13 +238,13 @@ contract VeAura {
         bytes32 r,
         bytes32 s
     ) external {
-        if (block.timestamp > expiry) revert VeAura__Unauthorized();
+        if (block.timestamp > expiry) revert VeCeitnot__Unauthorized();
         address signer = ecrecover(
             keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32",
                 keccak256(abi.encode(delegatee, expiry)))),
             v, r, s
         );
-        if (signer == address(0)) revert VeAura__Unauthorized();
+        if (signer == address(0)) revert VeCeitnot__Unauthorized();
         _delegate(signer, delegatee);
     }
 
@@ -260,26 +260,26 @@ contract VeAura {
 
     /// @notice Voting power of `account` at a past `timepoint` (timestamp).
     function getPastVotes(address account, uint256 timepoint) external view returns (uint256) {
-        if (timepoint >= block.timestamp) revert VeAura__Unauthorized(); // future not allowed
+        if (timepoint >= block.timestamp) revert VeCeitnot__Unauthorized(); // future not allowed
         return _checkpointLookup(_checkpoints[account], timepoint);
     }
 
     /// @notice Total voting supply at a past `timepoint`.
     function getPastTotalSupply(uint256 timepoint) external view returns (uint256) {
-        if (timepoint >= block.timestamp) revert VeAura__Unauthorized();
+        if (timepoint >= block.timestamp) revert VeCeitnot__Unauthorized();
         return _checkpointLookup(_totalSupplyCheckpoints, timepoint);
     }
 
     // ------------------------------- Revenue distribution
 
     /**
-     * @notice Distribute protocol revenue to veAURA holders (proportional to locked amount).
+     * @notice Distribute protocol revenue to VeCeitnot holders (proportional to locked amount).
      * @param amount Amount of revenueToken to distribute (must be pre-approved)
      */
     function distributeRevenue(uint256 amount) external {
-        if (msg.sender != admin) revert VeAura__Unauthorized();
-        if (amount == 0) revert VeAura__ZeroAmount();
-        if (totalLocked == 0) revert VeAura__NoRevenue();
+        if (msg.sender != admin) revert VeCeitnot__Unauthorized();
+        if (amount == 0) revert VeCeitnot__ZeroAmount();
+        if (totalLocked == 0) revert VeCeitnot__NoRevenue();
         // Effects first (CEI pattern)
         revenuePerTokenStored += (amount * PRECISION) / totalLocked;
         // Interaction last
@@ -291,7 +291,7 @@ contract VeAura {
     function claimRevenue() external returns (uint256 reward) {
         _updateRevenue(msg.sender);
         reward = revenueEarned[msg.sender];
-        if (reward == 0) revert VeAura__NoRevenue();
+        if (reward == 0) revert VeCeitnot__NoRevenue();
         revenueEarned[msg.sender] = 0;
         _transferOut(revenueToken, msg.sender, reward);
         emit RevenueClaimed(msg.sender, reward);
@@ -310,14 +310,14 @@ contract VeAura {
     // ------------------------------- Admin
 
     function setAdmin(address newAdmin) external {
-        if (msg.sender != admin) revert VeAura__Unauthorized();
-        if (newAdmin == address(0)) revert VeAura__ZeroAddress();
+        if (msg.sender != admin) revert VeCeitnot__Unauthorized();
+        if (newAdmin == address(0)) revert VeCeitnot__ZeroAddress();
         admin = newAdmin;
     }
 
     function setRevenueToken(address newToken) external {
-        if (msg.sender != admin) revert VeAura__Unauthorized();
-        if (newToken == address(0)) revert VeAura__ZeroAddress();
+        if (msg.sender != admin) revert VeCeitnot__Unauthorized();
+        if (newToken == address(0)) revert VeCeitnot__ZeroAddress();
         revenueToken = newToken;
     }
 
@@ -413,13 +413,13 @@ contract VeAura {
         (bool ok, bytes memory data) = tkn.call(
             abi.encodeWithSelector(0x23b872dd, from, address(this), amount)
         );
-        if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert VeAura__TransferFailed();
+        if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert VeCeitnot__TransferFailed();
     }
 
     function _transferOut(address tkn, address to, uint256 amount) internal {
         (bool ok, bytes memory data) = tkn.call(
             abi.encodeWithSelector(0xa9059cbb, to, amount)
         );
-        if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert VeAura__TransferFailed();
+        if (!ok || (data.length != 0 && !abi.decode(data, (bool)))) revert VeCeitnot__TransferFailed();
     }
 }

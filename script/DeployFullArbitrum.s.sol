@@ -6,17 +6,17 @@ import { console } from "forge-std/console.sol";
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { AuraEngine }         from "../src/AuraEngine.sol";
-import { AuraProxy }          from "../src/AuraProxy.sol";
-import { AuraMarketRegistry } from "../src/AuraMarketRegistry.sol";
+import { CeitnotEngine }         from "../src/CeitnotEngine.sol";
+import { CeitnotProxy }          from "../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry } from "../src/CeitnotMarketRegistry.sol";
 import { OracleRelay }        from "../src/OracleRelay.sol";
-import { AuraUSD }            from "../src/AuraUSD.sol";
-import { AuraPSM }            from "../src/AuraPSM.sol";
-import { AuraRouter }         from "../src/AuraRouter.sol";
-import { AuraTreasury }       from "../src/AuraTreasury.sol";
-import { AuraToken }          from "../src/governance/AuraToken.sol";
-import { VeAura }             from "../src/governance/VeAura.sol";
-import { AuraGovernor }       from "../src/governance/AuraGovernor.sol";
+import { CeitnotUSD }            from "../src/CeitnotUSD.sol";
+import { CeitnotPSM }            from "../src/CeitnotPSM.sol";
+import { CeitnotRouter }         from "../src/CeitnotRouter.sol";
+import { CeitnotTreasury }       from "../src/CeitnotTreasury.sol";
+import { CeitnotToken }          from "../src/governance/CeitnotToken.sol";
+import { VeCeitnot }             from "../src/governance/VeCeitnot.sol";
+import { CeitnotGovernor }       from "../src/governance/CeitnotGovernor.sol";
 import { MockERC20 }          from "../test/mocks/MockERC20.sol";
 import { MockVault4626 }      from "../test/mocks/MockVault4626.sol";
 
@@ -28,12 +28,12 @@ import { TimelockController } from "@openzeppelin/contracts/governance/TimelockC
  * @notice Full Lumina CDP stack on **Arbitrum One** (chainId 42161):
  *         - Fresh **mock** wstETH + ERC-4626 vault (Lido bridge token 0x5979… fails registry `convertToAssets(1e18)` probe)
  *         - **Real** native USDC + Chainlink **ETH/USD** for oracle pricing
- *         - aUSD, engine (proxy), PSM, router, treasury, AURA + veAURA + governor + timelock
+ *         - aUSD, engine (proxy), PSM, router, treasury, CEITNOT + VeCeitnot + governor + timelock
  *
  * Optional env:
  *   PSM_USDC_SEED — raw USDC units (6 decimals on Arbitrum native USDC) to `transfer` from deployer into PSM for swapOut liquidity; 0 = skip
  *   GOVERNANCE_TOKEN_MINT — WAD minted to deployer (default 10M * 1e18)
- *   ENGINE_HEARTBEAT / ENGINE_TIMELOCK — passed to `AuraEngine.initialize` (defaults 1h / 2d)
+ *   ENGINE_HEARTBEAT / ENGINE_TIMELOCK — passed to `CeitnotEngine.initialize` (defaults 1h / 2d)
  *
  * Prerequisites:
  *   - Deployer wallet has **ETH on Arbitrum** for gas
@@ -60,12 +60,12 @@ contract DeployFullArbitrum is Script {
         address deployer = msg.sender;
 
         MockERC20     wstETH = new MockERC20("Wrapped stETH", "wstETH", 18);
-        MockVault4626 vault  = new MockVault4626(address(wstETH), "Aura wstETH Vault", "aWstETH");
+        MockVault4626 vault  = new MockVault4626(address(wstETH), "Ceitnot wstETH Vault", "aWstETH");
         OracleRelay   oracle = new OracleRelay(CHAINLINK_ETH_USD_ARB, address(0), 0);
 
-        AuraUSD ausd = new AuraUSD(deployer);
+        CeitnotUSD ausd = new CeitnotUSD(deployer);
 
-        AuraMarketRegistry registry = new AuraMarketRegistry(deployer);
+        CeitnotMarketRegistry registry = new CeitnotMarketRegistry(deployer);
         uint256 marketId = registry.addMarket(
             address(vault),
             address(oracle),
@@ -78,19 +78,19 @@ contract DeployFullArbitrum is Script {
             0
         );
 
-        AuraEngine implementation = new AuraEngine();
+        CeitnotEngine implementation = new CeitnotEngine();
         bytes memory initData = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(ausd), address(registry), heartbeat, timelockDelay)
         );
-        AuraProxy proxyContract = new AuraProxy(address(implementation), initData);
+        CeitnotProxy proxyContract = new CeitnotProxy(address(implementation), initData);
         address engine = address(proxyContract);
 
         registry.setEngine(engine);
-        AuraEngine(engine).setMintableDebtToken(true);
+        CeitnotEngine(engine).setMintableDebtToken(true);
         ausd.addMinter(engine);
 
-        AuraPSM psm = new AuraPSM(address(ausd), ARBITRUM_NATIVE_USDC, deployer, uint16(10), uint16(10));
+        CeitnotPSM psm = new CeitnotPSM(address(ausd), ARBITRUM_NATIVE_USDC, deployer, uint16(10), uint16(10));
         ausd.addMinter(address(psm));
 
         if (psmUsdcSeed > 0) {
@@ -99,13 +99,13 @@ contract DeployFullArbitrum is Script {
             require(IERC20(ARBITRUM_NATIVE_USDC).transfer(address(psm), psmUsdcSeed), "DeployFullArbitrum: USDC transfer failed");
         }
 
-        AuraRouter   router   = new AuraRouter(engine, address(ausd));
-        AuraTreasury treasury = new AuraTreasury(deployer);
+        CeitnotRouter   router   = new CeitnotRouter(engine, address(ausd));
+        CeitnotTreasury treasury = new CeitnotTreasury(deployer);
 
-        AuraToken auraToken = new AuraToken(deployer);
-        auraToken.mint(deployer, govMint);
+        CeitnotToken govToken = new CeitnotToken(deployer);
+        govToken.mint(deployer, govMint);
 
-        VeAura veAura = new VeAura(address(auraToken), deployer, address(ausd));
+        VeCeitnot veLock = new VeCeitnot(address(govToken), deployer, address(ausd));
 
         address[] memory proposers = new address[](1);
         proposers[0] = deployer;
@@ -113,7 +113,7 @@ contract DeployFullArbitrum is Script {
         executors[0] = address(0);
 
         TimelockController timelock = new TimelockController(1 days, proposers, executors, deployer);
-        AuraGovernor governor = new AuraGovernor(IVotes(address(veAura)), timelock);
+        CeitnotGovernor governor = new CeitnotGovernor(IVotes(address(veLock)), timelock);
 
         wstETH.mint(deployer, 100_000 * 1e18);
 
@@ -138,8 +138,8 @@ contract DeployFullArbitrum is Script {
         console.log("TREASURY:           %s", address(treasury));
         console.log("");
         console.log("--- Governance ---");
-        console.log("AURA_TOKEN:         %s", address(auraToken));
-        console.log("VE_AURA:            %s", address(veAura));
+        console.log("CEITNOT_TOKEN:         %s", address(govToken));
+        console.log("CEITNOT_VE:            %s", address(veLock));
         console.log("GOVERNOR:           %s", address(governor));
         console.log("TIMELOCK:           %s", address(timelock));
         console.log("");

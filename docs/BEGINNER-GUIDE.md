@@ -1,14 +1,14 @@
-# Lumina — Полный гайд для новичка (от и до)
+# Ceitnot — Полный гайд для новичка (от и до)
 
-Этот документ — **единая инструкция** для человека, который видит проект Lumina впервые. Здесь собрано всё: что это за проект, как его установить, запустить, задеплоить контракты и начать пользоваться.
+Этот документ — **единая инструкция** для человека, который видит проект Ceitnot впервые. Здесь собрано всё: что это за проект, как его установить, запустить, задеплоить контракты и начать пользоваться.
 
-> **Бренд и код:** публичное имя — **Lumina**; имена контрактов в Solidity (**`AuraEngine`**, **`AuraUSD`**, …) и переменные вроде `AURA_ENGINE_ADDRESS` остаются как в репозитории. См. [BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md).
+> **Бренд и код:** публичное имя — **Ceitnot**; имена контрактов в Solidity (**`CeitnotEngine`**, **`CeitnotUSD`**, …) и переменные вроде `CEITNOT_ENGINE_ADDRESS` остаются как в репозитории. См. [BRANDING-AND-NAMING.md](BRANDING-AND-NAMING.md).
 
 ---
 
 ## Содержание
 
-1. [Что такое Lumina](#1-что-такое-lumina)
+1. [Что такое Ceitnot](#1-что-такое-ceitnot)
 2. [Ключевые понятия](#2-ключевые-понятия)
 3. [Архитектура проекта](#3-архитектура-проекта)
 4. [Что нужно установить](#4-что-нужно-установить)
@@ -21,7 +21,7 @@
 11. [Как устроены контракты (обзор)](#11-как-устроены-контракты-обзор)
 12. [CDP-режим — собственный стейблкоин aUSD](#12-cdp-режим--собственный-стейблкоин-ausd)
 13. [PSM — обмен aUSD ↔ USDC](#13-psm--обмен-ausd--usdc)
-14. [Governance — veLUMINA и голосование](#14-governance--velumina-и-голосование)
+14. [Governance — veCEITNOT и голосование](#14-governance--veceitnot-и-голосование)
 15. [Деплой на боевую сеть (Mainnet)](#15-деплой-на-боевую-сеть-mainnet)
 16. [Выход на DEX и листинг токена](#16-выход-на-dex-и-листинг-токена)
 17. [Полный план запуска (Roadmap)](#17-полный-план-запуска-roadmap)
@@ -31,13 +31,13 @@
 21. [Полезные ссылки](#21-полезные-ссылки)
 ---
 
-## 1. Что такое Lumina
+## 1. Что такое Ceitnot
 
-**Lumina** — это DeFi-протокол (децентрализованные финансы), который работает на блокчейне. Его суть:
+**Ceitnot** — это DeFi-протокол (децентрализованные финансы), который работает на блокчейне. Его суть:
 
 - Пользователь **вносит залог** (коллатерал) — это токены, которые приносят доход (yield-bearing assets, например wstETH).
 - Под этот залог можно **взять стейблкоин в долг** (например USDC).
-- **Yield Siphon** — фишка Lumina: доход от залога автоматически уменьшает ваш долг. Чем дольше лежит коллатерал — тем меньше долг. Это называется **самоликвидирующийся долг**.
+- **Yield Siphon** — фишка Ceitnot: доход от залога автоматически уменьшает ваш долг. Чем дольше лежит коллатерал — тем меньше долг. Это называется **самоликвидирующийся долг**.
 
 Простая аналогия: вы кладёте акции в банк, под них берёте кредит, а дивиденды от акций автоматически гасят ваш кредит.
 
@@ -45,7 +45,7 @@
 
 ## 2. Ключевые понятия
 
-**Коллатерал (collateral)** — залог, который вы вносите в протокол. В Lumina это доли (shares) ERC-4626 хранилища (vault). Чем больше и дороже коллатерал — тем больше можно занять.
+**Коллатерал (collateral)** — залог, который вы вносите в протокол. В Ceitnot это доли (shares) ERC-4626 хранилища (vault). Чем больше и дороже коллатерал — тем больше можно занять.
 
 **ERC-4626 Vault** — стандартное «хранилище» в блокчейне. Вы кладёте токены (assets), получаете доли (shares). Со временем доли дорожают, потому что хранилище зарабатывает доход.
 
@@ -77,8 +77,8 @@
                 ▼                               ▼
 ┌──────────────────────────────┐   ┌──────────────────────────────────┐
 │       ФРОНТЕНД (React)       │   │         БЛОКЧЕЙН                  │
-│  Vite + Wagmi + RainbowKit   │   │  Lumina: `AuraProxy` → `AuraEngine` │
-│  Показывает позицию, формы   │──▶│  `AuraMarketRegistry`             │
+│  Vite + Wagmi + RainbowKit   │   │  Ceitnot: `CeitnotProxy` → `CeitnotEngine` │
+│  Показывает позицию, формы   │──▶│  `CeitnotMarketRegistry`             │
 │  Deposit / Borrow / Repay    │   │  OracleRelay (Chainlink)          │
 └──────────────────────────────┘   │  ERC-4626 Vault (wstETH)          │
                 │                   │  USDC (долговой токен)             │
@@ -158,15 +158,15 @@ cast --version
 ```
 aura/
 ├── src/                          # Solidity-контракты
-│   ├── AuraEngine.sol            # Движок: депозит, займ, погашение, ликвидация, harvest
-│   ├── AuraProxy.sol             # UUPS-прокси
-│   ├── AuraStorage.sol           # EIP-7201 хранилище (все переменные состояния)
-│   ├── AuraMarketRegistry.sol    # Реестр рынков (vault, oracle, LTV, caps)
-│   ├── AuraUSD.sol               # Mintable-стейблкоин (aUSD) для CDP-режима
-│   ├── AuraRouter.sol            # Маршрутизатор для composability
-│   ├── AuraTreasury.sol          # Казначейство протокола
-│   ├── AuraPSM.sol               # Peg Stability Module
-│   ├── AuraVault4626.sol         # ERC-4626 адаптер поверх движка
+│   ├── CeitnotEngine.sol            # Движок: депозит, займ, погашение, ликвидация, harvest
+│   ├── CeitnotProxy.sol             # UUPS-прокси
+│   ├── CeitnotStorage.sol           # EIP-7201 хранилище (все переменные состояния)
+│   ├── CeitnotMarketRegistry.sol    # Реестр рынков (vault, oracle, LTV, caps)
+│   ├── CeitnotUSD.sol               # Mintable-стейблкоин (aUSD) для CDP-режима
+│   ├── CeitnotRouter.sol            # Маршрутизатор для composability
+│   ├── CeitnotTreasury.sol          # Казначейство протокола
+│   ├── CeitnotPSM.sol               # Peg Stability Module
+│   ├── CeitnotVault4626.sol         # ERC-4626 адаптер поверх движка
 │   ├── FixedPoint.sol            # Математика WAD/RAY
 │   ├── InterestRateModel.sol     # Модель процентной ставки
 │   ├── OracleRelay.sol           # Мульти-оракул (Chainlink + fallback)
@@ -176,7 +176,7 @@ aura/
 │   └── governance/               # Governance-контракты
 │
 ├── test/                         # Тесты (Foundry)
-│   ├── Aura.t.sol                # Основные юнит-тесты
+│   ├── Ceitnot.t.sol                # Основные юнит-тесты
 │   ├── Security.t.sol            # Тесты безопасности
 │   ├── FlashLoan.t.sol           # Flash-loan тесты
 │   ├── Governance.t.sol          # Governance-тесты
@@ -273,7 +273,7 @@ Copy-Item F:\aura\backend\.env.example F:\aura\backend\.env
 npm run dev --prefix F:\aura\backend
 ```
 
-Должно появиться: **Lumina backend running at http://localhost:3001**
+Должно появиться: **Ceitnot backend running at http://localhost:3001**
 
 Проверка: открыть в браузере http://localhost:3001/api/health — должен вернуть `{"status":"ok"}`.
 
@@ -300,7 +300,7 @@ npm run dev --prefix F:\aura\frontend
 
 В браузере: **http://localhost:5173**
 
-Вы увидите интерфейс Lumina с кнопкой **Connect wallet**. Пока контракт не задеплоен — кнопки Deposit/Borrow не будут работать, это нормально.
+Вы увидите интерфейс Ceitnot с кнопкой **Connect wallet**. Пока контракт не задеплоен — кнопки Deposit/Borrow не будут работать, это нормально.
 
 ### 7.4. Остановка
 
@@ -350,9 +350,9 @@ forge script script/Deploy.s.sol:DeployScript --rpc-url https://ethereum-sepolia
 В конце выведутся адреса:
 
 ```
-AURA_ENGINE_ADDRESS=0x...   ← адрес движка (прокси) — главный
-AURA_REGISTRY_ADDRESS=0x... ← реестр рынков
-AURA_VAULT_4626_ADDRESS=0x... ← VAULT (хранилище)
+CEITNOT_ENGINE_ADDRESS=0x...   ← адрес движка (прокси) — главный
+CEITNOT_REGISTRY_ADDRESS=0x... ← реестр рынков
+CEITNOT_VAULT_4626_ADDRESS=0x... ← VAULT (хранилище)
 MOCK_ASSET_ADDRESS=0x...      ← ASSET (тестовый токен)
 ```
 
@@ -371,7 +371,7 @@ forge script script/DeploySepolia.s.sol:DeploySepolia --rpc-url https://ethereum
 **Бэкенд** — откройте `backend\.env` и впишите:
 
 ```env
-AURA_ENGINE_ADDRESS=0x_АДРЕС_ДВИЖКА_ИЗ_ВЫВОДА_ДЕПЛОЯ
+CEITNOT_ENGINE_ADDRESS=0x_АДРЕС_ДВИЖКА_ИЗ_ВЫВОДА_ДЕПЛОЯ
 ```
 
 **Фронтенд** — откройте `frontend\.env` и впишите:
@@ -390,14 +390,14 @@ VITE_CHAIN_ID=11155111
 
 ### 9.0. Как это работает
 
-В Lumina коллатерал — это **доли (shares)** ERC-4626 хранилища. После деплоя у вашего кошелька есть тестовые токены (ASSET), но нет долей (shares). Их нужно **один раз создать**, сделав два шага: approve → deposit в vault. Потом уже на сайте внести эти доли как коллатерал.
+В Ceitnot коллатерал — это **доли (shares)** ERC-4626 хранилища. После деплоя у вашего кошелька есть тестовые токены (ASSET), но нет долей (shares). Их нужно **один раз создать**, сделав два шага: approve → deposit в vault. Потом уже на сайте внести эти доли как коллатерал.
 
 ### 9.1. Создать доли (в терминале)
 
 Подставьте адреса из вывода деплоя (шаг 8.4):
 
 - `ASSET` = значение `MOCK_ASSET_ADDRESS`
-- `VAULT` = значение `AURA_VAULT_4626_ADDRESS`
+- `VAULT` = значение `CEITNOT_VAULT_4626_ADDRESS`
 - `ВАШ_АДРЕС` = адрес кошелька из MetaMask
 - `ВАШ_КЛЮЧ` = приватный ключ
 
@@ -442,7 +442,7 @@ cast send DEBT_TOKEN "approve(address,uint256)" ENGINE 1000000000000000000000 --
 
 Где:
 - `DEBT_TOKEN` — адрес второго MockERC20 из broadcast-файла (или `MOCK_DEBT_ADDRESS` из вывода DeploySepolia)
-- `ENGINE` — адрес прокси движка Lumina, `AuraProxy` (`AURA_ENGINE_ADDRESS`)
+- `ENGINE` — адрес прокси движка Ceitnot, `CeitnotProxy` (`CEITNOT_ENGINE_ADDRESS`)
 
 После approve на сайте: вкладка **Repay** → введите сумму → **Repay** → подтвердите в MetaMask.
 
@@ -488,9 +488,9 @@ cast call ORACLE "latestPrice()(uint256)" --rpc-url https://ethereum-sepolia.pub
 
 ### Контракты и их роли
 
-**`AuraProxy`** — единственный адрес, с которым общается пользователь (прокси движка Lumina). Все вызовы идут через прокси, который перенаправляет их в реализацию **`AuraEngine`** через `delegatecall`. Позволяет обновлять логику без смены адреса.
+**`CeitnotProxy`** — единственный адрес, с которым общается пользователь (прокси движка Ceitnot). Все вызовы идут через прокси, который перенаправляет их в реализацию **`CeitnotEngine`** через `delegatecall`. Позволяет обновлять логику без смены адреса.
 
-**`AuraEngine`** — ядро протокола Lumina. Содержит всю логику:
+**`CeitnotEngine`** — ядро протокола Ceitnot. Содержит всю логику:
 - `depositCollateral(marketId, shares)` — внести коллатерал
 - `withdrawCollateral(marketId, shares)` — вывести коллатерал
 - `borrow(marketId, user, amount)` — взять займ
@@ -499,9 +499,9 @@ cast call ORACLE "latestPrice()(uint256)" --rpc-url https://ethereum-sepolia.pub
 - `liquidate(marketId, user, repayAmount)` — ликвидировать нездоровую позицию
 - `flashLoan(...)` — flash-кредит (EIP-3156)
 
-**`AuraMarketRegistry`** — реестр рынков Lumina. Каждый рынок — это набор: vault (коллатерал), oracle, LTV, liquidation threshold, penalty, supply/borrow caps, isolation mode.
+**`CeitnotMarketRegistry`** — реестр рынков Ceitnot. Каждый рынок — это набор: vault (коллатерал), oracle, LTV, liquidation threshold, penalty, supply/borrow caps, isolation mode.
 
-**`AuraStorage`** — EIP-7201 хранилище. Все переменные состояния движка лежат здесь в одном namespace, чтобы не было коллизий при апгрейдах.
+**`CeitnotStorage`** — EIP-7201 хранилище. Все переменные состояния движка лежат здесь в одном namespace, чтобы не было коллизий при апгрейдах.
 
 **OracleRelay** — мульти-оракул: основной (Chainlink) + fallback. Защита от устаревших данных (staleness check).
 
@@ -534,13 +534,13 @@ cast call ORACLE "latestPrice()(uint256)" --rpc-url https://ethereum-sepolia.pub
 
 **CDP (Collateralized Debt Position)** — это позиция, в которой вы вносите залог и получаете **собственный стейблкоин протокола** — **aUSD**.
 
-В обычном режиме (раздел 9) Lumina выдаёт займ в **внешнем** стейблкоине (USDC). Но в CDP-режиме протокол **минтит собственный** стейблкоин — aUSD. Это как MakerDAO → DAI или Liquity → LUSD.
+В обычном режиме (раздел 9) Ceitnot выдаёт займ в **внешнем** стейблкоине (USDC). Но в CDP-режиме протокол **минтит собственный** стейблкоин — aUSD. Это как MakerDAO → DAI или Liquity → LUSD.
 
 ### Зачем свой стейблкоин?
 
 1. **Не зависим от USDC** — не нужно держать ликвидность USDC в пуле
 2. **Масштабируемость** — можно выдавать столько aUSD, сколько позволяет коллатерал
-3. **Revenue** — комиссии за минт/берн aUSD идут в Treasury → держателям veLUMINA (после распределения через `VeAura`)
+3. **Revenue** — комиссии за минт/берн aUSD идут в Treasury → держателям veCEITNOT (после распределения через `VeCeitnot`)
 4. **PSM** — через Peg Stability Module (раздел 13) пользователь может обменять aUSD ↔ USDC
 
 ### Как работает
@@ -548,22 +548,22 @@ cast call ORACLE "latestPrice()(uint256)" --rpc-url https://ethereum-sepolia.pub
 ```
 Пользователь → depositCollateral(wstETH) → borrow(aUSD)
                                               ↓
-                                         aUSD минтится из контракта AuraUSD.sol
+                                         aUSD минтится из контракта CeitnotUSD.sol
                                               ↓
                                     Пользователь имеет aUSD на кошельке
 ```
 
 1. Пользователь вносит коллатерал (shares ERC-4626 vault)
-2. Вызывает `borrow()` — движок минтит aUSD через `AuraUSD.mint()`
+2. Вызывает `borrow()` — движок минтит aUSD через `CeitnotUSD.mint()`
 3. aUSD приходит на кошелёк пользователя
 4. При погашении: пользователь вызывает `repay()` — aUSD сжигается (`burn()`)
 
-### Стейблкоин aUSD — контракт `AuraUSD`
+### Стейблкоин aUSD — контракт `CeitnotUSD`
 
-Файл: `src/AuraUSD.sol`
+Файл: `src/CeitnotUSD.sol`
 
 - ERC-20 токен с функциями `mint()` и `burn()`
-- Минтить может только **`AuraEngine`** (и зарегистрированные минтеры вроде PSM — через роли в `AuraUSD`)
+- Минтить может только **`CeitnotEngine`** (и зарегистрированные минтеры вроде PSM — через роли в `CeitnotUSD`)
 - Залог остаётся в движке, aUSD — чистый долговой токен
 
 ### Пример полного флоу
@@ -591,7 +591,7 @@ cast call ORACLE "latestPrice()(uint256)" --rpc-url https://ethereum-sepolia.pub
 
 ### Контракт
 
-Файл: `src/AuraPSM.sol`
+Файл: `src/CeitnotPSM.sol`
 
 Основные функции:
 - `swapAusdForUsdc(amount)` — отдаёшь aUSD, получаешь USDC
@@ -621,24 +621,24 @@ cast send $PSM_ADDRESS "swapAusdForUsdc(uint256)" 1000000000000000000 --rpc-url 
 
 ---
 
-## 14. Governance — veLUMINA и голосование
+## 14. Governance — veCEITNOT и голосование
 
 ### Зачем это нужно
 
-Lumina Protocol — это как банк, которым управляют сами пользователи. Чтобы голосовать за решения протокола, нужно доказать свою заинтересованность — заморозить свои LUMINA токены.
+Ceitnot Protocol — это как банк, которым управляют сами пользователи. Чтобы голосовать за решения протокола, нужно доказать свою заинтересованность — заморозить свои CEITNOT токены.
 
 ### Токены
 
-- **LUMINA** — governance-токен в интерфейсе; в сети выпущен контрактом **`AuraToken`** (в кошельке может отображаться **Aura / AURA** из метаданных ERC-20). Можно купить/продать. Сам по себе прав голоса не даёт.
-- **veLUMINA** — vote-escrow: локаешь LUMINA на срок в **`VeAura`** → получаешь право голоса и возможную долю от распределяемой выручки.
+- **CEITNOT** — governance-токен в интерфейсе; в сети выпущен контрактом **`CeitnotToken`** (в кошельке может отображаться **Aura / AURA** из метаданных ERC-20). Можно купить/продать. Сам по себе прав голоса не даёт.
+- **veCEITNOT** — vote-escrow: локаешь CEITNOT на срок в **`VeCeitnot`** → получаешь право голоса и возможную долю от распределяемой выручки.
 
-### Как работает veLUMINA
+### Как работает veCEITNOT
 
-1. **Lock** — замораживаешь LUMINA на срок (1 мес — 4 года). Чем дольше лок — тем больше voting power.
-2. **Voting Power** — формула: `power = amount × (unlockTime - now) / 4 years`. Пример: 1M LUMINA на 2 года = 500K voting power.
-3. **Revenue** — выручка, направленная в `VeAura.distributeRevenue`, распределяется между держателями активного лока пропорционально залоченной сумме.
+1. **Lock** — замораживаешь CEITNOT на срок (1 мес — 4 года). Чем дольше лок — тем больше voting power.
+2. **Voting Power** — формула: `power = amount × (unlockTime - now) / 4 years`. Пример: 1M CEITNOT на 2 года = 500K voting power.
+3. **Revenue** — выручка, направленная в `VeCeitnot.distributeRevenue`, распределяется между держателями активного лока пропорционально залоченной сумме.
 4. **Delegate** — можно делегировать свой голос другому адресу.
-5. **Withdraw** — после истечения лока забираешь LUMINA обратно.
+5. **Withdraw** — после истечения лока забираешь CEITNOT обратно.
 
 ### Почему нужен лок?
 
@@ -646,27 +646,27 @@ Lumina Protocol — это как банк, которым управляют с
 
 ### Контракты
 
-- **`AuraToken`** (`src/governance/AuraToken.sol`) — ERC-20 governance token (в UI — LUMINA)
-- **`VeAura`** (`src/governance/VeAura.sol`) — лок LUMINA (veLUMINA), voting power, распределение revenue
-- **`AuraGovernor`** (`src/governance/AuraGovernor.sol`) — голосование по предложениям (OpenZeppelin Governor)
+- **`CeitnotToken`** (`src/governance/CeitnotToken.sol`) — ERC-20 governance token (в UI — CEITNOT)
+- **`VeCeitnot`** (`src/governance/VeCeitnot.sol`) — лок CEITNOT (veCEITNOT), voting power, распределение revenue
+- **`CeitnotGovernor`** (`src/governance/CeitnotGovernor.sol`) — голосование по предложениям (OpenZeppelin Governor)
 - **TimelockController** — задержка исполнения решений (24 часа) для безопасности
 
-### Как получить токены LUMINA
+### Как получить токены CEITNOT
 
 В тестнете — они минтятся деплоеру при деплое. В боевой сети:
 
 - **DEX** — купить за ETH/USDC на Uniswap (см. раздел 16)
-- **Liquidity Mining** — пользователи получают LUMINA как награду за использование протокола
+- **Liquidity Mining** — пользователи получают CEITNOT как награду за использование протокола
 - **Airdrop** — бесплатная раздача ранним пользователям
 
 ### Использование на фронте
 
-На сайте Lumina есть вкладка **Governance** (`/governance`), где можно:
-- Залочить LUMINA (выбрать сумму и срок)
+На сайте Ceitnot есть вкладка **Governance** (`/governance`), где можно:
+- Залочить CEITNOT (выбрать сумму и срок)
 - Увеличить лок / продлить срок
 - Клеймить revenue
 - Делегировать голос
-- Забрать LUMINA после истечения лока
+- Забрать CEITNOT после истечения лока
 
 ---
 
@@ -694,7 +694,7 @@ Lumina Protocol — это как банк, которым управляют с
 forge script script/DeployProduction.s.sol:DeployProduction --rpc-url $ARBITRUM_RPC_URL --broadcast --private-key ВАШ_КЛЮЧ --verify
 ```
 
-Скрипт деплоит полный стек Lumina: Engine, Registry, Oracle, Vault, aUSD, PSM, Router, Treasury, `AuraToken`, `VeAura`, `AuraGovernor`, Timelock.
+Скрипт деплоит полный стек Ceitnot: Engine, Registry, Oracle, Vault, aUSD, PSM, Router, Treasury, `CeitnotToken`, `VeCeitnot`, `CeitnotGovernor`, Timelock.
 
 ### 15.4. После деплоя
 
@@ -702,7 +702,7 @@ forge script script/DeployProduction.s.sol:DeployProduction --rpc-url $ARBITRUM_
 2. Прописать адреса в `frontend/.env` и `backend/.env`
 3. Задеплоить фронт на Vercel
 4. Внести USDC в PSM для начальной ликвидности
-5. Создать пул LUMINA/ETH на DEX (см. раздел 16)
+5. Создать пул CEITNOT/ETH на DEX (см. раздел 16)
 
 ---
 
@@ -710,21 +710,21 @@ forge script script/DeployProduction.s.sol:DeployProduction --rpc-url $ARBITRUM_
 
 ### 16.1. Как токен попадает на биржу
 
-Токен LUMINA в сети — это ERC-20 контракт **`AuraToken`** (адрес после деплоя). На DEX (например Uniswap) **любой ERC-20 может торговаться** без разрешения — достаточно создать пул ликвидности.
+Токен CEITNOT в сети — это ERC-20 контракт **`CeitnotToken`** (адрес после деплоя). На DEX (например Uniswap) **любой ERC-20 может торговаться** без разрешения — достаточно создать пул ликвидности.
 
 ### 16.2. Пошагово
 
-**Шаг 1 — Задеплой токена в mainnet** (контракт `AuraToken`; это часть общего деплоя в разделе 15)
+**Шаг 1 — Задеплой токена в mainnet** (контракт `CeitnotToken`; это часть общего деплоя в разделе 15)
 
 После деплоя у тебя есть адрес токена (0xABC...) и токены на кошельке.
 
 **Шаг 2 — Создать пул на Uniswap**
 
 1. Открыть https://app.uniswap.org/pool → **New Position**
-2. В поле токена вставить **адрес контракта** (тот же, что `VITE_AURA_TOKEN_ADDRESS`)
-3. Выбрать пару: **LUMINA/ETH** или **LUMINA/USDC** (в интерфейсе DEX может подтянуться старое имя из метаданных — ориентируйся на адрес)
-4. Внести обе стороны. Пример: 5M LUMINA + 50 ETH
-5. Этим ты **задаёшь начальную цену**: 5M LUMINA = 50 ETH → 1 LUMINA = 0.00001 ETH
+2. В поле токена вставить **адрес контракта** (тот же, что `VITE_GOVERNANCE_TOKEN_ADDRESS`)
+3. Выбрать пару: **CEITNOT/ETH** или **CEITNOT/USDC** (в интерфейсе DEX может подтянуться старое имя из метаданных — ориентируйся на адрес)
+4. Внести обе стороны. Пример: 5M CEITNOT + 50 ETH
+5. Этим ты **задаёшь начальную цену**: 5M CEITNOT = 50 ETH → 1 CEITNOT = 0.00001 ETH
 
 **Шаг 3 — Токен торгуется**
 
@@ -768,7 +768,7 @@ forge script script/DeployProduction.s.sol:DeployProduction --rpc-url $ARBITRUM_
 - Альтернатива: конкурс на Code4rena / Sherlock ($20K–$100K)
 
 ### Этап 4 — Tokenomics
-- Определить общий саппалй (total supply) — например 100M LUMINA (лимит задаётся в `AuraToken.SUPPLY_CAP`)
+- Определить общий саппалй (total supply) — например 100M CEITNOT (лимит задаётся в `CeitnotToken.SUPPLY_CAP`)
 - Распределение (пример):
   - 30% — Liquidity Mining (награды пользователям)
   - 20% — Команда (с vesting 2–4 года)
@@ -782,12 +782,12 @@ forge script script/DeployProduction.s.sol:DeployProduction --rpc-url $ARBITRUM_
 1. Задеплоить все контракты в выбранную сеть
 2. Верифицировать на Etherscan/Arbiscan
 3. Внести USDC в PSM
-4. Создать пул LUMINA/ETH на Uniswap
-5. Запустить фронтенд на кастомном домене (например lumina.finance)
+4. Создать пул CEITNOT/ETH на Uniswap
+5. Запустить фронтенд на кастомном домене (например ceitnot.finance)
 6. Подать на CoinGecko / CoinMarketCap / DeFiLlama
 
 ### Этап 6 — Рост
-- Liquidity Mining программа — награждать LUMINA за использование протокола
+- Liquidity Mining программа — награждать CEITNOT за использование протокола
 - Партнёрства с другими DeFi протоколами
 - Добавление новых коллатералов (rETH, cbETH, sfrxETH и т.д.)
 - Мультичейн — запуск на других L2
@@ -795,11 +795,11 @@ forge script script/DeployProduction.s.sol:DeployProduction --rpc-url $ARBITRUM_
 ---
 ## 18. Апгрейд контракта
 
-Lumina использует UUPS-прокси, что позволяет обновлять логику движка без смены адреса.
+Ceitnot использует UUPS-прокси, что позволяет обновлять логику движка без смены адреса.
 
 ### 18.1. Процедура
 
-1. Напишите новую версию `AuraEngine.sol`.
+1. Напишите новую версию `CeitnotEngine.sol`.
 2. Запустите скрипт:
 
 ```powershell
@@ -811,7 +811,7 @@ forge script script/UpgradeEngine.s.sol:UpgradeEngine --rpc-url $RPC_URL --broad
 ### 18.2. Важно
 
 - Апгрейд может делать только **admin**.
-- Новые переменные добавляются в `__gap` (storage gap) в `AuraStorage.sol`.
+- Новые переменные добавляются в `__gap` (storage gap) в `CeitnotStorage.sol`.
 - Подробный чек-лист: см. `UPGRADE_CHECKLIST.md` в корне проекта.
 
 ---
@@ -827,7 +827,7 @@ forge test
 ### Конкретный файл
 
 ```powershell
-forge test --match-path test/Aura.t.sol -vvv
+forge test --match-path test/Ceitnot.t.sol -vvv
 ```
 
 ### Конкретный тест
@@ -891,7 +891,7 @@ forge snapshot
 |----------|---------|
 | Порт 3001 или 5173 занят | Закройте другое приложение на этом порту или задайте другой `PORT` в `.env`. |
 | «Failed to fetch» на сайте | Убедитесь, что бэкенд запущен на http://localhost:3001. |
-| «Set AURA_ENGINE_ADDRESS» | Пропишите адрес движка в `backend/.env` и перезапустите бэкенд. |
+| «Set CEITNOT_ENGINE_ADDRESS» | Пропишите адрес движка в `backend/.env` и перезапустите бэкенд. |
 | Кнопка Connect не реагирует | Проверьте, что MetaMask установлен и разблокирован. |
 
 ### Транзакции

@@ -63,7 +63,7 @@ interface ISequencerFeed {
  *         Feed types: Chainlink V3 (auto-normalised to WAD) and generic fallback.
  *
  *   8.4 Per-Market Oracle
- *         Each market in AuraMarketRegistry points to its own OracleRelayV2
+ *         Each market in CeitnotMarketRegistry points to its own OracleRelayV2
  *         instance configured with the appropriate sources and heartbeats for
  *         that collateral type. No engine changes required.
  */

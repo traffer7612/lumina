@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 /**
  * @title  IERC2612
- * @notice Minimal EIP-2612 permit interface used by AuraRouter when the
+ * @notice Minimal EIP-2612 permit interface used by CeitnotRouter when the
  *         collateral vault token supports gasless approvals.
  */
 interface IERC2612 {

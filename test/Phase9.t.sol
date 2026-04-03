@@ -2,18 +2,18 @@
 pragma solidity ^0.8.20;
 
 import { Test }                 from "forge-std/Test.sol";
-import { AuraEngine }           from "../src/AuraEngine.sol";
-import { AuraProxy }            from "../src/AuraProxy.sol";
-import { AuraMarketRegistry }   from "../src/AuraMarketRegistry.sol";
-import { AuraUSD }              from "../src/AuraUSD.sol";
-import { AuraPSM }              from "../src/AuraPSM.sol";
+import { CeitnotEngine }           from "../src/CeitnotEngine.sol";
+import { CeitnotProxy }            from "../src/CeitnotProxy.sol";
+import { CeitnotMarketRegistry }   from "../src/CeitnotMarketRegistry.sol";
+import { CeitnotUSD }              from "../src/CeitnotUSD.sol";
+import { CeitnotPSM }              from "../src/CeitnotPSM.sol";
 import { MockERC20 }            from "./mocks/MockERC20.sol";
 import { MockVault4626 }        from "./mocks/MockVault4626.sol";
 import { MockOracle }           from "./mocks/MockOracle.sol";
 
 /**
  * @title Phase9Test
- * @notice Tests for Phase 9: AuraUSD mintable stablecoin, Engine CDP mode, PSM.
+ * @notice Tests for Phase 9: CeitnotUSD mintable stablecoin, Engine CDP mode, PSM.
  */
 contract Phase9Test is Test {
     // ------------------------------- Constants
@@ -26,11 +26,11 @@ contract Phase9Test is Test {
     address public bob   = address(0xB0B);
 
     // ------------------------------- Contracts
-    AuraUSD           public ausd;
-    AuraPSM           public psm;
-    AuraEngine        public engine;
-    AuraProxy         public proxy;
-    AuraMarketRegistry public registry;
+    CeitnotUSD           public ausd;
+    CeitnotPSM           public psm;
+    CeitnotEngine        public engine;
+    CeitnotProxy         public proxy;
+    CeitnotMarketRegistry public registry;
 
     MockERC20    public usdc;        // peggedToken for PSM
     MockERC20    public assetToken;  // collateral underlying
@@ -39,40 +39,40 @@ contract Phase9Test is Test {
 
     // ------------------------------- Setup
     function setUp() public {
-        // 1. Deploy AuraUSD
-        ausd = new AuraUSD(admin);
+        // 1. Deploy CeitnotUSD
+        ausd = new CeitnotUSD(admin);
 
         // 2. Deploy collateral infrastructure
         assetToken = new MockERC20("Wrapped stETH", "wstETH", 18);
-        vault      = new MockVault4626(address(assetToken), "Aura wstETH Vault", "wstETH");
+        vault      = new MockVault4626(address(assetToken), "Ceitnot wstETH Vault", "wstETH");
         oracle     = new MockOracle();
 
         // 3. Registry
-        registry = new AuraMarketRegistry(admin);
+        registry = new CeitnotMarketRegistry(admin);
         registry.addMarket(
             address(vault), address(oracle),
             uint16(8000), uint16(8500), uint16(500),
             0, 0, false, 0
         );
 
-        // 4. Engine (AuraUSD as debt token, mintableDebtToken = false initially)
-        AuraEngine impl = new AuraEngine();
+        // 4. Engine (CeitnotUSD as debt token, mintableDebtToken = false initially)
+        CeitnotEngine impl = new CeitnotEngine();
         bytes memory initData = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(ausd), address(registry), uint256(1 days), uint256(2 days))
         );
-        proxy  = new AuraProxy(address(impl), initData);
-        engine = AuraEngine(address(proxy));
+        proxy  = new CeitnotProxy(address(impl), initData);
+        engine = CeitnotEngine(address(proxy));
         registry.setEngine(address(proxy));
 
-        // 5. Register engine + test-admin as minters in AuraUSD, enable CDP mode
+        // 5. Register engine + test-admin as minters in CeitnotUSD, enable CDP mode
         ausd.addMinter(address(proxy));
         ausd.addMinter(admin);   // test contract can mint directly in unit tests
         engine.setMintableDebtToken(true);
 
         // 6. Deploy PSM (USDC stable)
         usdc = new MockERC20("USD Coin", "USDC", 18);
-        psm  = new AuraPSM(address(ausd), address(usdc), admin, 10, 10); // 0.1% each
+        psm  = new CeitnotPSM(address(ausd), address(usdc), admin, 10, 10); // 0.1% each
         ausd.addMinter(address(psm));
 
         // 7. Fund actors with collateral
@@ -92,7 +92,7 @@ contract Phase9Test is Test {
     }
 
     // ==========================================================================
-    // AuraUSD — ERC-20 & access control
+    // CeitnotUSD — ERC-20 & access control
     // ==========================================================================
 
     function test_ausd_mint_byMinter() public {
@@ -103,7 +103,7 @@ contract Phase9Test is Test {
 
     function test_ausd_mint_notMinter_reverts() public {
         vm.prank(alice);
-        vm.expectRevert(AuraUSD.AuraUSD__Unauthorized.selector);
+        vm.expectRevert(CeitnotUSD.CeitnotUSD__Unauthorized.selector);
         ausd.mint(alice, 100 * WAD);
     }
 
@@ -129,14 +129,14 @@ contract Phase9Test is Test {
         vm.prank(alice);
         ausd.approve(bob, 10 * WAD);
         vm.prank(bob);
-        vm.expectRevert(AuraUSD.AuraUSD__InsufficientAllowance.selector);
+        vm.expectRevert(CeitnotUSD.CeitnotUSD__InsufficientAllowance.selector);
         ausd.burnFrom(alice, 50 * WAD);
     }
 
     function test_ausd_globalDebtCeiling_enforced() public {
         ausd.setGlobalDebtCeiling(500 * WAD);
         ausd.mint(alice, 500 * WAD); // exactly at ceiling — should pass
-        vm.expectRevert(AuraUSD.AuraUSD__DebtCeilingExceeded.selector);
+        vm.expectRevert(CeitnotUSD.CeitnotUSD__DebtCeilingExceeded.selector);
         ausd.mint(alice, 1);         // one wei over ceiling
     }
 
@@ -155,13 +155,13 @@ contract Phase9Test is Test {
         assertFalse(ausd.minters(newMinter));
 
         vm.prank(newMinter);
-        vm.expectRevert(AuraUSD.AuraUSD__Unauthorized.selector);
+        vm.expectRevert(CeitnotUSD.CeitnotUSD__Unauthorized.selector);
         ausd.mint(alice, 1);
     }
 
     function test_ausd_addMinter_nonAdmin_reverts() public {
         vm.prank(alice);
-        vm.expectRevert(AuraUSD.AuraUSD__Unauthorized.selector);
+        vm.expectRevert(CeitnotUSD.CeitnotUSD__Unauthorized.selector);
         ausd.addMinter(alice);
     }
 
@@ -241,12 +241,12 @@ contract Phase9Test is Test {
         vm.roll(block.number + 1);
 
         vm.prank(bob);
-        vm.expectRevert(AuraEngine.Aura__DebtCeilingExceeded.selector);
+        vm.expectRevert(CeitnotEngine.Ceitnot__DebtCeilingExceeded.selector);
         engine.borrow(bob, MARKET_ID, 1);
     }
 
     function test_engine_cdp_globalDebtCeiling_blocks_borrow() public {
-        // Global ceiling of 40 WAD on AuraUSD
+        // Global ceiling of 40 WAD on CeitnotUSD
         ausd.setGlobalDebtCeiling(40 * WAD);
 
         vm.prank(alice);
@@ -261,25 +261,25 @@ contract Phase9Test is Test {
         engine.depositCollateral(bob, MARKET_ID, 100 * WAD);
         vm.roll(block.number + 1);
 
-        // Any additional borrow should revert inside AuraUSD.mint
+        // Any additional borrow should revert inside CeitnotUSD.mint
         vm.prank(bob);
-        vm.expectRevert(AuraUSD.AuraUSD__DebtCeilingExceeded.selector);
+        vm.expectRevert(CeitnotUSD.CeitnotUSD__DebtCeilingExceeded.selector);
         engine.borrow(bob, MARKET_ID, 1);
     }
 
     function test_engine_cdp_legacyMode_unaffected() public {
         // Deploy a fresh engine in LEGACY mode (mintableDebtToken = false)
         MockERC20 legacyToken = new MockERC20("Legacy Debt", "LD", 18);
-        AuraMarketRegistry reg2 = new AuraMarketRegistry(admin);
+        CeitnotMarketRegistry reg2 = new CeitnotMarketRegistry(admin);
         reg2.addMarket(address(vault), address(oracle), 8000, 8500, 500, 0, 0, false, 0);
 
-        AuraEngine impl2 = new AuraEngine();
+        CeitnotEngine impl2 = new CeitnotEngine();
         bytes memory init2 = abi.encodeCall(
-            AuraEngine.initialize,
+            CeitnotEngine.initialize,
             (address(legacyToken), address(reg2), 1 days, 2 days)
         );
-        AuraProxy proxy2 = new AuraProxy(address(impl2), init2);
-        AuraEngine engine2 = AuraEngine(address(proxy2));
+        CeitnotProxy proxy2 = new CeitnotProxy(address(impl2), init2);
+        CeitnotEngine engine2 = CeitnotEngine(address(proxy2));
         reg2.setEngine(address(proxy2));
 
         // Pre-fund engine (legacy mode)
@@ -365,7 +365,7 @@ contract Phase9Test is Test {
         _psmSetup(1000 * WAD);
 
         vm.prank(alice);
-        vm.expectRevert(AuraPSM.PSM__CeilingExceeded.selector);
+        vm.expectRevert(CeitnotPSM.PSM__CeilingExceeded.selector);
         psm.swapIn(1000 * WAD); // would mint ~999 aUSD, over 500 WAD ceiling
     }
 
@@ -383,7 +383,7 @@ contract Phase9Test is Test {
         ausd.mint(alice, 100 * WAD);
         vm.startPrank(alice);
         ausd.approve(address(psm), type(uint256).max);
-        vm.expectRevert(AuraPSM.PSM__InsufficientReserves.selector);
+        vm.expectRevert(CeitnotPSM.PSM__InsufficientReserves.selector);
         psm.swapOut(100 * WAD);
         vm.stopPrank();
     }
@@ -410,7 +410,7 @@ contract Phase9Test is Test {
 
     function test_psm_setFee_nonAdmin_reverts() public {
         vm.prank(alice);
-        vm.expectRevert(AuraPSM.PSM__Unauthorized.selector);
+        vm.expectRevert(CeitnotPSM.PSM__Unauthorized.selector);
         psm.setFee(50, 25);
     }
 }
