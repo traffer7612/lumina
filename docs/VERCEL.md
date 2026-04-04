@@ -1,4 +1,4 @@
-# Деплой фронтенда Ceitnot на Vercel
+﻿# Деплой фронтенда Ceitnot на Vercel
 
 ## Вариант 1: Через Vercel CLI
 
@@ -8,7 +8,7 @@
    ```
 2. В корне репозитория выполните:
    ```bash
-   cd F:\aura
+   cd F:\ceitnot
    vercel
    ```
    При первом запуске ответьте на вопросы (логин, проект, линк с Git при желании). Деплой идёт из корня: в `vercel.json` указаны `installCommand` и `buildCommand` с переходом в `frontend/`.

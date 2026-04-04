@@ -1,4 +1,4 @@
-# Команды для личного теста комиссий (Arbitrum)
+﻿# Команды для личного теста комиссий (Arbitrum)
 
 Этот гайд для личного теста дохода, где комиссии протокола выводятся на ваш EOA.
 
@@ -18,7 +18,7 @@
 ## 1) Подготовка сессии (PowerShell)
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 $env:ARBITRUM_RPC_URL="https://arb1.arbitrum.io/rpc"
 # задается один раз на сессию терминала:
 # $env:PRIVATE_KEY="0xYOUR_PRIVATE_KEY"

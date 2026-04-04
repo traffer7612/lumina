@@ -14,8 +14,8 @@ import { MockOracle }         from "../test/mocks/MockOracle.sol";
  * @notice Deploys a new mock collateral asset + ERC-4626 vault + oracle
  *         and registers it as a new market in the existing Sepolia registry.
  *
- * Asset:  Lumina Yield Token (LYT)
- * Vault:  Lumina LYT Vault (aLYT)
+ * Asset:  Test Yield Token (TYT)
+ * Vault:  Test YT Vault (aTYT)
  *
  * Usage:
  *   forge script script/DeployThirdMarket.s.sol:DeployThirdMarket \
@@ -31,13 +31,13 @@ contract DeployThirdMarket is Script {
 
         address deployer = msg.sender;
 
-        // 1. Mock underlying asset: Lumina Yield Token (LYT)
-        MockERC20 lyt = new MockERC20("Lumina Yield Token", "LYT", 18);
+        // 1. Mock underlying asset: Test Yield Token (TYT)
+        MockERC20 lyt = new MockERC20("Test Yield Token", "TYT", 18);
 
-        // 2. ERC-4626 vault over LYT → aLYT
-        MockVault4626 vault = new MockVault4626(address(lyt), "Lumina LYT Vault", "aLYT");
+        // 2. ERC-4626 vault over TYT → aTYT
+        MockVault4626 vault = new MockVault4626(address(lyt), "Test YT Vault", "aTYT");
 
-        // 3. Mock oracle: LYT = $150 (150e18 in WAD)
+        // 3. Mock oracle: TYT = $150 (150e18 in WAD)
         MockOracle oracle = new MockOracle();
         oracle.setPrice(150e18);
 
@@ -54,21 +54,21 @@ contract DeployThirdMarket is Script {
             100_000e18      // isolatedBorrowCap (test limit)
         );
 
-        // 5. Mint test LYT to deployer so they can deposit
+        // 5. Mint test TYT to deployer so they can deposit
         lyt.mint(deployer, 100_000 * 1e18);
 
         vm.stopBroadcast();
 
         console.log("=== THIRD MARKET DEPLOYED ===");
         console.log("");
-        console.log("LYT (mock):       %s", address(lyt));
-        console.log("VAULT (aLYT):     %s", address(vault));
-        console.log("ORACLE (LYT):     %s", address(oracle));
+        console.log("TYT (mock):       %s", address(lyt));
+        console.log("VAULT (aTYT):     %s", address(vault));
+        console.log("ORACLE (TYT):     %s", address(oracle));
         console.log("REGISTRY:         %s", address(registry));
         console.log("MARKET ID:        %s", marketId);
         console.log("");
         console.log("LTV: 75%%  |  Liq Threshold: 82%%  |  Liq Penalty: 6%%");
-        console.log("Isolated: true   |  Isolated Borrow Cap: 100_000 LYT");
+        console.log("Isolated: true   |  Isolated Borrow Cap: 100_000 TYT");
     }
 }
 

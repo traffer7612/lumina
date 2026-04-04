@@ -1,4 +1,4 @@
-# Полные команды: коллатерал (wstETH) на Arbitrum One
+﻿# Полные команды: коллатерал (wstETH) на Arbitrum One
 
 Используются адреса твоего деплоя на **Arbitrum One**:
 
@@ -21,7 +21,7 @@
 Выполнить **один раз** (или повторно, если сменил сумму):
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 
 cast send 0x5979D7b546E38E414F7E9822514be443A4800529 "approve(address,uint256)" 0xeE18DcB25F95459BF3174ADB8792f83d8B9b0D70 (cast max-uint) --rpc-url "https://arb1.arbitrum.io/rpc" --private-key ВАШ_ПРИВАТНЫЙ_КЛЮЧ --chain 42161
 ```

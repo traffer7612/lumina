@@ -1,4 +1,4 @@
-# Slither — статический анализ контрактов Ceitnot
+﻿# Slither — статический анализ контрактов Ceitnot
 
 [Slither](https://github.com/crytic/slither) — статический анализатор Solidity от Trail of Bits. Используется для автоматической проверки контрактов Ceitnot; отчёты выкладываются в открытый доступ.
 
@@ -16,7 +16,7 @@ pip3 install slither-analyzer
 
 ```bash
 # Из корня проекта (где лежат src/, lib/)
-cd F:\aura   # или путь к вашему клону
+cd F:\ceitnot   # или путь к вашему клону
 
 # JSON-отчёт (для CI и парсинга)
 slither . --json docs/reports/slither-report.json

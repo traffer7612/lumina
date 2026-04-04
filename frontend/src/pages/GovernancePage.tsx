@@ -8,14 +8,16 @@ import {
 } from 'lucide-react';
 import { erc20Abi, veLockAbi, governorAbi, marketRegistryAbi } from '../abi/ceitnotEngine';
 import { gasFor, TARGET_CHAIN_ID, useContractAddresses } from '../lib/contracts';
+import { viteAddress, viteAddressLegacy } from '../lib/chainEnv';
 import { formatWad, formatAddress } from '../lib/utils';
 import { blockExplorerAddressUrl } from '../lib/explorer';
 
-const VE_TOKEN = import.meta.env.VITE_VE_TOKEN_ADDRESS as Address | undefined;
-const GOV_TOKEN = import.meta.env.VITE_GOVERNANCE_TOKEN_ADDRESS as Address | undefined;
-const GOVERNOR = import.meta.env.VITE_GOVERNOR_ADDRESS as Address | undefined;
-const TIMELOCK = import.meta.env.VITE_TIMELOCK_ADDRESS as Address | undefined;
-const AUSD     = import.meta.env.VITE_AUSD_ADDRESS as Address | undefined;
+const env = import.meta.env as Record<string, string | undefined>;
+const VE_TOKEN = viteAddressLegacy(import.meta.env.VITE_VE_TOKEN_ADDRESS, env.VITE_VE_AURA_ADDRESS);
+const GOV_TOKEN = viteAddressLegacy(import.meta.env.VITE_GOVERNANCE_TOKEN_ADDRESS, env.VITE_AURA_TOKEN_ADDRESS);
+const GOVERNOR = viteAddress(import.meta.env.VITE_GOVERNOR_ADDRESS);
+const TIMELOCK = viteAddress(import.meta.env.VITE_TIMELOCK_ADDRESS);
+const AUSD     = viteAddress(import.meta.env.VITE_AUSD_ADDRESS);
 const TALLY_URL = import.meta.env.VITE_TALLY_URL as string | undefined;
 
 /** Minimal ABI for governance calldata to CeitnotUSD (aUSD) */
@@ -147,7 +149,6 @@ export default function GovernancePage() {
       { address: VE_TOKEN,    abi: veLockAbi, functionName: 'delegates',  args: [address], chainId: TARGET_CHAIN_ID },
       { address: VE_TOKEN,    abi: veLockAbi, functionName: 'totalLocked',                 chainId: TARGET_CHAIN_ID },
       { address: VE_TOKEN,    abi: veLockAbi, functionName: 'pendingRevenue', args: [address], chainId: TARGET_CHAIN_ID },
-      { address: GOV_TOKEN, abi: erc20Abi,  functionName: 'symbol',                       chainId: TARGET_CHAIN_ID },
     ] : [],
     query: { enabled: !!address && !!VE_TOKEN && !!GOV_TOKEN },
   });
@@ -161,8 +162,7 @@ export default function GovernancePage() {
   const currentDelegate = (readData?.[4]?.result as Address | undefined);
   const totalLocked   = (readData?.[5]?.result as bigint | undefined) ?? 0n;
   const pendingRev    = (readData?.[6]?.result as bigint | undefined) ?? 0n;
-  const tokenSymbol   = (readData?.[7]?.result as string | undefined) ?? 'CEITNOT';
-  const displaySymbol = tokenSymbol === 'AURA' || tokenSymbol === 'CEITNOT' ? 'CEITNOT' : tokenSymbol;
+  const displaySymbol = 'CEITNOT';
 
   const proposalId = proposalIdInput.trim() ? BigInt(proposalIdInput.trim()) : undefined;
   const hasGovConfig = !!GOVERNOR && (!!registry || !!AUSD);
@@ -638,8 +638,8 @@ export default function GovernancePage() {
       return 'Update market risk parameters';
     }
     if (d.includes('market') && (d.includes('add') || d.includes('new'))) {
-      if (d.includes('usdc')) return 'Open Lumina USDC market';
-      if (d.includes('usdt')) return 'Open Lumina USDT market';
+      if (d.includes('usdc')) return 'Open USDC market';
+      if (d.includes('usdt')) return 'Open USDT market';
       return 'Open a new market';
     }
     return description || 'Governance proposal';
@@ -727,7 +727,7 @@ export default function GovernancePage() {
 
   const isPending = step === 'approving' || step === 'writing';
 
-  // ── Not connected ──
+  // ── Not connected (same order as before: wallet first) ──
   if (!isConnected) {
     return (
       <div className="page-container flex items-center justify-center min-h-[60vh]">
@@ -743,15 +743,18 @@ export default function GovernancePage() {
     );
   }
 
-  // ── Not configured ──
+  // ── Not configured (after connect — token / ve addresses invalid or missing in .env) ──
   if (!VE_TOKEN || !GOV_TOKEN) {
     return (
       <div className="page-container">
-        <div className="card p-8 text-center">
+        <div className="card p-8 text-center max-w-lg mx-auto border-ceitnot-warning/30 bg-ceitnot-warning/5">
+          <Vote size={40} className="text-ceitnot-warning mx-auto mb-3" />
           <p className="text-ceitnot-warning font-medium">Governance contracts not configured</p>
           <p className="text-ceitnot-muted text-sm mt-2">
-            Set <code className="font-mono text-ceitnot-warning/80">VITE_GOVERNANCE_TOKEN_ADDRESS</code> and{' '}
-            <code className="font-mono text-ceitnot-warning/80">VITE_VE_TOKEN_ADDRESS</code> (vote-escrow) in your <code>.env</code>.
+            In <code className="font-mono text-ceitnot-warning/80">frontend/.env</code> set valid checksummed addresses for{' '}
+            <code className="font-mono text-ceitnot-warning/80">VITE_GOVERNANCE_TOKEN_ADDRESS</code> (CeitnotToken) and{' '}
+            <code className="font-mono text-ceitnot-warning/80">VITE_VE_TOKEN_ADDRESS</code> (VeCeitnot). No spaces or quotes.
+            Restart <code className="font-mono text-ceitnot-muted-2">npm run dev</code> after editing.
           </p>
         </div>
       </div>

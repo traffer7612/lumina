@@ -1,4 +1,4 @@
-# Governor.propose for AuraMarketRegistry.addMarket calldata (Arbitrum / any RPC).
+# Governor.propose for CeitnotMarketRegistry.addMarket calldata (Arbitrum / any RPC).
 # Avoids pasting a huge hex into PowerShell (use a file instead).
 #
 # Prereq: forge (cast). Set PRIVATE_KEY to a wallet that can create proposals (threshold / role).
@@ -17,7 +17,7 @@
 param(
     [Parameter(Mandatory = $true)]
     [string] $CalldataPath,
-    [string] $ProposalDescription = "AIP: Add Lumina USDC market"
+    [string] $ProposalDescription = "AIP: Add USDC market"
 )
 
 # Cursor/PS sometimes appends ";<uuid>" or duplicates ".hex" when pasting — strip it.

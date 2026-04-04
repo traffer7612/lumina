@@ -7,9 +7,7 @@ import {
   REPO_ROOT_URL,
 } from '../../lib/publicDocs';
 
-/**
- * Brand clarity: this app is Lumina lending on EVM, not LuminaDEX (Mina) or other "Lumina" products.
- */
+/** Ceitnot lending / CDP UI; not affiliated with unrelated third-party products. */
 export default function SiteFooter() {
   return (
     <footer className="mt-auto border-t border-ceitnot-border/80 bg-ceitnot-bg/60">
@@ -27,15 +25,14 @@ export default function SiteFooter() {
                 Independent protocol
               </p>
               <p className="text-sm sm:text-[15px] text-ceitnot-muted-2 leading-relaxed">
-                <span className="text-white/90 font-medium">Lumina Protocol</span> — lending and CDP on
-                Ethereum-compatible networks. This project is{' '}
-                <span className="text-white/95">not affiliated</span> with{' '}
-                <span className="text-white/90">LuminaDEX</span>, the Mina ecosystem DEX, or any other team
-                using the name &quot;Lumina&quot;. Separate codebases, separate products.
+                <span className="text-white/90 font-medium">Ceitnot</span> — lending and CDP on
+                Ethereum-compatible networks. This interface and repository are{' '}
+                <span className="text-white/95">not affiliated</span> with unrelated third-party protocols
+                or teams unless explicitly stated.
               </p>
               <p className="text-xs text-ceitnot-muted leading-relaxed border-l-2 border-ceitnot-gold/25 pl-3">
-                Lumina Protocol — независимый кредитный протокол на EVM. Не связан с LuminaDEX (Mina) и
-                другими проектами с похожим названием.
+                Ceitnot — независимый кредитный протокол на EVM. Не связан со сторонними проектами, если не
+                указано иное.
               </p>
             </div>
           </div>

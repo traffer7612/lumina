@@ -36,57 +36,57 @@ extract_layout() {
 }
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Check 1 — AuraEngine must have EMPTY regular storage (EIP-7201 guard)
-# Any variable declared directly on AuraEngine collides with the proxy admin slot.
+# Check 1 — CeitnotEngine must have EMPTY regular storage (EIP-7201 guard)
+# Any variable declared directly on CeitnotEngine collides with the proxy admin slot.
 # ─────────────────────────────────────────────────────────────────────────────
-log_info "Checking AuraEngine storage (must be empty — EIP-7201)"
-ENGINE_LAYOUT=$(extract_layout "AuraEngine")
-ENGINE_BASELINE=$(cat "$LAYOUTS_DIR/AuraEngine.json")
+log_info "Checking CeitnotEngine storage (must be empty — EIP-7201)"
+ENGINE_LAYOUT=$(extract_layout "CeitnotEngine")
+ENGINE_BASELINE=$(cat "$LAYOUTS_DIR/CeitnotEngine.json")
 
 if [[ "$ENGINE_LAYOUT" == "$ENGINE_BASELINE" ]]; then
-    log_pass "AuraEngine: no regular storage variables (EIP-7201 intact)"
+    log_pass "CeitnotEngine: no regular storage variables (EIP-7201 intact)"
 else
-    log_fail "AuraEngine: unexpected storage variables detected!"
+    log_fail "CeitnotEngine: unexpected storage variables detected!"
     echo "  Current: $ENGINE_LAYOUT"
     echo "  Expected: $ENGINE_BASELINE"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Check 2 — AuraStorage.sol hash (guards EngineStorage struct definition)
+# Check 2 — CeitnotStorage.sol hash (guards EngineStorage struct definition)
 # Inserting / reordering fields in EngineStorage corrupts all user positions.
 # ─────────────────────────────────────────────────────────────────────────────
-log_info "Checking AuraStorage.sol content hash"
-AURA_STORAGE_HASH_FILE="$LAYOUTS_DIR/AuraStorage.sha256"
-CURRENT_HASH=$(sha256sum "$REPO_ROOT/src/AuraStorage.sol" | awk '{print $1}')
-BASELINE_HASH=$(awk '{print $1}' "$AURA_STORAGE_HASH_FILE")
+log_info "Checking CeitnotStorage.sol content hash"
+CEITNOT_STORAGE_HASH_FILE="$LAYOUTS_DIR/CeitnotStorage.sha256"
+CURRENT_HASH=$(sha256sum "$REPO_ROOT/src/CeitnotStorage.sol" | awk '{print $1}')
+BASELINE_HASH=$(awk '{print $1}' "$CEITNOT_STORAGE_HASH_FILE")
 
 if $UPDATE_MODE; then
-    echo "$CURRENT_HASH  src/AuraStorage.sol" > "$AURA_STORAGE_HASH_FILE"
-    log_info "AuraStorage.sha256 updated to $CURRENT_HASH"
+    echo "$CURRENT_HASH  src/CeitnotStorage.sol" > "$CEITNOT_STORAGE_HASH_FILE"
+    log_info "CeitnotStorage.sha256 updated to $CURRENT_HASH"
 elif [[ "$CURRENT_HASH" == "$BASELINE_HASH" ]]; then
-    log_pass "AuraStorage.sol hash matches baseline"
+    log_pass "CeitnotStorage.sol hash matches baseline"
 else
-    log_fail "AuraStorage.sol CHANGED — review EngineStorage struct carefully!"
+    log_fail "CeitnotStorage.sol CHANGED — review EngineStorage struct carefully!"
     echo "  Baseline: $BASELINE_HASH"
     echo "  Current:  $CURRENT_HASH"
-    echo "  Run 'git diff src/AuraStorage.sol' and verify only __gap-consuming appends."
+    echo "  Run 'git diff src/CeitnotStorage.sol' and verify only __gap-consuming appends."
     echo "  If the change is intentional: bash script/CheckStorageLayout.sh --update"
 fi
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Check 3 — AuraMarketRegistry label/slot/offset layout
+# Check 3 — CeitnotMarketRegistry label/slot/offset layout
 # ─────────────────────────────────────────────────────────────────────────────
-log_info "Checking AuraMarketRegistry storage layout"
-REG_LAYOUT=$(extract_layout "AuraMarketRegistry")
-REG_BASELINE=$(cat "$LAYOUTS_DIR/AuraMarketRegistry.json")
+log_info "Checking CeitnotMarketRegistry storage layout"
+REG_LAYOUT=$(extract_layout "CeitnotMarketRegistry")
+REG_BASELINE=$(cat "$LAYOUTS_DIR/CeitnotMarketRegistry.json")
 
 if $UPDATE_MODE; then
-    echo "$REG_LAYOUT" > "$LAYOUTS_DIR/AuraMarketRegistry.json"
-    log_info "AuraMarketRegistry.json baseline updated"
+    echo "$REG_LAYOUT" > "$LAYOUTS_DIR/CeitnotMarketRegistry.json"
+    log_info "CeitnotMarketRegistry.json baseline updated"
 elif [[ "$REG_LAYOUT" == "$REG_BASELINE" ]]; then
-    log_pass "AuraMarketRegistry layout matches baseline"
+    log_pass "CeitnotMarketRegistry layout matches baseline"
 else
-    log_fail "AuraMarketRegistry layout CHANGED!"
+    log_fail "CeitnotMarketRegistry layout CHANGED!"
     diff <(echo "$REG_BASELINE") <(echo "$REG_LAYOUT") || true
 fi
 

@@ -145,7 +145,7 @@ frontend/src/
 │   ├── Dashboard.tsx    # Вкладки Deposit, Borrow, Repay + пополнение пула
 │   └── Footer.tsx
 └── abi/
-    └── auraEngine.ts    # ABI для вызовов движка
+    └── ceitnotEngine.ts    # ABI для вызовов движка
 ```
 
 - **Wagmi** — библиотека для чтения данных с блокчейна и отправки транзакций; кошелёк (MetaMask/Rabby) подписывает транзакции.

@@ -1,5 +1,5 @@
 /**
- * Aura Protocol — Defender Autotask: Alert Webhook Relay
+ * Ceitnot — Defender Autotask: Alert Webhook Relay
  * -------------------------------------------------------
  * Triggered by any Defender Monitor (Sentinel) alert.
  * Relays alert details to an external webhook (e.g. PagerDuty, Slack, Discord).
@@ -37,7 +37,7 @@ exports.handler = async function(payload) {
     const sentinel = match.sentinel || {};
     const txHash   = match.transaction?.hash || 'unknown';
     const network  = sentinel.network || 'unknown';
-    const name     = sentinel.name    || 'Aura Alert';
+    const name     = sentinel.name    || 'Ceitnot Alert';
     const severity = severityFromName(name);
 
     const summary = `[${severity.toUpperCase()}] ${name} on ${network}`;
@@ -71,11 +71,11 @@ exports.handler = async function(payload) {
             await axios.post('https://events.pagerduty.com/v2/enqueue', {
                 routing_key: pagerDutyKey,
                 event_action: severity === 'critical' ? 'trigger' : 'trigger',
-                dedup_key: `aura-${txHash}`,
+                dedup_key: `ceitnot-${txHash}`,
                 payload: {
                     summary,
                     severity,
-                    source: `aura-${network}`,
+                    source: `ceitnot-${network}`,
                     custom_details: match,
                 },
                 links: [{

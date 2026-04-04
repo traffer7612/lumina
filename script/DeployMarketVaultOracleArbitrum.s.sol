@@ -19,7 +19,7 @@ import { SimpleERC4626Vault } from "../src/vaults/SimpleERC4626Vault.sol";
  * Required env:
  *   ASSET_ADDRESS          — underlying ERC-20 (e.g. USDC, USDT, WBTC, WETH on Arbitrum)
  *   CHAINLINK_PRIMARY_FEED — Chainlink aggregator (e.g. USDC/USD, BTC/USD)
- *   VAULT_NAME             — e.g. "Lumina USDC Vault"
+ *   VAULT_NAME             — e.g. "Ceitnot USDC Vault"
  *   VAULT_SYMBOL           — e.g. "lUSDC"
  *
  * Optional:

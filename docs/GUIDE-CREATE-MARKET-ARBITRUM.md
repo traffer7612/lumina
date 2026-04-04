@@ -1,4 +1,4 @@
-# Создание нового маркета на Arbitrum One (от и до)
+﻿# Создание нового маркета на Arbitrum One (от и до)
 
 Это пошаговый гайд для тех, кто **никогда** не добавлял маркет в Ceitnot на боевой сети.
 После этого гайда у вас будет новый маркет в протоколе, куда пользователи смогут вносить коллатерал и занимать aUSD / USDC.
@@ -243,7 +243,7 @@ contract DeployNewMarket is Script {
 ## Шаг 6. Собрать и задеплоить
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 
 # Проверить что компилируется
 forge build
@@ -368,7 +368,7 @@ cast call <ORACLE_ADDRESS> "getLatestPrice()(uint256,uint256)" --rpc-url https:/
 
 ```powershell
 # 0. Перейти в проект
-cd F:\aura
+cd F:\ceitnot
 
 # 1. Собрать
 forge build

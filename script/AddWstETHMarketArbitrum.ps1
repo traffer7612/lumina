@@ -1,4 +1,4 @@
-# Deploy OZ wstETH vault + OracleRelay + addMarket on existing AuraMarketRegistry (Arbitrum One).
+# Deploy OZ wstETH vault + OracleRelay + addMarket on existing CeitnotMarketRegistry (Arbitrum One).
 # Requires: forge, ETH on Arbitrum for gas, REGISTRY admin key in PRIVATE_KEY (or use --ledger etc. manually).
 
 $ErrorActionPreference = "Stop"

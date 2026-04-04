@@ -23,7 +23,7 @@ import { TimelockController } from "@openzeppelin/contracts/governance/TimelockC
 
 /**
  * @title  DeployFullProduction
- * @notice Full Lumina stack on a live chain (e.g. Arbitrum One): CDP (aUSD), PSM, governance, router, treasury.
+ * @notice Full Ceitnot stack on a live chain (e.g. Arbitrum One): CDP (aUSD), PSM, governance, router, treasury.
  *
  * Required env:
  *   COLLATERAL_VAULT  — ERC-4626 collateral (e.g. Arbitrum wstETH)

@@ -49,7 +49,7 @@ contract AddDAIMarketArbitrum is Script {
 
         SimpleERC4626Vault vault_ = new SimpleERC4626Vault(
             IERC20(dai),
-            "Lumina DAI Vault",
+            "Ceitnot DAI Vault",
             "lDAI"
         );
         address vault = address(vault_);

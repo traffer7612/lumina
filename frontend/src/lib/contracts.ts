@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useReadContract } from 'wagmi';
 import type { Address } from 'viem';
 import { ceitnotEngineAbi } from '../abi/ceitnotEngine';
-import { TARGET_CHAIN_ID } from './chainEnv';
+import { TARGET_CHAIN_ID, viteAddress } from './chainEnv';
 
 export { TARGET_CHAIN_ID };
 
@@ -21,8 +21,8 @@ async function fetchFromApi(): Promise<{ engine?: string; registry?: string }> {
  * Priority: VITE_* env vars > /api/config/contracts > engine.marketRegistry() on-chain
  */
 export function useContractAddresses() {
-  const envEngine   = import.meta.env.VITE_ENGINE_ADDRESS   as Address | undefined;
-  const envRegistry = import.meta.env.VITE_REGISTRY_ADDRESS as Address | undefined;
+  const envEngine   = viteAddress(import.meta.env.VITE_ENGINE_ADDRESS);
+  const envRegistry = viteAddress(import.meta.env.VITE_REGISTRY_ADDRESS);
   const hasEnvRegistry = !!envRegistry;
 
   const { data: apiData, isLoading: apiLoading } = useQuery({

@@ -1,6 +1,6 @@
 import { Shield, FileSearch, Bug, ExternalLink, CheckCircle } from 'lucide-react';
 
-const DOCS_BASE = 'https://github.com/traffer7612/lumina/blob/master/docs';
+const DOCS_BASE = 'https://github.com/traffer7612/ceitnot-protocol/blob/master/docs';
 
 export default function SecurityPage() {
   return (
@@ -28,7 +28,7 @@ export default function SecurityPage() {
             </div>
           </div>
           <p className="text-sm text-ceitnot-muted-2 mb-4">
-            All Lumina contracts are analyzed with <strong className="text-white">Slither v0.11.3</strong> (82 contracts, 100 detectors). 
+            Ceitnot protocol contracts are analyzed with <strong className="text-white">Slither v0.11.3</strong> (82 contracts, 100 detectors). 
             High and Medium findings have been fixed; Low/Informational are documented and accepted where appropriate.
           </p>
           <ul className="text-sm text-ceitnot-muted-2 space-y-1.5 mb-4">
@@ -110,7 +110,7 @@ export default function SecurityPage() {
           >
             docs in repo
           </a>
-          {' '}— for docs.lumina.finance, use the <code className="text-ceitnot-gold/90">docs/</code> folder.
+          {' '}— when publishing a docs site, mirror the <code className="text-ceitnot-gold/90">docs/</code> folder from this repository.
         </p>
       </div>
     </div>

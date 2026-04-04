@@ -1,14 +1,16 @@
 import { useEffect, useState } from 'react';
 import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { useAccount, useReadContracts, useWaitForTransactionReceipt, useWriteContract } from 'wagmi';
-import { formatUnits, parseUnits, type Address, type Hash } from 'viem';
+import { formatUnits, parseUnits, type Hash } from 'viem';
 import { Gift, Lock, Clock, Plus, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { erc20Abi, veLockAbi } from '../abi/ceitnotEngine';
 import { gasFor, TARGET_CHAIN_ID } from '../lib/contracts';
+import { viteAddressLegacy } from '../lib/chainEnv';
 import { formatWad } from '../lib/utils';
 
-const VE_TOKEN = import.meta.env.VITE_VE_TOKEN_ADDRESS as Address | undefined;
-const GOV_TOKEN = import.meta.env.VITE_GOVERNANCE_TOKEN_ADDRESS as Address | undefined;
+const env = import.meta.env as Record<string, string | undefined>;
+const VE_TOKEN = viteAddressLegacy(import.meta.env.VITE_VE_TOKEN_ADDRESS, env.VITE_VE_AURA_ADDRESS);
+const GOV_TOKEN = viteAddressLegacy(import.meta.env.VITE_GOVERNANCE_TOKEN_ADDRESS, env.VITE_AURA_TOKEN_ADDRESS);
 const WEEK = 7 * 24 * 3600;
 
 type Step = 'idle' | 'approving' | 'writing' | 'success' | 'error';
@@ -41,7 +43,6 @@ export default function RewardsPage() {
     contracts: (address && VE_TOKEN && GOV_TOKEN) ? [
       { address: GOV_TOKEN, abi: erc20Abi, functionName: 'balanceOf', args: [address], chainId: TARGET_CHAIN_ID },
       { address: GOV_TOKEN, abi: erc20Abi, functionName: 'allowance', args: [address, VE_TOKEN], chainId: TARGET_CHAIN_ID },
-      { address: GOV_TOKEN, abi: erc20Abi, functionName: 'symbol', chainId: TARGET_CHAIN_ID },
       { address: VE_TOKEN, abi: veLockAbi, functionName: 'locks', args: [address], chainId: TARGET_CHAIN_ID },
       { address: VE_TOKEN, abi: veLockAbi, functionName: 'pendingRevenue', args: [address], chainId: TARGET_CHAIN_ID },
       { address: VE_TOKEN, abi: veLockAbi, functionName: 'totalLocked', chainId: TARGET_CHAIN_ID },
@@ -51,18 +52,17 @@ export default function RewardsPage() {
 
   const govTokenBalance = (data?.[0]?.result as bigint | undefined) ?? 0n;
   const allowance = (data?.[1]?.result as bigint | undefined) ?? 0n;
-  const tokenSymbol = (data?.[2]?.result as string | undefined) ?? 'CEITNOT';
-  const lockData = data?.[3]?.result as [bigint, bigint] | undefined;
+  const lockData = data?.[2]?.result as [bigint, bigint] | undefined;
   const lockedAmount = lockData?.[0] ?? 0n;
   const unlockTime = lockData?.[1] ?? 0n;
-  const claimable = (data?.[4]?.result as bigint | undefined) ?? 0n;
-  const totalLocked = (data?.[5]?.result as bigint | undefined) ?? 0n;
+  const claimable = (data?.[3]?.result as bigint | undefined) ?? 0n;
+  const totalLocked = (data?.[4]?.result as bigint | undefined) ?? 0n;
 
   const hasLock = lockedAmount > 0n;
   const nowSec = Math.floor(Date.now() / 1000);
   const lockExpired = hasLock && BigInt(nowSec) >= unlockTime;
   const unlockDate = hasLock ? new Date(Number(unlockTime) * 1000).toLocaleDateString() : '—';
-  const displaySymbol = tokenSymbol === 'AURA' || tokenSymbol === 'CEITNOT' ? 'CEITNOT' : tokenSymbol;
+  const displaySymbol = 'CEITNOT';
 
   const { isSuccess: confirmed } = useWaitForTransactionReceipt({ hash });
   useEffect(() => {
@@ -200,7 +200,12 @@ export default function RewardsPage() {
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="card border-ceitnot-warning/30 bg-ceitnot-warning/5 p-5">
-          <p className="text-ceitnot-warning">Set VITE_GOVERNANCE_TOKEN_ADDRESS and VITE_VE_TOKEN_ADDRESS in .env.</p>
+          <p className="text-ceitnot-warning font-medium">Rewards contracts not configured</p>
+          <p className="text-ceitnot-muted text-sm mt-2">
+            Set <code className="font-mono text-ceitnot-warning/80">VITE_GOVERNANCE_TOKEN_ADDRESS</code> and{' '}
+            <code className="font-mono text-ceitnot-warning/80">VITE_VE_TOKEN_ADDRESS</code> (vote-escrow) in your{' '}
+            <code className="font-mono text-ceitnot-warning/80">.env</code>.
+          </p>
         </div>
       </div>
     );
@@ -310,7 +315,7 @@ export default function RewardsPage() {
               <button className="btn-primary w-full" onClick={handleClaim} disabled={step !== 'idle' || claimable === 0n}>
                 Claim revenue
               </button>
-              <p className="text-xs text-ceitnot-muted">Claimable: {formatUnits(claimable, 18)} {displaySymbol === 'CEITNOT' ? 'aUSD' : ''}</p>
+              <p className="text-xs text-ceitnot-muted">Claimable: {formatUnits(claimable, 18)} aUSD</p>
             </div>
           </div>
 

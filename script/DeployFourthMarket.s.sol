@@ -11,7 +11,7 @@ import { MockOracle }         from "../test/mocks/MockOracle.sol";
 
 /**
  * @title  DeployFourthMarket
- * @notice Deploys LYT + aLYT vault + oracle and registers as a NEW market
+ * @notice Deploys TYT + aTYT vault + oracle and registers as a NEW market
  *         (replaces the old isolated Market #2).
  *         isIsolated = false this time.
  *
@@ -31,13 +31,13 @@ contract DeployFourthMarket is Script {
         // 1. Deactivate old Market #2
         CeitnotMarketRegistry(REGISTRY).deactivateMarket(2);
 
-        // 2. Mock LYT token
-        MockERC20 lyt = new MockERC20("Lumina Yield Token", "LYT", 18);
+        // 2. Mock TYT token
+        MockERC20 lyt = new MockERC20("Test Yield Token", "TYT", 18);
 
-        // 3. ERC-4626 vault: LYT -> aLYT
-        MockVault4626 vault = new MockVault4626(address(lyt), "Lumina LYT Vault", "aLYT");
+        // 3. ERC-4626 vault: TYT -> aTYT
+        MockVault4626 vault = new MockVault4626(address(lyt), "Test YT Vault", "aTYT");
 
-        // 4. Mock oracle: LYT = $150
+        // 4. Mock oracle: TYT = $150
         MockOracle oracle = new MockOracle();
         oracle.setPrice(150e18);
 
@@ -52,7 +52,7 @@ contract DeployFourthMarket is Script {
             false, 0        // NOT isolated
         );
 
-        // 6. Mint test LYT to deployer
+        // 6. Mint test TYT to deployer
         lyt.mint(deployer, 100_000 * 1e18);
 
         vm.stopBroadcast();
@@ -61,9 +61,9 @@ contract DeployFourthMarket is Script {
         console.log("");
         console.log("Old Market #2: DEACTIVATED");
         console.log("");
-        console.log("LYT (mock):       %s", address(lyt));
-        console.log("VAULT (aLYT):     %s", address(vault));
-        console.log("ORACLE (LYT):     %s", address(oracle));
+        console.log("TYT (mock):       %s", address(lyt));
+        console.log("VAULT (aTYT):     %s", address(vault));
+        console.log("ORACLE (TYT):     %s", address(oracle));
         console.log("MARKET ID:        %s", marketId);
         console.log("");
         console.log("LTV: 75%%  |  Liq Threshold: 82%%  |  Liq Penalty: 6%%");

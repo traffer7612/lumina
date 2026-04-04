@@ -1,4 +1,4 @@
-# Ceitnot на Sepolia — инструкция для новичка
+﻿# Ceitnot на Sepolia — инструкция для новичка
 
 Пошагово: от нуля до первого депозита на тестовой сети Sepolia. Все команды можно копировать и вставлять в терминал.
 
@@ -74,7 +74,7 @@
 В терминале:
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 ```
 
 *(Если проект у вас в другой папке — подставьте свой путь.)*
@@ -95,7 +95,7 @@ npm run dev
 Откройте **второй** терминал:
 
 ```powershell
-cd F:\aura\frontend
+cd F:\ceitnot\frontend
 npm install
 npm run dev
 ```
@@ -135,7 +135,7 @@ forge --version
 В терминале:
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 ```
 
 Если папки `lib\forge-std` ещё нет:
@@ -143,7 +143,7 @@ cd F:\aura
 ```powershell
 cd lib
 git clone https://github.com/foundry-rs/forge-std.git
-cd F:\aura
+cd F:\ceitnot
 ```
 
 Собрать контракты:
@@ -181,7 +181,7 @@ forge build
 
 ### 2.5. Задеплоить контракт
 
-В терминале (в папке `F:\aura`):
+В терминале (в папке `F:\ceitnot`):
 
 ```powershell
 forge script script/Deploy.s.sol:DeployScript --rpc-url https://ethereum-sepolia.publicnode.com --broadcast --private-key ВАШ_ПРИВАТНЫЙ_КЛЮЧ
@@ -255,7 +255,7 @@ cast send 0xf6bbbe4dce6c99d66407f959dc4ec5495b2ec33b "deposit(uint256,address)" 
 
 **Порядок важен: сначала шаг 3.1 (approve), потом 3.2 (deposit).** Иначе deposit откатится — у vault не будет права забирать ваши токены.
 
-Откройте терминал (можно в папке проекта `F:\aura` или в любой другой — для `cast` не важно). Выполните **одну** команду, подставив свои значения:
+Откройте терминал (можно в папке проекта `F:\ceitnot` или в любой другой — для `cast` не важно). Выполните **одну** команду, подставив свои значения:
 - **ASSET** — адрес из `MOCK_ASSET_ADDRESS=` (вывод деплоя) или из broadcast-файла (первый MockERC20).
 - **VAULT** — адрес из `CEITNOT_VAULT_4626_ADDRESS=` или из broadcast (MockVault4626).
 - **ВАШ_КЛЮЧ** — ваш приватный ключ.

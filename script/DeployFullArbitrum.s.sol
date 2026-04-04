@@ -25,7 +25,7 @@ import { TimelockController } from "@openzeppelin/contracts/governance/TimelockC
 
 /**
  * @title  DeployFullArbitrum
- * @notice Full Lumina CDP stack on **Arbitrum One** (chainId 42161):
+ * @notice Full Ceitnot CDP stack on **Arbitrum One** (chainId 42161):
  *         - Fresh **mock** wstETH + ERC-4626 vault (Lido bridge token 0x5979… fails registry `convertToAssets(1e18)` probe)
  *         - **Real** native USDC + Chainlink **ETH/USD** for oracle pricing
  *         - aUSD, engine (proxy), PSM, router, treasury, CEITNOT + VeCeitnot + governor + timelock

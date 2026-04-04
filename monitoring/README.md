@@ -1,4 +1,4 @@
-# Aura Protocol — Monitoring & Alerting
+# Ceitnot — Monitoring & Alerting
 
 Operational monitoring for CeitnotEngine on Arbitrum One.
 Two parallel stacks are supported: **OpenZeppelin Defender** and **Tenderly**.

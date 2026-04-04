@@ -14,15 +14,15 @@ forge verify-contract 0x7b631f0BE284f66fB45C2eF56c96441F347f6219 \
     0) \
   --watch
 
-# AuraEngine (no constructor args)
+# CeitnotEngine (no constructor args)
 forge verify-contract 0xf5D05B2AAD0B8BC73Cf03B6882F9d080934D253F \
-  src/AuraEngine.sol:AuraEngine \
+  src/CeitnotEngine.sol:CeitnotEngine \
   --chain-id 42161 \
   --watch
 
-# AuraProxy - constructor(implementation, data)
+# CeitnotProxy - constructor(implementation, data)
 forge verify-contract 0xeE18DcB25F95459BF3174ADB8792f83d8B9b0D70 \
-  src/AuraProxy.sol:AuraProxy \
+  src/CeitnotProxy.sol:CeitnotProxy \
   --chain-id 42161 \
   --constructor-args $(cast abi-encode "constructor(address,bytes)" \
     0xf5D05B2AAD0B8BC73Cf03B6882F9d080934D253F \

@@ -51,7 +51,7 @@ contract AddWstETHMarketArbitrum is Script {
 
         SimpleERC4626Vault vault_ = new SimpleERC4626Vault(
             IERC20(wsteth),
-            "Lumina wstETH Vault",
+            "Ceitnot wstETH Vault",
             "lwstETH"
         );
         address vault = address(vault_);

@@ -1,7 +1,7 @@
 {
   "_comment": "OpenZeppelin Defender v2 — Monitor template for protocol pause and emergency events.",
   "_setup": "Replace ${ENGINE_PROXY_ADDRESS} with your deployed CeitnotEngine proxy address.",
-  "name": "Aura: Pause / Emergency Shutdown",
+  "name": "Ceitnot: Pause / Emergency Shutdown",
   "type": "BLOCK",
   "network": "arbitrum",
   "paused": false,
@@ -50,7 +50,7 @@
   },
   "notifyConfig": {
     "timeoutMs": 0,
-    "messageSubject": "[AURA CRITICAL] Protocol State Change",
+    "messageSubject": "[CEITNOT CRITICAL] Protocol State Change",
     "message": "A critical state change occurred on CeitnotEngine (pause / emergency shutdown / admin transfer).\n\nTransaction: {{transaction.hash}}\nFrom: {{transaction.from}}\nBlock: {{transaction.blockNumber}}\n\nVerify this was an authorised action by the Gnosis Safe or a guardian.",
     "channels": ["${DEFENDER_NOTIFICATION_CHANNEL_ID}"]
   }

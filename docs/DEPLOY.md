@@ -1,4 +1,4 @@
-# Как задеплоить контракт Ceitnot (по шагам)
+﻿# Как задеплоить контракт Ceitnot (по шагам)
 
 Деплой делается через **Foundry** (инструмент для сборки и деплоя Solidity). Скрипт поднимает моки (тестовые токен и оракул) и сам движок Ceitnot, после чего вы получаете адрес прокси — его нужно прописать в бэкенде.
 
@@ -6,7 +6,7 @@
 
 ## 1. Установить Foundry
 
-**Где выполнять:** команды ниже можно вводить **из любой папки** — вы просто ставите программу Foundry в систему. Переходить в каталог `aura` на этом шаге **не нужно** (он понадобится на шаге 2).
+**Где выполнять:** команды ниже можно вводить **из любой папки** — вы просто ставите программу Foundry в систему. Переходить в каталог `ceitnot` на этом шаге **не нужно** (он понадобится на шаге 2).
 
 В терминале (PowerShell или cmd) выполните:
 
@@ -29,10 +29,10 @@ forge --version
 
 ## 2. Открыть папку проекта и поставить зависимости
 
-**Здесь уже нужно быть в каталоге проекта.** Откройте терминал и перейдите в папку `aura` (подставьте свой путь, если проект лежит в другом месте):
+**Здесь уже нужно быть в каталоге проекта.** Откройте терминал и перейдите в папку `ceitnot` (подставьте свой путь, если проект лежит в другом месте):
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 ```
 
 **Если команда `forge` не находится** (ошибка «Имя "forge" не распознано»), один раз добавьте Foundry в PATH (в том же терминале):
@@ -46,9 +46,9 @@ $env:Path = "C:\Users\admin\.foundry\versions\stable;$env:Path"
 Установить библиотеку **forge-std** (один раз). Команда `forge install` работает только в git-репозитории, поэтому клонируйте вручную:
 
 ```powershell
-cd F:\aura\lib
+cd F:\ceitnot\lib
 git clone https://github.com/foundry-rs/forge-std.git
-cd F:\aura
+cd F:\ceitnot
 ```
 
 Если папка `lib\forge-std` уже есть — этот шаг можно пропустить.
@@ -120,7 +120,7 @@ $env:RPC_URL = "https://ethereum-sepolia.publicnode.com"
 
 ## 4. Запустить деплой
 
-В папке `F:\aura` выполните (подставьте свой RPC и ключ):
+В папке `F:\ceitnot` выполните (подставьте свой RPC и ключ):
 
 **Свой кошелёк (подставьте свой приватный ключ и RPC):**
 
@@ -134,7 +134,7 @@ forge script script/Deploy.s.sol:DeployScript --rpc-url $env:RPC_URL --broadcast
 2. В **другом** терминале выполните:
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 $env:RPC_URL = "http://127.0.0.1:8545"
 forge script script/Deploy.s.sol:DeployScript --rpc-url $env:RPC_URL --broadcast --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
 ```
@@ -142,7 +142,7 @@ forge script script/Deploy.s.sol:DeployScript --rpc-url $env:RPC_URL --broadcast
 **Или** одной командой (Anvil должен быть уже запущен в другом окне):
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 .\scripts\deploy-anvil.ps1
 ```
 
@@ -154,7 +154,7 @@ cd F:\aura
 2. В терминале:
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 forge script script/Deploy.s.sol:DeployScript --rpc-url https://ethereum-sepolia.publicnode.com --broadcast --private-key ВАШ_ПРИВАТНЫЙ_КЛЮЧ
 ```
 
@@ -225,7 +225,7 @@ cast send VAULT "deposit(uint256,address)" 1000000000000000000 ВАШ_АДРЕС
 **Контракты (без деплоя):**
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 forge --version          # должна быть версия (например 1.5.1-stable)
 forge build              # в конце: Compiler run successful
 forge test               # тесты проходят (опционально)
@@ -234,7 +234,7 @@ forge test               # тесты проходят (опционально)
 **Бэкенд:**
 
 ```powershell
-cd F:\aura\backend
+cd F:\ceitnot\backend
 npm run dev
 ```
 
@@ -245,7 +245,7 @@ npm run dev
 В другом терминале:
 
 ```powershell
-cd F:\aura\frontend
+cd F:\ceitnot\frontend
 npm run dev
 ```
 
@@ -264,7 +264,7 @@ npm run dev
 | Шаг | Действие |
 |-----|----------|
 | 1 | Установить Foundry (`winget install Foundry.Foundry`), перезапустить терминал |
-| 2 | `cd F:\aura` → `forge install foundry-rs/forge-std --no-commit` → `forge build` |
+| 2 | `cd F:\ceitnot` → `forge install foundry-rs/forge-std --no-commit` → `forge build` |
 | 3 | Задать `RPC_URL` (тестнет или Anvil); ключ передать в команде деплоя |
 | 4 | `forge script script/Deploy.s.sol:DeployScript --rpc-url $env:RPC_URL --broadcast --private-key ВАШ_КЛЮЧ` |
 | 5 | Скопировать из вывода `CEITNOT_ENGINE_ADDRESS=0x...` и вставить в `backend\.env` → перезапустить бэкенд |
@@ -294,7 +294,7 @@ npm run dev
    $env:HTTPS_PROXY = ""
    forge script script/Deploy.s.sol:DeployScript --rpc-url "http://127.0.0.1:8545" --broadcast --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
    ```
-   Или откройте **cmd.exe** (не PowerShell), перейдите в `F:\aura` и выполните:
+   Или откройте **cmd.exe** (не PowerShell), перейдите в `F:\ceitnot` и выполните:
    ```cmd
    set NO_PROXY=localhost,127.0.0.1
    set HTTP_PROXY=
@@ -376,7 +376,7 @@ $env:TWAP_PERIOD = "0"            # 0 = только spot
 Запуск (подставьте RPC и приватный ключ):
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 forge script script/DeployProduction.s.sol:DeployProduction --rpc-url https://... --broadcast --private-key ВАШ_КЛЮЧ
 ```
 
@@ -389,7 +389,7 @@ forge script script/DeployProduction.s.sol:DeployProduction --rpc-url https://..
 **Сначала репетиция (рекомендуется):** на **Ethereum Sepolia** тот же полный стек без «боевых» денег — скрипт `script/DeployFullSepolia.s.sol` (моки wstETH/USDC + реальный Chainlink ETH/USD Sepolia). Симуляция без записи в сеть:
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 forge script script/DeployFullSepolia.s.sol:DeployFullSepolia --rpc-url https://ethereum-sepolia.publicnode.com
 ```
 
@@ -424,7 +424,7 @@ cast call ВАШ_CHAINLINK_FEED "latestRoundData()(uint80,int256,uint256,uint256
 Подставьте **свой** `COLLATERAL_VAULT` (прошедший `cast call … convertToAssets` выше) и **Chainlink-агрегатор**, цена которого соответствует залогу (часто ETH/USD для ETH-номинированного залога). Нативный USDC Arbitrum и популярный ETH/USD-фид:
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 
 $env:COLLATERAL_VAULT = "0x…"   # ваш ERC-4626 vault (не брать наугад — см. preflight выше)
 $env:USDC_ADDRESS     = "0xaf88d065e77c8cC2239327C5EDb3A432268e5831"
@@ -462,7 +462,7 @@ forge script script/DeployFullProduction.s.sol:DeployFullProduction `
 Симуляция (в сеть не пишет):
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 forge script script/DeployFullArbitrum.s.sol:DeployFullArbitrum --rpc-url https://arb1.arbitrum.io/rpc
 ```
 
@@ -489,7 +489,7 @@ forge script script/DeployFullArbitrum.s.sol:DeployFullArbitrum `
 2. **Переменные и деплой** (подставьте только `ВАШ_ПРИВАТНЫЙ_КЛЮЧ`):
 
 ```powershell
-cd F:\aura
+cd F:\ceitnot
 
 # COLLATERAL_VAULT должен пройти cast call convertToAssets(1e18); wstETH 0x5979… на Arb часто НЕ подходит — см. шаг 2a.
 $env:COLLATERAL_VAULT = "0x…"

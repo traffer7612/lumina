@@ -1,7 +1,7 @@
 {
   "_comment": "OpenZeppelin Defender v2 — Monitor template for OracleRelayV2 price deviation.",
   "_setup": "Replace ${ORACLE_RELAY_V2_ADDRESS} with your deployed OracleRelayV2 address.",
-  "name": "Aura: Oracle Price Deviation",
+  "name": "Ceitnot: Oracle Price Deviation",
   "type": "BLOCK",
   "network": "arbitrum",
   "paused": false,
@@ -37,7 +37,7 @@
   },
   "notifyConfig": {
     "timeoutMs": 0,
-    "messageSubject": "[AURA CRITICAL] Oracle Circuit Breaker Tripped",
+    "messageSubject": "[CEITNOT CRITICAL] Oracle Circuit Breaker Tripped",
     "message": "OracleRelayV2 circuit breaker was triggered or reset.\n\nTransaction: {{transaction.hash}}\nBlock: {{transaction.blockNumber}}\n\nIMPORTANT: While the circuit breaker is active, getLatestPrice() reverts and\nnew borrows/liquidations are blocked. The multisig admin must investigate and\ncall resetCircuitBreaker() after confirming the price is valid.",
     "channels": ["${DEFENDER_NOTIFICATION_CHANNEL_ID}"]
   }
