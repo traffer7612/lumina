@@ -6,6 +6,8 @@ Keep in sync with `frontend/.env.example` and GitBook after any governance upgra
 
 Explorer: [Arbitrum One](https://arbiscan.io/).
 
+> Branding notice: token metadata displayed in wallets/explorers can differ from current public naming on legacy deployments. Use this address table as the canonical reference.
+
 ## Core protocol (full deploy set)
 
 | Contract | Address |

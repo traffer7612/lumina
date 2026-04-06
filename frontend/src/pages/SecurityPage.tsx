@@ -1,6 +1,5 @@
 import { Shield, FileSearch, Bug, ExternalLink, CheckCircle } from 'lucide-react';
-
-const DOCS_BASE = 'https://github.com/traffer7612/ceitnot-protocol/blob/master/docs';
+import { DOCS_BLOB_BASE } from '../lib/publicDocs';
 
 export default function SecurityPage() {
   return (
@@ -28,7 +27,7 @@ export default function SecurityPage() {
             </div>
           </div>
           <p className="text-sm text-ceitnot-muted-2 mb-4">
-            Ceitnot protocol contracts are analyzed with <strong className="text-white">Slither v0.11.3</strong> (82 contracts, 100 detectors). 
+            Ceitnot protocol contracts are analyzed with <strong className="text-ceitnot-ink">Slither v0.11.3</strong> (82 contracts, 100 detectors). 
             High and Medium findings have been fixed; Low/Informational are documented and accepted where appropriate.
           </p>
           <ul className="text-sm text-ceitnot-muted-2 space-y-1.5 mb-4">
@@ -46,7 +45,7 @@ export default function SecurityPage() {
             </li>
           </ul>
           <a
-            href={`${DOCS_BASE}/SECURITY-AUDIT.md`}
+            href={`${DOCS_BLOB_BASE}/SECURITY-AUDIT.md`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm font-medium text-ceitnot-gold hover:text-ceitnot-gold-bright"
@@ -56,7 +55,7 @@ export default function SecurityPage() {
           </a>
           <span className="text-ceitnot-muted text-xs ml-2">·</span>
           <a
-            href={`${DOCS_BASE}/SLITHER.md`}
+            href={`${DOCS_BLOB_BASE}/SLITHER.md`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm font-medium text-ceitnot-gold hover:text-ceitnot-gold-bright ml-2"
@@ -79,15 +78,15 @@ export default function SecurityPage() {
           </div>
           <p className="text-sm text-ceitnot-muted-2 mb-4">
             We reward responsible disclosure of vulnerabilities in smart contracts and critical app bugs. 
-            Rewards can be <strong className="text-white">points</strong> or <strong className="text-white">CEITNOT tokens</strong> (testnet or future).
+            Rewards can be <strong className="text-ceitnot-ink">points</strong> or <strong className="text-ceitnot-ink">CEITNOT tokens</strong> (testnet or future).
           </p>
           <ul className="text-sm text-ceitnot-muted-2 space-y-1.5 mb-4">
-            <li><strong className="text-white">Critical:</strong> direct loss of funds, protocol bypass</li>
-            <li><strong className="text-white">High:</strong> significant impact, invariant violations</li>
-            <li><strong className="text-white">Medium / Low:</strong> limited impact, edge cases</li>
+            <li><strong className="text-ceitnot-ink">Critical:</strong> direct loss of funds, protocol bypass</li>
+            <li><strong className="text-ceitnot-ink">High:</strong> significant impact, invariant violations</li>
+            <li><strong className="text-ceitnot-ink">Medium / Low:</strong> limited impact, edge cases</li>
           </ul>
           <a
-            href={`${DOCS_BASE}/BUG-BOUNTY.md`}
+            href={`${DOCS_BLOB_BASE}/BUG-BOUNTY.md`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 text-sm font-medium text-ceitnot-gold hover:text-ceitnot-gold-bright"
@@ -101,9 +100,9 @@ export default function SecurityPage() {
       {/* Docs link */}
       <div className="mt-8 p-4 rounded-xl bg-ceitnot-surface border border-ceitnot-border">
         <p className="text-sm text-ceitnot-muted-2">
-          <strong className="text-white">Documentation</strong> (interest rates math, liquidation mechanics, contract addresses):{' '}
+          <strong className="text-ceitnot-ink">Documentation</strong> (interest rates math, liquidation mechanics, contract addresses):{' '}
           <a
-            href={`${DOCS_BASE}/README-GITBOOK.md`}
+            href={`${DOCS_BLOB_BASE}/README-GITBOOK.md`}
             target="_blank"
             rel="noopener noreferrer"
             className="text-ceitnot-gold hover:text-ceitnot-gold-bright"
@@ -111,6 +110,28 @@ export default function SecurityPage() {
             docs in repo
           </a>
           {' '}— when publishing a docs site, mirror the <code className="text-ceitnot-gold/90">docs/</code> folder from this repository.
+        </p>
+        <p className="text-sm text-ceitnot-muted-2 mt-3">
+          Rebranding transparency: if wallet/explorer token metadata differs from current public naming, use official
+          contract addresses as the source of truth:{' '}
+          <a
+            href={`${DOCS_BLOB_BASE}/PRODUCTION-ADDRESSES-ARBITRUM.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-ceitnot-gold hover:text-ceitnot-gold-bright"
+          >
+            canonical address table
+          </a>
+          {' '}and{' '}
+          <a
+            href={`${DOCS_BLOB_BASE}/BRANDING-AND-NAMING.md`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-ceitnot-gold hover:text-ceitnot-gold-bright"
+          >
+            branding guidance
+          </a>
+          .
         </p>
       </div>
     </div>

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Lock, Shield, Wallet, TrendingUp, Vote, Coins, ExternalLink } from 'lucide-react';
-import { TARGET_CHAIN_ID } from '../lib/chainEnv';
+import { TARGET_CHAIN_ID, viteAddressLegacy } from '../lib/chainEnv';
 import { blockExplorerAddressUrl } from '../lib/explorer';
 import {
   DOCS_TREE_URL,
@@ -10,6 +10,14 @@ import {
 } from '../lib/publicDocs';
 
 const TIMELOCK_ENV = import.meta.env.VITE_TIMELOCK_ADDRESS as string | undefined;
+const GOVERNANCE_TOKEN_ADDRESS = viteAddressLegacy(
+  import.meta.env.VITE_GOVERNANCE_TOKEN_ADDRESS as string | undefined,
+  import.meta.env.VITE_AURA_TOKEN_ADDRESS as string | undefined,
+);
+const AUSD_TOKEN_ADDRESS = viteAddressLegacy(
+  import.meta.env.VITE_AUSD_ADDRESS as string | undefined,
+  import.meta.env.VITE_DEBT_TOKEN_ADDRESS as string | undefined,
+);
 
 const CHART_BARS = [38, 62, 48, 78, 55, 88, 68, 82, 58, 92, 72, 85];
 
@@ -78,13 +86,14 @@ function LineChartSvg() {
     <svg className="w-full h-full lp-line-svg" viewBox={`0 0 ${CHART_WIDTH} ${CHART_HEIGHT}`} fill="none" overflow="visible">
       <defs>
         <linearGradient id="lpLineFill" x1="0" y1="0" x2="0" y2="1">
-          <stop stopColor="#d4a853" stopOpacity="0.35" />
-          <stop offset="1" stopColor="#d4a853" stopOpacity="0" />
+          <stop stopColor="#2dd4bf" stopOpacity="0.28" />
+          <stop offset="0.45" stopColor="#8b5cf6" stopOpacity="0.14" />
+          <stop offset="1" stopColor="#8b5cf6" stopOpacity="0" />
         </linearGradient>
         <linearGradient id="lpLineStroke" x1="0" y1="0" x2="1" y2="0">
-          <stop stopColor="#9a7b3a" />
-          <stop offset="0.5" stopColor="#d4a853" />
-          <stop offset="1" stopColor="#e8c070" />
+          <stop stopColor="#14b8a6" />
+          <stop offset="0.45" stopColor="#2dd4bf" />
+          <stop offset="1" stopColor="#a78bfa" />
         </linearGradient>
       </defs>
       {/* Ось Y: линия и подписи по одной вертикали */}
@@ -127,36 +136,48 @@ function LineChartSvg() {
 }
 
 export default function LandingPage() {
+  const govTokenExplorer = GOVERNANCE_TOKEN_ADDRESS
+    ? blockExplorerAddressUrl(TARGET_CHAIN_ID, GOVERNANCE_TOKEN_ADDRESS)
+    : null;
+  const ausdExplorer = AUSD_TOKEN_ADDRESS
+    ? blockExplorerAddressUrl(TARGET_CHAIN_ID, AUSD_TOKEN_ADDRESS)
+    : null;
+
   return (
-    <div className="min-h-screen text-white landing-pg">
+    <div className="min-h-screen text-ceitnot-ink landing-pg bg-transparent">
       {/* Hero — анимация появления */}
       <section className="relative px-4 pt-24 pb-20 sm:pt-32 sm:pb-28 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-ceitnot-gold/5 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-violet-500/12 via-teal-500/8 to-transparent pointer-events-none" />
         <div className="max-w-3xl mx-auto text-center relative z-10">
-          <h1 className="lp-hero-title text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-6">
+          <h1 className="lp-hero-title text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-ceitnot-ink mb-6">
             DeFi lending.
             <br />
-            <span className="text-ceitnot-gold">On your terms.</span>
+            <span className="page-title-accent">On your terms.</span>
           </h1>
-          <p className="lp-hero-sub text-lg text-ceitnot-muted-2 mb-10 max-w-xl mx-auto leading-relaxed">
+          <p className="lp-hero-sub text-lg text-ceitnot-ink/90 mb-10 max-w-xl mx-auto leading-relaxed">
             Deposit collateral. Borrow stablecoins. Everything on-chain, non-custodial.
           </p>
           <Link
             to="/dashboard"
-            className="lp-hero-cta inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-ceitnot-gold text-ceitnot-bg hover:bg-ceitnot-gold-bright transition-all hover:shadow-lg hover:shadow-ceitnot-gold/20"
+            className="lp-hero-cta inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-ceitnot-gold text-ceitnot-on-primary hover:bg-ceitnot-gold-bright transition-all hover:opacity-95"
+            style={{ boxShadow: 'var(--ceitnot-shadow-primary)' }}
           >
             Open app
             <ArrowRight size={18} />
           </Link>
         </div>
         <p className="lp-hero-badge text-center text-ceitnot-muted text-sm mt-10">Arbitrum · Base · Sepolia testnet</p>
+        <p className="max-w-2xl mx-auto mt-5 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-center text-xs sm:text-sm text-amber-100">
+          On-chain token metadata may differ from current public branding due to legacy deployments.
+          Always verify symbol and official contract addresses.
+        </p>
       </section>
 
       {/* Графики — столбцы + линия */}
       <section className="px-4 py-16 sm:py-20 border-t border-ceitnot-border">
         <div className="max-w-4xl mx-auto">
-          <h2 className="lp-fade text-xl font-bold text-center mb-1">Protocol metrics</h2>
-          <p className="lp-fade text-ceitnot-muted text-sm text-center mb-10">TVL & growth</p>
+          <h2 className="lp-fade text-xl font-bold text-center mb-1 text-ceitnot-ink">Protocol metrics</h2>
+          <p className="lp-fade text-sm text-center mb-10 text-ceitnot-muted-2">TVL & growth</p>
           <div className="lp-chart-row group flex items-end justify-center gap-2 h-40 mb-14">
             {CHART_BARS.map((h, i) => (
               <div
@@ -165,7 +186,7 @@ export default function LandingPage() {
                 style={{ height: `${h}%`, animationDelay: `${0.05 * i}s` }}
                 title={`${h}%`}
               >
-                <span className="lp-bar-value absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 rounded text-xs font-medium bg-ceitnot-gold text-ceitnot-bg whitespace-nowrap">
+                <span className="lp-bar-value absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-0.5 rounded text-xs font-medium bg-ceitnot-surface-2 text-ceitnot-gold border border-ceitnot-border whitespace-nowrap shadow-lg">
                   {h}%
                 </span>
               </div>
@@ -180,7 +201,7 @@ export default function LandingPage() {
       {/* How it works — карточки с анимацией */}
       <section className="px-4 py-20 border-t border-ceitnot-border">
         <div className="max-w-5xl mx-auto">
-          <h2 className="lp-fade text-2xl font-bold text-center mb-12">How it works</h2>
+          <h2 className="lp-fade text-2xl font-bold text-center mb-12 text-ceitnot-ink">How it works</h2>
           <div className="grid sm:grid-cols-3 gap-8">
             {[
               { Icon: Wallet, title: '1. Deposit', text: 'Lock vault shares (e.g. wstETH) as collateral in the protocol.' },
@@ -191,7 +212,7 @@ export default function LandingPage() {
                 <div className="w-14 h-14 rounded-2xl bg-ceitnot-gold/10 flex items-center justify-center text-ceitnot-gold mx-auto mb-4">
                   <item.Icon size={28} />
                 </div>
-                <h3 className="font-semibold text-white mb-2">{item.title}</h3>
+                <h3 className="font-semibold text-ceitnot-ink mb-2">{item.title}</h3>
                 <p className="text-sm text-ceitnot-muted-2 leading-relaxed">{item.text}</p>
               </div>
             ))}
@@ -208,7 +229,7 @@ export default function LandingPage() {
         {TIMELOCK_ENV && (
           <p className="max-w-xl mx-auto mt-8 text-center text-xs sm:text-sm text-ceitnot-muted-2 leading-relaxed px-2">
             Protocol administration is handled by the{' '}
-            <span className="text-white/90 font-medium">Timelock</span> contract (not a personal EOA). Changes go through{' '}
+            <span className="text-ceitnot-ink/90 font-medium">Timelock</span> contract (not a personal EOA). Changes go through{' '}
             <Link to="/governance" className="text-ceitnot-gold hover:underline font-medium">
               governance
             </Link>
@@ -263,7 +284,7 @@ export default function LandingPage() {
       {/* CEITNOT token */}
       <section className="px-4 py-20 border-t border-ceitnot-border">
         <div className="max-w-4xl mx-auto">
-          <h2 className="lp-fade text-2xl font-bold text-center mb-3">CEITNOT token</h2>
+          <h2 className="lp-fade text-2xl font-bold text-center mb-3 text-ceitnot-ink">CEITNOT token</h2>
           <p className="lp-fade text-ceitnot-muted-2 text-center text-sm mb-12 max-w-md mx-auto">Governance and revenue sharing. Lock CEITNOT → veCEITNOT → vote and earn.</p>
           <div className="grid sm:grid-cols-3 gap-6">
             {[
@@ -273,10 +294,79 @@ export default function LandingPage() {
             ].map((item, i) => (
               <div key={item.title} className="lp-token p-5 rounded-2xl bg-ceitnot-surface border border-ceitnot-border hover:border-ceitnot-gold/25 transition-colors" style={{ animationDelay: `${0.1 * i}s` }}>
                 <item.Icon size={22} className="text-ceitnot-gold mb-3" />
-                <h3 className="font-semibold text-white mb-1">{item.title}</h3>
+                <h3 className="font-semibold text-ceitnot-ink mb-1">{item.title}</h3>
                 <p className="text-xs text-ceitnot-muted-2">{item.text}</p>
               </div>
             ))}
+          </div>
+          <div className="mt-8 rounded-2xl border border-ceitnot-border bg-ceitnot-surface p-5">
+            <h3 className="text-sm font-semibold text-ceitnot-ink mb-3">Canonical token references</h3>
+            <div className="space-y-2 text-xs sm:text-sm text-ceitnot-muted-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-ceitnot-ink font-medium">Governance token symbol:</span>
+                <code className="px-2 py-0.5 rounded bg-ceitnot-surface-2 border border-ceitnot-border">CEITNOT</code>
+                {GOVERNANCE_TOKEN_ADDRESS && (
+                  <>
+                    <span className="text-ceitnot-ink font-medium">address:</span>
+                    {govTokenExplorer ? (
+                      <a href={govTokenExplorer} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-ceitnot-gold hover:underline font-medium">
+                        {GOVERNANCE_TOKEN_ADDRESS}
+                        <ExternalLink size={12} className="opacity-80 shrink-0" aria-hidden />
+                      </a>
+                    ) : (
+                      <code className="px-2 py-0.5 rounded bg-ceitnot-surface-2 border border-ceitnot-border">{GOVERNANCE_TOKEN_ADDRESS}</code>
+                    )}
+                  </>
+                )}
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-ceitnot-ink font-medium">Stable token symbol:</span>
+                <code className="px-2 py-0.5 rounded bg-ceitnot-surface-2 border border-ceitnot-border">aUSD</code>
+                {AUSD_TOKEN_ADDRESS && (
+                  <>
+                    <span className="text-ceitnot-ink font-medium">address:</span>
+                    {ausdExplorer ? (
+                      <a href={ausdExplorer} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-ceitnot-gold hover:underline font-medium">
+                        {AUSD_TOKEN_ADDRESS}
+                        <ExternalLink size={12} className="opacity-80 shrink-0" aria-hidden />
+                      </a>
+                    ) : (
+                      <code className="px-2 py-0.5 rounded bg-ceitnot-surface-2 border border-ceitnot-border">{AUSD_TOKEN_ADDRESS}</code>
+                    )}
+                  </>
+                )}
+              </div>
+              <p>
+                Full canonical address list:{' '}
+                <a href={DOC_PRODUCTION_ADDRESSES_URL} target="_blank" rel="noopener noreferrer" className="text-ceitnot-gold hover:underline font-medium">
+                  Arbitrum production addresses
+                </a>
+                .
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ — naming and contract identity */}
+      <section className="px-4 py-16 border-t border-ceitnot-border bg-ceitnot-surface/30">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-2xl font-bold text-ceitnot-ink text-center mb-10">FAQ</h2>
+          <div className="space-y-4">
+            <details className="rounded-xl border border-ceitnot-border bg-ceitnot-surface p-4">
+              <summary className="cursor-pointer font-medium text-ceitnot-ink">Why can token name in wallet/explorer differ from current brand?</summary>
+              <p className="mt-3 text-sm text-ceitnot-muted-2 leading-relaxed">
+                Some contracts were deployed before the latest branding update. The protocol uses canonical contract
+                addresses and symbols published in official docs. Treat contract address as the source of truth.
+              </p>
+            </details>
+            <details className="rounded-xl border border-ceitnot-border bg-ceitnot-surface p-4">
+              <summary className="cursor-pointer font-medium text-ceitnot-ink">How do I verify official token addresses?</summary>
+              <p className="mt-3 text-sm text-ceitnot-muted-2 leading-relaxed">
+                Use the production address table in docs and cross-check on Arbiscan before any transfer, approval,
+                or governance action.
+              </p>
+            </details>
           </div>
         </div>
       </section>
@@ -285,7 +375,11 @@ export default function LandingPage() {
       <section className="px-4 py-24 border-t border-ceitnot-border">
         <div className="max-w-xl mx-auto text-center">
           <p className="lp-fade text-ceitnot-muted-2 mb-6">Ready to use the protocol?</p>
-          <Link to="/dashboard" className="lp-fade inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-ceitnot-gold text-ceitnot-bg hover:bg-ceitnot-gold-bright transition-all hover:shadow-lg hover:shadow-ceitnot-gold/20">
+          <Link
+            to="/dashboard"
+            className="lp-fade inline-flex items-center gap-2 px-8 py-4 rounded-xl font-semibold bg-ceitnot-gold text-ceitnot-on-primary hover:bg-ceitnot-gold-bright transition-all hover:opacity-95"
+            style={{ boxShadow: 'var(--ceitnot-shadow-primary)' }}
+          >
             Open app
             <ArrowRight size={18} />
           </Link>

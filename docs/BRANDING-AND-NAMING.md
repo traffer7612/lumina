@@ -10,6 +10,8 @@
 
 Токен управления в `CeitnotToken.sol`: имя **Ceitnot**, тикер **CEITNOT**. Старые деплои могли использовать другие метаданные — в UI символ берётся из контракта, с подстановкой **CEITNOT** для устаревших тикеров при необходимости.
 
+> User-facing disclosure (recommended): **"On-chain token metadata may differ from current public branding due to legacy deployment. Verify official contract addresses before interacting."**
+
 ## Переменные окружения (актуальные)
 
 - Фронт: `VITE_GOVERNANCE_TOKEN_ADDRESS`, `VITE_VE_TOKEN_ADDRESS`, `VITE_ENGINE_ADDRESS`, …
@@ -22,3 +24,17 @@
 2. О **конкретном контракте** — имя в обратных кавычках: `` `CeitnotUSD.mint` ``.
 
 См. также [README-GITBOOK.md](README-GITBOOK.md) и [CONTRACTS.md](CONTRACTS.md).
+
+## FAQ (short, for website/support)
+
+### Почему имя токена в кошельке/эксплорере может отличаться от бренда?
+
+Часть контрактов была развернута до ребрендинга. Это не меняет адреса и логику контрактов.
+Источник истины для пользователей — канонический список адресов:
+[`PRODUCTION-ADDRESSES-ARBITRUM.md`](PRODUCTION-ADDRESSES-ARBITRUM.md).
+
+### Что показывать в UI, чтобы не путать пользователей?
+
+1. Символ токена (например, `CEITNOT`, `aUSD`).
+2. Полный адрес контракта (со ссылкой на Arbiscan).
+3. Короткий дисклеймер о legacy naming.
