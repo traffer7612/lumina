@@ -64,7 +64,8 @@ export function gasFor(chainId: number | undefined) {
   if (chainId === 31337 || chainId === 1337) return { gas: 8_000_000n };
   if (chainId === 42161 || chainId === 421614) {
     return {
-      gas: 300_000n,
+      // `depositCollateral` + accrue + first-market setup can exceed 300k on Arb (seen ~340k+ on Sepolia).
+      gas: 600_000n,
       maxFeePerGas: 5_000_000_000n, // 5 gwei — above typical Arb base fee spikes
       maxPriorityFeePerGas: 100_000_000n, // 0.1 gwei
     };
