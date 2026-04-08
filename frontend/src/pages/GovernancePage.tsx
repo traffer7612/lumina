@@ -95,7 +95,16 @@ type ProposalFeedItem = {
   state?: number;
 };
 type GovernanceActivityItem = {
-  kind: 'proposed' | 'voted' | 'queued' | 'executed' | 'timelock_scheduled' | 'timelock_executed';
+  kind:
+    | 'proposed'
+    | 'voted'
+    | 'queued'
+    | 'executed'
+    | 'timelock_scheduled'
+    | 'timelock_executed'
+    | 'admin_proposed'
+    | 'admin_transferred'
+    | 'minter_updated';
   proposalId?: bigint;
   actor?: Address;
   support?: number;
@@ -125,13 +134,22 @@ const timelockCallScheduledEvent = parseAbiItem(
 const timelockCallExecutedEvent = parseAbiItem(
   'event CallExecuted(bytes32 indexed id,uint256 indexed index,address target,uint256 value,bytes data)',
 );
+const adminProposedEvent = parseAbiItem(
+  'event AdminProposed(address indexed current,address indexed pending)',
+);
+const adminTransferredEvent = parseAbiItem(
+  'event AdminTransferred(address indexed prev,address indexed next)',
+);
+const minterUpdatedEvent = parseAbiItem(
+  'event MinterUpdated(address indexed previous,address indexed next)',
+);
 
 export default function GovernancePage() {
   const { address, isConnected, chainId } = useAccount();
   const explorerChainId = chainId ?? TARGET_CHAIN_ID;
   const publicClient = usePublicClient({ chainId: TARGET_CHAIN_ID });
   const { writeContractAsync } = useWriteContract();
-  const { registry } = useContractAddresses();
+  const { engine, registry } = useContractAddresses();
 
   // ── tx tracking ──
   const [hash, setHash] = useState<Hash | undefined>();
@@ -504,7 +522,9 @@ export default function GovernancePage() {
       const latest = await publicClient.getBlock({ blockNumber: latestBlock });
       const minTs = BigInt(Math.max(0, Number(latest.timestamp) - FEED_WINDOW_SECONDS));
       const fromBlock = governanceLogsFromBlock(latestBlock, TARGET_CHAIN_ID);
-      const [createdLogs, voteLogs, queuedLogs, executedLogs, timelockScheduledLogs, timelockExecutedLogs] = await Promise.all([
+      const adminSources = [engine, registry, AUSD, viteAddress(import.meta.env.VITE_PSM_ADDRESS)]
+        .filter((x): x is Address => !!x);
+      const [createdLogs, voteLogs, queuedLogs, executedLogs, timelockScheduledLogs, timelockExecutedLogs, adminProposedByAddr, adminTransferredByAddr, minterUpdatedLogs] = await Promise.all([
         publicClient.getLogs({
           address: GOVERNOR,
           event: proposalCreatedEvent,
@@ -541,7 +561,31 @@ export default function GovernancePage() {
           fromBlock,
           toBlock: 'latest',
         }) : Promise.resolve([]),
+        Promise.all(
+          adminSources.map((addr) => publicClient.getLogs({
+            address: addr,
+            event: adminProposedEvent,
+            fromBlock,
+            toBlock: 'latest',
+          })),
+        ),
+        Promise.all(
+          adminSources.map((addr) => publicClient.getLogs({
+            address: addr,
+            event: adminTransferredEvent,
+            fromBlock,
+            toBlock: 'latest',
+          })),
+        ),
+        GOV_TOKEN ? publicClient.getLogs({
+          address: GOV_TOKEN,
+          event: minterUpdatedEvent,
+          fromBlock,
+          toBlock: 'latest',
+        }) : Promise.resolve([]),
       ]);
+      const adminProposedLogs = adminProposedByAddr.flat();
+      const adminTransferredLogs = adminTransferredByAddr.flat();
 
       const stateIds = new Set<bigint>();
       for (const lg of createdLogs) stateIds.add((lg.args as { proposalId: bigint }).proposalId);
@@ -628,6 +672,39 @@ export default function GovernancePage() {
             kind: 'timelock_executed' as const,
             opId: args.id,
             target: args.target,
+            txHash: log.transactionHash,
+            blockNumber: log.blockNumber,
+            logIndex: log.logIndex,
+          };
+        }),
+        ...adminProposedLogs.map((log) => {
+          const args = log.args as { pending: Address };
+          return {
+            kind: 'admin_proposed' as const,
+            actor: args.pending,
+            target: log.address,
+            txHash: log.transactionHash,
+            blockNumber: log.blockNumber,
+            logIndex: log.logIndex,
+          };
+        }),
+        ...adminTransferredLogs.map((log) => {
+          const args = log.args as { next: Address };
+          return {
+            kind: 'admin_transferred' as const,
+            actor: args.next,
+            target: log.address,
+            txHash: log.transactionHash,
+            blockNumber: log.blockNumber,
+            logIndex: log.logIndex,
+          };
+        }),
+        ...minterUpdatedLogs.map((log) => {
+          const args = log.args as { next: Address };
+          return {
+            kind: 'minter_updated' as const,
+            actor: args.next,
+            target: log.address,
             txHash: log.transactionHash,
             blockNumber: log.blockNumber,
             logIndex: log.logIndex,
@@ -1039,6 +1116,9 @@ export default function GovernancePage() {
                     {a.kind === 'executed' && 'Proposal executed'}
                     {a.kind === 'timelock_scheduled' && 'Timelock call scheduled'}
                     {a.kind === 'timelock_executed' && 'Timelock call executed'}
+                    {a.kind === 'admin_proposed' && 'Admin change proposed'}
+                    {a.kind === 'admin_transferred' && 'Admin changed'}
+                    {a.kind === 'minter_updated' && 'Token minter updated'}
                     {a.proposalId !== undefined && (
                       <> for <span className="font-mono">#{shortProposalId(a.proposalId)}</span></>
                     )}
