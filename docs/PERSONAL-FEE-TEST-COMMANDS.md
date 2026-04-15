@@ -4,7 +4,7 @@
 
 Важно:
 - Админом является `Timelock`, поэтому вывод делается через governance-процесс: `propose -> vote -> queue -> execute`.
-- Кошелек, который создает proposal, должен проходить порог `Governor` (достаточно `veCEITNOT` голосов).
+- Кошелек, который создает proposal, должен проходить порог `Governor` (достаточно `VeCEITNOT` голосов).
 
 ## 0) Фиксированные адреса в этом гайде
 
@@ -129,12 +129,12 @@ cast call 0xcb18d815e5b686372d9494583812cd46ca869919 "feeReserves()(uint256)" --
 
 ## 4) Сценарий B (опционально): вывод резервов Engine на ваш EOA
 
-Это резерв рынка в debt token (`aUSD`), а не комиссии PSM в USDC.
+Это резерв рынка в debt token (`ceitUSD`), а не комиссии PSM в USDC.
 
 ```powershell
 $marketId="1"
 $to="0x6579aC68b40dB4f7DE470db7b62cA1A33fCAa2Ec"
-$amount="1000000000000000000"   # 1 aUSD (18 decimals)
+$amount="1000000000000000000"   # 1 ceitUSD (18 decimals)
 $desc="AIP: Personal fee test - withdraw Engine reserves market 1 to 0x6579"
 
 $calldata = cast calldata "withdrawReserves(uint256,uint256,address)" $marketId $amount $to
@@ -147,5 +147,5 @@ cast send 0xa4d0f26cabec345034c2687467b6157cae581216 "propose(address[],uint256[
 ## 5) Частые ошибки
 
 - `--rpc-url ... none was supplied`: задайте `$env:ARBITRUM_RPC_URL` в этом терминале.
-- `GovernorInsufficientProposerVotes`: у вашего кошелька недостаточно `veCEITNOT` голосов.
+- `GovernorInsufficientProposerVotes`: у вашего кошелька недостаточно `VeCEITNOT` голосов.
 - Proposal в неожиданном состоянии: сначала проверьте `votingDelay`, `votingPeriod` и `timelock delay`.

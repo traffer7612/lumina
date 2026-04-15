@@ -166,10 +166,6 @@ export default function LandingPage() {
           </Link>
         </div>
         <p className="lp-hero-badge text-center text-ceitnot-muted text-sm mt-10">Arbitrum · Base · Sepolia testnet</p>
-        <p className="max-w-2xl mx-auto mt-5 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-center text-xs sm:text-sm text-amber-100">
-          On-chain token metadata may differ from current public branding due to legacy deployments.
-          Always verify symbol and official contract addresses.
-        </p>
       </section>
 
       {/* Графики — столбцы + линия */}
@@ -215,6 +211,98 @@ export default function LandingPage() {
                 <p className="text-sm text-ceitnot-muted-2 leading-relaxed">{item.text}</p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Beginner visual guide: Yield Siphon + Death Spiral */}
+      <section className="px-4 py-20 border-t border-ceitnot-border bg-ceitnot-surface/30">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-2xl font-bold text-center text-ceitnot-ink mb-3">
+            Beginner guide: Yield Siphon in diagrams
+          </h2>
+          <p className="text-sm text-center text-ceitnot-muted-2 max-w-3xl mx-auto mb-12 leading-relaxed">
+            Yield Siphon is not magic auto-repay every second. A keeper bot triggers harvest, the protocol converts vault yield into debt value, and your debt goes down through a global scale update.
+          </p>
+
+          <div className="rounded-2xl border border-ceitnot-border bg-ceitnot-surface p-5 sm:p-6 mb-8">
+            <h3 className="text-base font-semibold text-ceitnot-ink mb-4">Flow diagram (simple)</h3>
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] items-center">
+              <div className="rounded-xl border border-ceitnot-border bg-ceitnot-surface-2 p-3 text-center">
+                <p className="text-xs uppercase tracking-wide text-ceitnot-muted">Step 1</p>
+                <p className="text-sm font-medium text-ceitnot-ink mt-1">User deposits collateral</p>
+                <p className="text-xs text-ceitnot-muted-2 mt-1">Example: $1,000 in vault shares</p>
+              </div>
+              <p className="hidden sm:block text-ceitnot-gold text-center">→</p>
+              <div className="rounded-xl border border-ceitnot-border bg-ceitnot-surface-2 p-3 text-center">
+                <p className="text-xs uppercase tracking-wide text-ceitnot-muted">Step 2</p>
+                <p className="text-sm font-medium text-ceitnot-ink mt-1">User borrows stablecoin</p>
+                <p className="text-xs text-ceitnot-muted-2 mt-1">Example: debt = $600</p>
+              </div>
+              <p className="hidden sm:block text-ceitnot-gold text-center">→</p>
+              <div className="rounded-xl border border-ceitnot-border bg-ceitnot-surface-2 p-3 text-center">
+                <p className="text-xs uppercase tracking-wide text-ceitnot-muted">Step 3</p>
+                <p className="text-sm font-medium text-ceitnot-ink mt-1">Keeper calls harvest</p>
+                <p className="text-xs text-ceitnot-muted-2 mt-1">`harvestYield(marketId)`</p>
+              </div>
+              <p className="hidden sm:block text-ceitnot-gold text-center">→</p>
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-3 text-center">
+                <p className="text-xs uppercase tracking-wide text-emerald-700 dark:text-emerald-200">Step 4</p>
+                <p className="text-sm font-medium text-emerald-800 dark:text-emerald-100 mt-1">Debt decreases globally</p>
+                <p className="text-xs text-emerald-700/80 dark:text-emerald-200/80 mt-1">Example: $600 → $573</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-5 mb-8">
+            <div className="rounded-2xl border border-ceitnot-border bg-ceitnot-surface p-5">
+              <p className="text-xs uppercase tracking-wide text-ceitnot-muted">Role</p>
+              <h3 className="font-semibold text-ceitnot-ink mt-1 mb-2">Borrower (you)</h3>
+              <p className="text-sm text-ceitnot-muted-2 leading-relaxed">
+                Deposits collateral and borrows stablecoins. Debt can go down after each successful harvest.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-ceitnot-border bg-ceitnot-surface p-5">
+              <p className="text-xs uppercase tracking-wide text-ceitnot-muted">Role</p>
+              <h3 className="font-semibold text-ceitnot-ink mt-1 mb-2">Keeper bot</h3>
+              <p className="text-sm text-ceitnot-muted-2 leading-relaxed">
+                Sends transactions that trigger harvest on schedule. Without keeper calls, yield is not applied to debt.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-ceitnot-border bg-ceitnot-surface p-5">
+              <p className="text-xs uppercase tracking-wide text-ceitnot-muted">Role</p>
+              <h3 className="font-semibold text-ceitnot-ink mt-1 mb-2">Liquidator</h3>
+              <p className="text-sm text-ceitnot-muted-2 leading-relaxed">
+                Steps in when health factor is below 1. Repays risky debt and receives collateral with penalty incentives.
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-ceitnot-border bg-ceitnot-surface p-5 sm:p-6">
+            <h3 className="text-base font-semibold text-ceitnot-ink mb-4">Scenario diagram with numbers</h3>
+            <div className="grid lg:grid-cols-3 gap-4">
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
+                <p className="text-xs uppercase tracking-wide text-emerald-700 dark:text-emerald-200">Bull market</p>
+                <p className="text-sm text-emerald-800 dark:text-emerald-100 mt-2">Collateral: $1,000 → $1,120</p>
+                <p className="text-sm text-emerald-800 dark:text-emerald-100">Debt: $600 → $565 (yield + harvest)</p>
+                <p className="text-xs text-emerald-700/80 dark:text-emerald-200/80 mt-2">Result: position gets safer over time.</p>
+              </div>
+              <div className="rounded-xl border border-sky-500/30 bg-sky-500/10 p-4">
+                <p className="text-xs uppercase tracking-wide text-sky-700 dark:text-sky-200">Flat market</p>
+                <p className="text-sm text-sky-800 dark:text-sky-100 mt-2">Collateral: $1,000 → $1,000</p>
+                <p className="text-sm text-sky-800 dark:text-sky-100">Debt: $600 → $582 (yield only)</p>
+                <p className="text-xs text-sky-700/80 dark:text-sky-200/80 mt-2">Result: slow auto-repay if keeper keeps harvesting.</p>
+              </div>
+              <div className="rounded-xl border border-rose-500/30 bg-rose-500/10 p-4">
+                <p className="text-xs uppercase tracking-wide text-rose-700 dark:text-rose-200">Crash market (death spiral risk)</p>
+                <p className="text-sm text-rose-800 dark:text-rose-100 mt-2">Collateral: $1,000 → $700</p>
+                <p className="text-sm text-rose-800 dark:text-rose-100">Debt: $600 → $590 (yield too slow)</p>
+                <p className="text-xs text-rose-700/80 dark:text-rose-200/80 mt-2">Result: liquidation may trigger before yield can save the position.</p>
+              </div>
+            </div>
+            <p className="mt-5 text-xs sm:text-sm text-ceitnot-muted-2 leading-relaxed">
+              Key idea: Yield Siphon improves outcomes, but liquidations are still the main safety mechanism when collateral price drops too fast.
+            </p>
           </div>
         </div>
       </section>

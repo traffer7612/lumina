@@ -37,7 +37,7 @@ Status legend:
 
 - 🟡 Finalize and publish `tin` / `tout` policy and allowed governance range. ([`PSM-ORACLE-MARKET-RISK.md`](PSM-ORACLE-MARKET-RISK.md) §1 — **set max Bps**)
 - 🟢 Confirm active production PSM address and deprecate legacy PSM in docs. ([`PRODUCTION-ADDRESSES-ARBITRUM.md`](PRODUCTION-ADDRESSES-ARBITRUM.md) migration table)
-- 🟡 Confirm `CeitnotUSD.addMinter(newPSM)` execution status. (queue/execute Timelock when ready; verify `minters` on aUSD)
+- 🟡 Confirm `CeitnotUSD.addMinter(newPSM)` execution status. (queue/execute Timelock when ready; verify `minters` on ceitUSD)
 - 🟡 Plan and execute `removeMinter(oldPSM)` when migration is complete. (governance proposal after liquidity moved)
 - 🟡 Publish PSM liquidity policy (minimum reserves, refill procedure, responsible role). ([`PSM-ORACLE-MARKET-RISK.md`](PSM-ORACLE-MARKET-RISK.md) §2 — **fill numbers**)
 - 🟡 Publish incident policy for accidental transfers / rescue logic. ([`PSM-ORACLE-MARKET-RISK.md`](PSM-ORACLE-MARKET-RISK.md) §3)

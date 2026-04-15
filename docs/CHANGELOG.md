@@ -8,12 +8,12 @@
 - **CeitnotRouter** — stateless маршрутизатор: `depositCollateral`, `depositAndBorrow`, `repayAndWithdraw`, `leverageUp/Down` + EIP-2612 permit flows
 - **Delegate system** — `setDelegate(address, bool)` в CeitnotEngine: позволяет внешним контрактам (Router) действовать от имени пользователя
 - **Multicall** — батч-вызовы через `delegatecall` для атомарных admin-операций
-- **EIP-2612 permit** — gasless approve для vault tokens и aUSD через Router
+- **EIP-2612 permit** — gasless approve для vault tokens и ceitUSD через Router
 
 ## Phase 9 — CDP Mode & PSM
 - **CeitnotUSD** — mintable стейблкоин: minter management, global debt ceiling, EIP-2612 permit, custom ERC-20 (без OZ зависимости)
-- **CDP mode** в CeitnotEngine — `borrow` минтит aUSD (вместо transfer USDC), `repay`/`liquidate` сжигают aUSD, per-market debt ceiling
-- **CeitnotPSM** — Peg Stability Module: 1:1 свопы aUSD ↔ pegged stable (USDC/DAI), настраиваемые комиссии tin/tout, ceiling, fee reserves
+- **CDP mode** в CeitnotEngine — `borrow` минтит ceitUSD (вместо transfer USDC), `repay`/`liquidate` сжигают ceitUSD, per-market debt ceiling
+- **CeitnotPSM** — Peg Stability Module: 1:1 свопы ceitUSD ↔ pegged stable (USDC/DAI), настраиваемые комиссии tin/tout, ceiling, fee reserves
 
 ## Phase 8 — Oracle V2
 - **OracleRelayV2** — multi-source median oracle (до 8 feeds), circuit breaker (maxDeviationBps), L2 sequencer uptime feed с grace period

@@ -29,7 +29,7 @@
 **23 теста** — контракты governance Ceitnot: `CeitnotToken`, `VeCeitnot` (lock, extend, withdraw, delegation, revenue), `CeitnotGovernor` (propose, vote, execute через timelock), `CeitnotTreasury` (deposit, withdraw, distribute).
 
 ### 1.5. Phase 9 — CDP / PSM (`test/Phase9.t.sol`)
-**25 тестов** — CeitnotUSD (mint/burn, minter management, global debt ceiling), CDP-режим (borrow mints aUSD, repay/liquidate burns aUSD, per-market debt ceiling), PSM (swapIn/swapOut, fee accounting, ceiling, reserves).
+**25 тестов** — CeitnotUSD (mint/burn, minter management, global debt ceiling), CDP-режим (borrow mints ceitUSD, repay/liquidate burns ceitUSD, per-market debt ceiling), PSM (swapIn/swapOut, fee accounting, ceiling, reserves).
 
 ### 1.6. Phase 10 — Router / Delegates (`test/Phase10.t.sol`)
 **24 теста** — CeitnotRouter (depositCollateral, depositAndBorrow, repayAndWithdraw, leverageUp/Down), Delegate system (set/get, borrow/repay via delegate, unauthorized reverts), Multicall, EIP-2612 permit.

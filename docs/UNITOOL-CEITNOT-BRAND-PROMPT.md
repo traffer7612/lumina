@@ -31,7 +31,7 @@ Wide banner background, 16:9. Very dark blue-black, soft gradient with warm gold
 ## Бренд Ceitnot — базовый промпт (копируй в unitool.ai)
 
 ```
-Brand: Ceitnot (Ceitnot Protocol). DeFi lending protocol: deposit collateral, borrow stablecoins, governance via CEITNOT and veCEITNOT. Non-custodial, on-chain. Tagline feel: "DeFi lending. On your terms."
+Brand: Ceitnot (Ceitnot Protocol). DeFi lending protocol: deposit collateral, borrow stablecoins, governance via CEITNOT and VeCEITNOT. Non-custodial, on-chain. Tagline feel: "DeFi lending. On your terms."
 
 Visual identity:
 - Mood: premium, trustworthy, modern DeFi; dark theme with warm gold and subtle purple; professional, not playful.
@@ -228,5 +228,5 @@ Resolution для баннера: 1024×576 или 1280×720 (16:9). Steps 25–
 ## Домены и названия
 
 - Сайт: ceitnotdefi.pro, ceitnot.finance  
-- Токены: CEITNOT, veCEITNOT  
+- Токены: CEITNOT, VeCEITNOT
 - Продукт: Ceitnot Protocol

@@ -6,7 +6,7 @@ Ceitnot governance is designed to reduce unilateral control risk and make protoc
 
 ## Governance Stack
 
-- `veCEITNOT` as voting power (obtained by locking CEITNOT),
+- `VeCEITNOT` as voting power (obtained by locking CEITNOT),
 - `CeitnotGovernor` for proposal lifecycle and voting,
 - `Timelock` for delayed execution of approved actions,
 - on-chain execution into core protocol contracts.
@@ -29,7 +29,7 @@ Ceitnot governance is designed to reduce unilateral control risk and make protoc
 
 Users:
 - acquire CEITNOT,
-- lock CEITNOT to receive veCEITNOT,
+- lock CEITNOT to receive VeCEITNOT,
 - vote and optionally delegate,
 - earn protocol revenue as long-term participants.
 

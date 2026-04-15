@@ -10,14 +10,14 @@ Users first need `CEITNOT` tokens. Sources can include:
 - community distribution or airdrop,
 - ecosystem incentives.
 
-## 2) Lock CEITNOT to receive veCEITNOT
+## 2) Lock CEITNOT to receive VeCEITNOT
 
-`veCEITNOT` is not bought directly.  
+`VeCEITNOT` is not bought directly.
 It is minted from locked `CEITNOT`.
 
 - Lock amount + lock duration are selected on the Governance page.
 - Longer lock means stronger long-term commitment.
-- Only `veCEITNOT` gives governance voting power.
+- Only `VeCEITNOT` gives governance voting power.
 
 ## 3) Earn protocol revenue
 
@@ -44,7 +44,7 @@ This means approved changes are not instant; they pass through governance proces
 
 - `Voting Delay`: 86400 (1 day)
 - `Voting Period`: 604800 (7 days)
-- `Proposal Threshold`: 100000 veCEITNOT
+- `Proposal Threshold`: 100000 VeCEITNOT
 - `Quorum`: dynamic, based on current governance supply
 
 ## 6) Important operational rules

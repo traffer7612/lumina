@@ -5,7 +5,7 @@ Companion to [`TOKENOMICS-PROD-CHECKLIST.md`](TOKENOMICS-PROD-CHECKLIST.md). **N
 ## 1. Supply policy (governance + disclosure)
 
 - **CEITNOT (governance token, `CeitnotToken`)**: single `minter` address; inflation only through that minter. **Publish**: intended max supply or emissions schedule, and current `minter` (should be Timelock).
-- **aUSD (`CeitnotUSD`)**: no public mint except through registered **minters**; optional **global debt ceiling** (`globalDebtCeiling`, 0 = unlimited). **Publish**: ceiling value if non-zero, and total supply snapshot for launch comms.
+- **ceitUSD (`CeitnotUSD`)**: no public mint except through registered **minters**; optional **global debt ceiling** (`globalDebtCeiling`, 0 = unlimited). **Publish**: ceiling value if non-zero, and total supply snapshot for launch comms.
 
 **Action**: Replace TBD rows in your external factsheet with on-chain reads at launch date.
 
@@ -13,9 +13,9 @@ Companion to [`TOKENOMICS-PROD-CHECKLIST.md`](TOKENOMICS-PROD-CHECKLIST.md). **N
 
 | Asset | Who can mint | Contract path | Admin / control |
 |-------|----------------|---------------|-----------------|
-| **aUSD** | Registered minters only | `CeitnotUSD.mint` / `burn` | `addMinter` / `removeMinter` / `transferAdmin` — `CeitnotUSD.admin` must be Timelock in production. |
-| **aUSD via CDP** | `CeitnotEngine` (proxy) | Engine calls `mint` when user borrows; `burn` on repay/liquidation | Engine is a minter; Engine admin params via timelocked governance. |
-| **aUSD via PSM** | `CeitnotPSM` | `swapIn` mints aUSD; `swapOut` burns | Each PSM deployment must be added as minter via governance. |
+| **ceitUSD** | Registered minters only | `CeitnotUSD.mint` / `burn` | `addMinter` / `removeMinter` / `transferAdmin` — `CeitnotUSD.admin` must be Timelock in production. |
+| **ceitUSD via CDP** | `CeitnotEngine` (proxy) | Engine calls `mint` when user borrows; `burn` on repay/liquidation | Engine is a minter; Engine admin params via timelocked governance. |
+| **ceitUSD via PSM** | `CeitnotPSM` | `swapIn` mints ceitUSD; `swapOut` burns | Each PSM deployment must be added as minter via governance. |
 | **CEITNOT** | Current `CeitnotToken.minter` | `CeitnotToken.mint` | `transferMinter` callable only by current minter → route to Timelock. |
 
 **Hidden mint path check**: There is no alternate ERC-20 mint on `CeitnotUSD` outside `minters`; `CeitnotToken` has no mint except through `minter`. Verify on Arbiscan: `CeitnotUSD.admin`, `CeitnotToken.minter`, and `minters(engine)`, `minters(psm)`.
@@ -28,7 +28,7 @@ Companion to [`TOKENOMICS-PROD-CHECKLIST.md`](TOKENOMICS-PROD-CHECKLIST.md). **N
 - Monthly unlock amounts post-cliff  
 - Addresses holding vesting (EOA vs contract)
 
-## 4. veCEITNOT (lock mechanics summary)
+## 4. VeCEITNOT (lock mechanics summary)
 
 From `VeCeitnot` (see also governance UI):
 
@@ -42,7 +42,7 @@ From `VeCeitnot` (see also governance UI):
 
 | Source | Mechanism | Typical asset |
 |--------|-----------|----------------|
-| CDP | Interest / protocol fee parameters on markets | aUSD or configured fee token per deployment |
+| CDP | Interest / protocol fee parameters on markets | ceitUSD or configured fee token per deployment |
 | PSM | `tinBps` / `toutBps` on swap | Pegged stable (e.g. USDC) held in `feeReserves` |
 | Liquidation | Penalty / spread per market params | Per engine configuration |
 | Flash loans | `flashFee` if enabled | Per token |

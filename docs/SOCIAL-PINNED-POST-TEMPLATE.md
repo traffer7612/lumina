@@ -13,7 +13,7 @@ To avoid confusion, always verify by **symbol + contract address** from the cano
 
 Important:
 - Governance token symbol: `CEITNOT`
-- Stable token symbol: `aUSD`
+- Stable token symbol: `ceitUSD`
 - Treat the official address table as the source of truth before any transfer/approval/vote.
 
 Security:

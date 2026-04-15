@@ -13,8 +13,8 @@
 | **Engine (Proxy)** | `0x53F2B95E1A97f95Ec35F353CdE3B05e0d1b64e04` |
 | **MarketRegistry** | `0x05a585117DF7a0b909F611cC40aFd3b04dCf7A12` |
 | **CEITNOT (Governance token)** | `0xE023824b3160631466f2d3899D7A58E9747AF935` |
-| **veCEITNOT** | `0xe07027D141b74BcFeb2cfe6b658D7fedD0E5448a` |
-| **aUSD (CDP stablecoin)** | `0x6a186ed7eB0046Ea18867EdA863A6F77adE2610F` |
+| **VeCEITNOT** | `0xe07027D141b74BcFeb2cfe6b658D7fedD0E5448a` |
+| **ceitUSD (CDP stablecoin)** | `0x6a186ed7eB0046Ea18867EdA863A6F77adE2610F` |
 | **PSM** | `0xde5a53134456c5b3bc0e23be92c6fc75c982985c` |
 | **USDC (тестнет)** | `0x6B0e4E0e03B5a17079443fcc082AbF4092fEa4F6` |
 
@@ -28,8 +28,8 @@
 | — (implementation) | [CeitnotEngine](https://sepolia.etherscan.io/address/0x86a2d24f8502545c6c7944617faebe7c7e251cfd#code) | Да |
 | MarketRegistry | [реестр](https://sepolia.etherscan.io/address/0x05a585117DF7a0b909F611cC40aFd3b04dCf7A12#code) | **Нет** — байткод деплоя не совпадает с текущим `CeitnotMarketRegistry.sol` в репозитории (скорее всего деплой с более старой версии исходников / другого `MarketConfig`). Верифицировать можно только из **того же коммита и настроек компилятора**, с которых шёл деплой, либо вручную через Standard JSON с точным артефактом `out/`. |
 | CEITNOT (токен) | [CeitnotToken](https://sepolia.etherscan.io/address/0xE023824b3160631466f2d3899D7A58E9747AF935#code) | Да |
-| veCEITNOT | [VeCeitnot](https://sepolia.etherscan.io/address/0xe07027D141b74BcFeb2cfe6b658D7fedD0E5448a#code) | Да |
-| aUSD | [CeitnotUSD](https://sepolia.etherscan.io/address/0x6a186ed7eB0046Ea18867EdA863A6F77adE2610F#code) | Да |
+| VeCEITNOT | [VeCeitnot](https://sepolia.etherscan.io/address/0xe07027D141b74BcFeb2cfe6b658D7fedD0E5448a#code) | Да |
+| ceitUSD | [CeitnotUSD](https://sepolia.etherscan.io/address/0x6a186ed7eB0046Ea18867EdA863A6F77adE2610F#code) | Да |
 | PSM | [CeitnotPSM](https://sepolia.etherscan.io/address/0xde5a53134456c5b3bc0e23be92c6fc75c982985c#code) | Да |
 | USDC (mock) | [MockERC20](https://sepolia.etherscan.io/address/0x6B0e4E0e03B5a17079443fcc082AbF4092fEa4F6#code) | Да |
 
@@ -60,7 +60,7 @@ API-ключ Etherscan не хранить в репозитории; задав
 | `CeitnotProxy` | UUPS-прокси движка Ceitnot; пользователи вызывают этот адрес. |
 | MarketRegistry | Реестр рынков: vault, оракул, LTV, пороги ликвидации, кэпы. |
 | OracleRelay / OracleRelayV2 | Цена коллатерала (Chainlink + fallback / median). |
-| CEITNOT / veCEITNOT | Governance и vote-escrow. |
-| aUSD / PSM | CDP-стейблкоин и обмен 1:1 с USDC. |
+| CEITNOT / VeCEITNOT | Governance и vote-escrow. |
+| ceitUSD / PSM | CDP-стейблкоин и обмен 1:1 с USDC. |
 
 Адреса для других сетей публикуются в конфиге приложения и в репозитории после деплоя (например в `frontend/.env.example` или в документации на docs.ceitnot.finance).

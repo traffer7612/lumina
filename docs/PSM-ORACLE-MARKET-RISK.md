@@ -5,7 +5,7 @@ Operational policies referenced from [`TOKENOMICS-PROD-CHECKLIST.md`](TOKENOMICS
 ## 1. PSM economic parameters
 
 - **tin / tout**: Basis-point fees on swap in/out (`CeitnotPSM`). Ceitnot governance can adjust within bounds you define off-chain (publish max allowed Bps for operator safety).  
-- **Ceiling**: `ceiling` caps net aUSD minted via this PSM (`mintedViaPsm`). 0 = unlimited — document if you rely on a finite ceiling for risk.  
+- **Ceiling**: `ceiling` caps net ceitUSD minted via this PSM (`mintedViaPsm`). 0 = unlimited — document if you rely on a finite ceiling for risk.
 - **Pegged token**: Decimals are fixed at deploy; changing collateral requires a **new PSM deployment** + minter migration.
 
 **Production**: Keep [`PRODUCTION-ADDRESSES-ARBITRUM.md`](PRODUCTION-ADDRESSES-ARBITRUM.md) updated when `VITE_PSM_ADDRESS` changes.
@@ -20,8 +20,8 @@ Operational policies referenced from [`TOKENOMICS-PROD-CHECKLIST.md`](TOKENOMICS
 
 ## 3. Incident: accidental transfers / rescue
 
-- **User sends wrong token to PSM**: PSM only handles `peggedToken` and aUSD in defined flows; random ERC-20 may be stuck with **no** generic rescue in core PSM — treat as **non-custodial loss** unless a governance-approved rescue contract is deployed.  
-- **aUSD/USDC stuck due to UI bug**: pause frontend feature, communicate, fix; on-chain state may require governance intervention only if contracts allow.  
+- **User sends wrong token to PSM**: PSM only handles `peggedToken` and ceitUSD in defined flows; random ERC-20 may be stuck with **no** generic rescue in core PSM — treat as **non-custodial loss** unless a governance-approved rescue contract is deployed.
+- **ceitUSD/USDC stuck due to UI bug**: pause frontend feature, communicate, fix; on-chain state may require governance intervention only if contracts allow.
 - **Document**: public disclaimer that only intended swap paths are supported.
 
 ## 4. Oracle per market

@@ -40,7 +40,7 @@ Router:              CeitnotRouter (composability)
 - `withdrawCollateral(address user, uint256 marketId, uint256 shares)` — вывести залог (если позиция здорова)
 
 ### Займы
-- `borrow(address user, uint256 marketId, uint256 amount)` — взять в долг (legacy: USDC transfer / CDP: mint aUSD)
+- `borrow(address user, uint256 marketId, uint256 amount)` — взять в долг (legacy: USDC transfer / CDP: mint ceitUSD)
 - `repay(address user, uint256 marketId, uint256 amount)` — погасить долг
 
 ### Комбинированные
@@ -205,11 +205,11 @@ Mintable стейблкоин для CDP-режима. Поддерживает 
 
 ## 8. CeitnotPSM (`src/CeitnotPSM.sol`)
 
-Peg Stability Module — 1:1 свопы aUSD ↔ pegged stablecoin (USDC/DAI).
+Peg Stability Module — 1:1 свопы ceitUSD ↔ pegged stablecoin (USDC/DAI).
 
-- `swapIn(uint256 amount)` → `uint256 ausdOut` — отдать stable, получить aUSD (fee: `tinBps`)
-- `swapOut(uint256 amount)` → `uint256 stableOut` — отдать aUSD, получить stable (fee: `toutBps`)
-- `setCeiling(uint256)` — max aUSD для mint через PSM
+- `swapIn(uint256 amount)` → `uint256 ceitUsdOut` — отдать stable, получить ceitUSD (fee: `tinBps`)
+- `swapOut(uint256 amount)` → `uint256 stableOut` — отдать ceitUSD, получить stable (fee: `toutBps`)
+- `setCeiling(uint256)` — max ceitUSD для mint через PSM
 - `setFee(uint16 tinBps, uint16 toutBps)`
 - `withdrawFeeReserves(address to, uint256 amount)` — вывести комиссии
 - `availableReserves()` → `uint256` — доступные reserves для swapOut

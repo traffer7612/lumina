@@ -14,7 +14,7 @@ Explorer: [Arbitrum One](https://arbiscan.io/).
 |----------|---------|
 | CeitnotEngine (implementation) | `0xabb9a8986f2ef5abf136f4902fd35e49e37f088e` |
 | CeitnotProxy (engine) | `0xd2168f8429acb4796465b07ca6ecf192d9b41619` |
-| CeitnotUSD (aUSD) | `0xe1b1a3814c3f5f3cdfd85a63225f7d16ecdd6785` |
+| CeitnotUSD (ceitUSD) | `0xe1b1a3814c3f5f3cdfd85a63225f7d16ecdd6785` |
 | CeitnotMarketRegistry | `0x070b9c6bdbffabefe02de23840069f15eb821c55` |
 | CeitnotRouter | `0x4f083ab27345f353e61f04988c8fefc76eacbb7d` |
 | CeitnotTreasury | `0xeec09a4ec6fabef4587195296f2d0a4404c7a947` |

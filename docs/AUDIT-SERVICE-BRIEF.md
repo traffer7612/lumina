@@ -10,9 +10,9 @@ Short brief for security auditors and audit platforms (English). **Ребрен�
 |--------|---------|
 | **Logo (PNG)** | Supply a **PNG** export for the audit portal. In-repo asset: [`frontend/public/ceitnot.svg`](../frontend/public/ceitnot.svg) — convert or use the same artwork as **1024×1024** (or platform-required) PNG. |
 | **Project name** | **Ceitnot Protocol** (public name: **Ceitnot**) |
-| **Symbol(s)** | **CEITNOT** — governance token (`CeitnotToken`). **aUSD** — USD-pegged stable unit (`CeitnotUSD`). Collateral markets use per-asset symbols (e.g. vault shares) per deployment. |
+| **Symbol(s)** | **CEITNOT** — governance token (`CeitnotToken`). **ceitUSD** — USD-pegged stable unit (`CeitnotUSD`). Collateral markets use per-asset symbols (e.g. vault shares) per deployment. |
 | **Network** | **Arbitrum One** (chain ID **42161**) — primary production deployment referenced in [`PRODUCTION-ADDRESSES-ARBITRUM.md`](PRODUCTION-ADDRESSES-ARBITRUM.md). EVM / Ethereum L2 (not BSC/AVAX for this deployment). Other networks may exist for testnets; scope should be confirmed per engagement. |
-| **Short project description** | Ceitnot is an EVM lending and CDP protocol: multi-market collateralised debt, stablecoin (aUSD), PSM, router, oracle integration, governance (token + vote-escrow + OpenZeppelin Governor + Timelock), and treasury flows. |
+| **Short project description** | Ceitnot is an EVM lending and CDP protocol: multi-market collateralised debt, stablecoin (ceitUSD), PSM, router, oracle integration, governance (token + vote-escrow + OpenZeppelin Governor + Timelock), and treasury flows. |
 | **Launch date** | *Confirm with the team for the exact public launch / TVL milestone.* On-chain deployment dates are visible on [Arbiscan](https://arbiscan.io/) for the addresses in [`PRODUCTION-ADDRESSES-ARBITRUM.md`](PRODUCTION-ADDRESSES-ARBITRUM.md). |
 | **Website** | **https://ceitnot.io** (intended public site). App and documentation may also reference the GitHub repository. |
 | **Socials** | *To be confirmed by the team* (Twitter / X, Telegram, Discord). Technical reference: GitHub org/repo used for open-source contracts and `docs/`. |
