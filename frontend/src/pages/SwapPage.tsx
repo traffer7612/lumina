@@ -6,13 +6,17 @@ import { ArrowDownUp, Loader2, CheckCircle, Wallet, RefreshCw, Info } from 'luci
 import { ceitnotPsmAbi } from '../abi/ceitnotEngine';
 import { erc20Abi } from '../abi/ceitnotEngine';
 import { TARGET_CHAIN_ID, gasFor } from '../lib/contracts';
+import { viteAddressLegacy } from '../lib/chainEnv';
 import { formatWad, formatToken } from '../lib/utils';
 
 /* ─── Addresses ───────────────────────────────────────────────────────────── */
 
 const PSM   = import.meta.env.VITE_PSM_ADDRESS  as Address | undefined;
 const USDC  = import.meta.env.VITE_USDC_ADDRESS as Address | undefined;
-const AUSD  = import.meta.env.VITE_AUSD_ADDRESS as Address | undefined;
+const CEITUSD = viteAddressLegacy(
+  import.meta.env.VITE_CEITUSD_ADDRESS as string | undefined,
+  import.meta.env.VITE_AUSD_ADDRESS as string | undefined,
+);
 
 /* ─── Component ───────────────────────────────────────────────────────────── */
 
@@ -20,7 +24,7 @@ export default function SwapPage() {
   const { address, isConnected, chainId } = useAccount();
   const gas = gasFor(chainId);
 
-  /* direction: 'in' = USDC → aUSD, 'out' = aUSD → USDC */
+  /* direction: 'in' = USDC → ceitUSD, 'out' = ceitUSD → USDC */
   const [direction, setDirection] = useState<'in' | 'out'>('in');
   const [amount, setAmount] = useState('');
   const [hash, setHash] = useState<Hash | undefined>();
@@ -52,12 +56,12 @@ export default function SwapPage() {
       { address: PSM!, abi: ceitnotPsmAbi, functionName: 'feeReserves',      chainId: TARGET_CHAIN_ID },
       // User balances
       { address: USDC!, abi: erc20Abi, functionName: 'balanceOf', args: [address!], chainId: TARGET_CHAIN_ID },
-      { address: AUSD!, abi: erc20Abi, functionName: 'balanceOf', args: [address!], chainId: TARGET_CHAIN_ID },
+      { address: CEITUSD!, abi: erc20Abi, functionName: 'balanceOf', args: [address!], chainId: TARGET_CHAIN_ID },
       // Allowances
       { address: USDC!, abi: erc20Abi, functionName: 'allowance', args: [address!, PSM!], chainId: TARGET_CHAIN_ID },
-      { address: AUSD!, abi: erc20Abi, functionName: 'allowance', args: [address!, PSM!], chainId: TARGET_CHAIN_ID },
+      { address: CEITUSD!, abi: erc20Abi, functionName: 'allowance', args: [address!, PSM!], chainId: TARGET_CHAIN_ID },
     ],
-    query: { enabled: !!PSM && !!USDC && !!AUSD && !!address },
+    query: { enabled: !!PSM && !!USDC && !!CEITUSD && !!address },
   });
 
   const tinBps           = data?.[0]?.result as number | undefined;
@@ -67,18 +71,18 @@ export default function SwapPage() {
   const mintedViaPsm     = data?.[4]?.result as bigint | undefined;
   const feeReserves      = data?.[5]?.result as bigint | undefined;
   const usdcBalance      = data?.[6]?.result as bigint | undefined;
-  const ausdBalance      = data?.[7]?.result as bigint | undefined;
+  const ceitusdBalance   = data?.[7]?.result as bigint | undefined;
   const usdcAllowance    = data?.[8]?.result as bigint | undefined;
-  const ausdAllowance    = data?.[9]?.result as bigint | undefined;
+  const ceitusdAllowance = data?.[9]?.result as bigint | undefined;
 
   /* ── Derived ─── */
   const feeBps   = direction === 'in' ? (tinBps ?? 10) : (toutBps ?? 10);
   const feePct   = (feeBps / 100).toFixed(2);
-  const inputToken  = direction === 'in' ? 'USDC' : 'aUSD';
-  const outputToken = direction === 'in' ? 'aUSD' : 'USDC';
-  const balance     = direction === 'in' ? usdcBalance : ausdBalance;
-  const allowance   = direction === 'in' ? usdcAllowance : ausdAllowance;
-  const tokenToApprove = direction === 'in' ? USDC : AUSD;
+  const inputToken  = direction === 'in' ? 'USDC' : 'ceitUSD';
+  const outputToken = direction === 'in' ? 'ceitUSD' : 'USDC';
+  const balance     = direction === 'in' ? usdcBalance : ceitusdBalance;
+  const allowance   = direction === 'in' ? usdcAllowance : ceitusdAllowance;
+  const tokenToApprove = direction === 'in' ? USDC : CEITUSD;
 
   const inputDecimals = direction === 'in' ? peggedDec : 18;
   const parsedAmount = useMemo(() => {
@@ -178,7 +182,7 @@ export default function SwapPage() {
         <div className="text-center max-w-sm w-full flex flex-col items-center">
           <Wallet size={48} className="text-ceitnot-muted mb-4" />
           <h2 className="text-xl font-semibold mb-2">Connect your wallet</h2>
-          <p className="text-ceitnot-muted text-sm mb-6">Connect to swap aUSD ↔ USDC via the Peg Stability Module.</p>
+          <p className="text-ceitnot-muted text-sm mb-6">Connect to swap ceitUSD ↔ USDC via the Peg Stability Module.</p>
           <div className="w-full flex justify-center [&>div]:flex [&>div]:justify-center">
             <ConnectButton />
           </div>
@@ -187,7 +191,7 @@ export default function SwapPage() {
     );
   }
 
-  if (!PSM || !USDC || !AUSD) {
+  if (!PSM || !USDC || !CEITUSD) {
     return (
       <div className="page-container flex items-center justify-center min-h-[60vh]">
         <p className="text-ceitnot-muted">PSM not configured. Missing environment variables.</p>
@@ -202,7 +206,7 @@ export default function SwapPage() {
         <h1 className="page-title">
           <span className="page-title-accent">Swap</span>
         </h1>
-        <p className="page-subtitle">Exchange aUSD ↔ USDC at 1:1 via the Peg Stability Module</p>
+        <p className="page-subtitle">Exchange ceitUSD ↔ USDC at 1:1 via the Peg Stability Module</p>
       </div>
 
       {/* Swap Card */}
@@ -227,7 +231,7 @@ export default function SwapPage() {
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
                 direction === 'in' ? 'bg-blue-500/20 text-blue-400' : 'bg-ceitnot-gold/20 text-ceitnot-gold'
               }`}>
-                {direction === 'in' ? '$' : 'a'}
+                {direction === 'in' ? '$' : 'c'}
               </div>
               <span className="font-semibold text-sm">{inputToken}</span>
             </div>
@@ -249,7 +253,7 @@ export default function SwapPage() {
           <div className="flex items-center justify-between mb-1.5">
             <span className="text-xs text-ceitnot-muted">To (estimated)</span>
             <span className="text-xs text-ceitnot-muted">
-              Balance: {direction === 'in' ? formatWad(ausdBalance, 4) : formatToken(usdcBalance, peggedDec, 4)} {outputToken}
+              Balance: {direction === 'in' ? formatWad(ceitusdBalance, 4) : formatToken(usdcBalance, peggedDec, 4)} {outputToken}
             </span>
           </div>
           <div className="flex items-center gap-3 bg-ceitnot-surface rounded-xl p-3 border border-ceitnot-border">
@@ -262,7 +266,7 @@ export default function SwapPage() {
               <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
                 direction === 'out' ? 'bg-blue-500/20 text-blue-400' : 'bg-ceitnot-gold/20 text-ceitnot-gold'
               }`}>
-                {direction === 'out' ? '$' : 'a'}
+                {direction === 'out' ? '$' : 'c'}
               </div>
               <span className="font-semibold text-sm">{outputToken}</span>
             </div>
@@ -344,7 +348,7 @@ export default function SwapPage() {
             <p className="font-semibold mt-0.5 font-mono text-sm">{formatToken(availableReserves, peggedDec, 2)}</p>
           </div>
           <div>
-            <p className="text-xs stat-label">aUSD Minted via PSM</p>
+            <p className="text-xs stat-label">ceitUSD Minted via PSM</p>
             <p className="font-semibold mt-0.5 font-mono text-sm">{formatWad(mintedViaPsm, 2)}</p>
           </div>
           <div>

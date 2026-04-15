@@ -28,7 +28,7 @@ import { TimelockController } from "@openzeppelin/contracts/governance/TimelockC
  * @notice Full Ceitnot CDP stack on **Arbitrum One** (chainId 42161):
  *         - Fresh **mock** wstETH + ERC-4626 vault (Lido bridge token 0x5979… fails registry `convertToAssets(1e18)` probe)
  *         - **Real** native USDC + Chainlink **ETH/USD** for oracle pricing
- *         - aUSD, engine (proxy), PSM, router, treasury, CEITNOT + VeCeitnot + governor + timelock
+ *         - ceitUSD, engine (proxy), PSM, router, treasury, CEITNOT + VeCeitnot + governor + timelock
  *
  * Optional env:
  *   PSM_USDC_SEED — raw USDC units (6 decimals on Arbitrum native USDC) to `transfer` from deployer into PSM for swapOut liquidity; 0 = skip
@@ -114,6 +114,11 @@ contract DeployFullArbitrum is Script {
 
         TimelockController timelock = new TimelockController(1 days, proposers, executors, deployer);
         CeitnotGovernor governor = new CeitnotGovernor(IVotes(address(veLock)), timelock);
+        // Wire Governor to Timelock and hand governance controls to Timelock.
+        timelock.grantRole(timelock.PROPOSER_ROLE(), address(governor));
+        timelock.grantRole(timelock.CANCELLER_ROLE(), address(governor));
+        govToken.setMinter(address(timelock));
+        veLock.setAdmin(address(timelock));
 
         wstETH.mint(deployer, 100_000 * 1e18);
 
@@ -129,7 +134,7 @@ contract DeployFullArbitrum is Script {
         console.log("MOCK wstETH:        %s", address(wstETH));
         console.log("");
         console.log("--- CDP ---");
-        console.log("AUSD:               %s", address(ausd));
+        console.log("CEITUSD:            %s", address(ausd));
         console.log("PSM:                %s", address(psm));
         console.log("USDC (native Arb):  %s", ARBITRUM_NATIVE_USDC);
         console.log("");

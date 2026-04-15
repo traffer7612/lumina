@@ -24,8 +24,8 @@ Production-ready DeFi primitive that lets protocols or users deposit **yield-bea
 | MarketRegistry | Multi-market registry: vault, oracle, risk params, caps, isolation mode |
 | OracleRelay | Multi-oracle V1 (Chainlink primary + fallback, TWAP, staleness check) |
 | OracleRelayV2 | Multi-source median oracle, circuit breaker, L2 sequencer uptime feed |
-| CeitnotUSD (aUSD) | Mintable stablecoin for CDP mode, EIP-2612 permit |
-| PSM | Peg Stability Module: 1:1 swaps aUSD ↔ pegged stable (USDC/DAI) |
+| CeitnotUSD (ceitUSD) | Mintable stablecoin for CDP mode, EIP-2612 permit |
+| PSM | Peg Stability Module: 1:1 swaps ceitUSD ↔ pegged stable (USDC/DAI) |
 | Router | Stateless router: atomic deposit+borrow, repay+withdraw, permit, leverage |
 | Treasury | Protocol treasury: deposit, withdraw, batch distribute |
 | CeitnotToken (CEITNOT) | Governance ERC-20 + ERC20Votes (EIP-6372 timestamp clock) |

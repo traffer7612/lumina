@@ -11,6 +11,7 @@ import { IERC3156FlashBorrower }  from "./interfaces/IERC3156FlashBorrower.sol";
 import { IERC3156FlashLender }    from "./interfaces/IERC3156FlashLender.sol";
 import { ICeitnotUSD }               from "./interfaces/ICeitnotUSD.sol";
 import { Multicall }              from "./Multicall.sol";
+import { IERC20Metadata }         from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 /**
  * @title CeitnotEngine
@@ -572,7 +573,7 @@ contract CeitnotEngine is Multicall {
             return 0;
         }
 
-        uint256 yieldDebt = (yieldUnderlying * price) / CeitnotStorage.WAD;
+        uint256 yieldDebt = _collateralDebtValue(yieldUnderlying, price, cfg.vault);
         if ($.minHarvestYieldDebt != 0 && yieldDebt < $.minHarvestYieldDebt) revert Ceitnot__HarvestTooSmall();
 
         uint256 totalDebtNow = (ms.totalPrincipalDebt * _effectiveScale(ms)) / CeitnotStorage.RAY;
@@ -754,7 +755,7 @@ contract CeitnotEngine is Multicall {
         IMarketRegistry.MarketConfig memory cfg = _getMarketCfg($.marketRegistry, marketId);
         uint256 assets = IERC4626(cfg.vault).convertToAssets($.positions[user][marketId].collateralShares);
         (uint256 price, ) = IOracleRelay(cfg.oracle).getLatestPrice();
-        return (assets * price) / CeitnotStorage.WAD;
+        return _collateralDebtValue(assets, price, cfg.vault);
     }
 
     /// @notice List of market IDs where a user has an active position.
@@ -1183,7 +1184,7 @@ contract CeitnotEngine is Multicall {
             IMarketRegistry.MarketConfig memory cfg = IMarketRegistry($.marketRegistry).getMarket(mid);
             uint256 assets = IERC4626(cfg.vault).convertToAssets(pos.collateralShares);
             (uint256 price, ) = IOracleRelay(cfg.oracle).getLatestPrice();
-            uint256 collateralValue = (assets * price) / CeitnotStorage.WAD;
+            uint256 collateralValue = _collateralDebtValue(assets, price, cfg.vault);
             totalWeightedCollateral += (collateralValue * cfg.liquidationThresholdBps) / 10_000;
             totalUserDebt           += _currentDebtInMarket($, user, mid);
         }
@@ -1206,16 +1207,57 @@ contract CeitnotEngine is Multicall {
         CeitnotStorage.MarketPosition storage pos = $.positions[user][marketId];
         uint256 assets = IERC4626(cfg.vault).convertToAssets(pos.collateralShares);
         (uint256 price, ) = IOracleRelay(cfg.oracle).getLatestPrice();
-        uint256 collateralValue = (assets * price) / CeitnotStorage.WAD;
+        uint256 collateralValue = _collateralDebtValue(assets, price, cfg.vault);
         if ((debt * 10_000) > (collateralValue * cfg.ltvBps)) revert Ceitnot__ExceedsLTV();
+    }
+
+    /// @dev Debt token uses 18 decimals (CeitnotUSD). Oracle price is WAD per USD. `assets` is underlying raw
+    ///      (e.g. USDC 6 decimals). Scale so LTV/HF compare like-with-like against principal debt.
+    function _collateralDebtValue(
+        uint256 assetsRaw,
+        uint256 priceWad,
+        address vault
+    ) internal view returns (uint256) {
+        uint256 v = (assetsRaw * priceWad) / CeitnotStorage.WAD;
+        uint8 ad  = _underlyingAssetDecimals(vault);
+        if (ad < 18) {
+            unchecked {
+                v *= 10 ** (18 - uint256(ad));
+            }
+        } else if (ad > 18) {
+            v /= 10 ** (uint256(ad) - 18);
+        }
+        return v;
+    }
+
+    function _underlyingAssetDecimals(address vault) internal view returns (uint8) {
+        try IERC4626(vault).asset() returns (address asset) {
+            try IERC20Metadata(asset).decimals() returns (uint8 d) {
+                return d;
+            } catch {
+                return _vaultShareDecimals(vault);
+            }
+        } catch {
+            return _vaultShareDecimals(vault);
+        }
+    }
+
+    function _vaultShareDecimals(address vault) internal view returns (uint8) {
+        try IERC20Metadata(vault).decimals() returns (uint8 d) {
+            return d;
+        } catch {
+            return 18;
+        }
     }
 
     function _collateralValuePerShare(
         IMarketRegistry.MarketConfig memory cfg
     ) internal view returns (uint256) {
-        uint256 assetsPerShare = IERC4626(cfg.vault).convertToAssets(CeitnotStorage.WAD);
+        IERC4626 v = IERC4626(cfg.vault);
+        uint256 oneShare = 10 ** uint256(_vaultShareDecimals(cfg.vault));
+        uint256 assetsPerShare = v.convertToAssets(oneShare);
         (uint256 price, ) = IOracleRelay(cfg.oracle).getLatestPrice();
-        return (assetsPerShare * price) / CeitnotStorage.WAD;
+        return _collateralDebtValue(assetsPerShare, price, cfg.vault);
     }
 
     // ------------------------------- Internal: interest accrual
@@ -1313,7 +1355,7 @@ contract CeitnotEngine is Multicall {
 
     /**
      * @dev Lend `amount` of debtToken to `to`.
-     *      CDP mode  → mint aUSD directly to recipient.
+     *      CDP mode  → mint ceitUSD directly to recipient.
      *      Legacy mode → ERC-20 transfer from engine balance.
      */
     function _lendDebtToken(

@@ -28,7 +28,7 @@ interface IVeCeitnotAdmin {
  *  - CeitnotEngine
  *  - CeitnotMarketRegistry
  *  - CeitnotPSM
- *  - CeitnotUSD (aUSD token)
+ *  - CeitnotUSD (ceitUSD token)
  *  - CeitnotTreasury
  *
  * One-step admin transfer is used by:
@@ -42,7 +42,7 @@ interface IVeCeitnotAdmin {
  *     --rpc-url <RPC> --broadcast --private-key <NEW_ADMIN_PK>
  *
  * Required env vars:
- *  - ENGINE_PROXY, REGISTRY_ADDRESS, PSM_ADDRESS, AUSD_ADDRESS, TREASURY_ADDRESS, CEITNOT_VE_ADDRESS
+ *  - ENGINE_PROXY, REGISTRY_ADDRESS, PSM_ADDRESS, CEITUSD_ADDRESS (or AUSD_ADDRESS), TREASURY_ADDRESS, CEITNOT_VE_ADDRESS
  *  - TARGET_ADMIN_ADDRESS (the new admin EOA / Safe)
  *
  * Optional:
@@ -64,7 +64,7 @@ contract TransferAdminEverywhere is Script {
         address engineProxy = vm.envAddress("ENGINE_PROXY");
         address registryAddr = vm.envAddress("REGISTRY_ADDRESS");
         address psmAddr = vm.envAddress("PSM_ADDRESS");
-        address ausdAddr = vm.envAddress("AUSD_ADDRESS");
+        address ceitusdAddr = vm.envOr("CEITUSD_ADDRESS", vm.envOr("AUSD_ADDRESS", address(0)));
         address treasuryAddr = vm.envAddress("TREASURY_ADDRESS");
         address VeCeitnotAddr = vm.envAddress("CEITNOT_VE_ADDRESS");
         address targetAdmin = vm.envAddress("TARGET_ADMIN_ADDRESS");
@@ -75,7 +75,7 @@ contract TransferAdminEverywhere is Script {
         require(engineProxy != address(0), "TransferAdminEverywhere: ENGINE_PROXY required");
         require(registryAddr != address(0), "TransferAdminEverywhere: REGISTRY_ADDRESS required");
         require(psmAddr != address(0), "TransferAdminEverywhere: PSM_ADDRESS required");
-        require(ausdAddr != address(0), "TransferAdminEverywhere: AUSD_ADDRESS required");
+        require(ceitusdAddr != address(0), "TransferAdminEverywhere: CEITUSD_ADDRESS (or AUSD_ADDRESS) required");
         require(treasuryAddr != address(0), "TransferAdminEverywhere: TREASURY_ADDRESS required");
         require(VeCeitnotAddr != address(0), "TransferAdminEverywhere: CEITNOT_VE_ADDRESS required");
 
@@ -85,14 +85,14 @@ contract TransferAdminEverywhere is Script {
         IProposableAdmin engine = IProposableAdmin(engineProxy);
         IProposableAdmin registry = IProposableAdmin(registryAddr);
         IProposableAdmin psm = IProposableAdmin(psmAddr);
-        IProposableAdmin ausd = IProposableAdmin(ausdAddr);
+        IProposableAdmin ceitusd = IProposableAdmin(ceitusdAddr);
         IProposableAdmin treasury = IProposableAdmin(treasuryAddr);
         IVeCeitnotAdmin VeCeitnot = IVeCeitnotAdmin(VeCeitnotAddr);
 
         console.log("Current engine admin:   %s", engine.admin());
         console.log("Current registry admin: %s", registry.admin());
         console.log("Current PSM admin:      %s", psm.admin());
-        console.log("Current aUSD admin:     %s", ausd.admin());
+        console.log("Current ceitUSD admin:  %s", ceitusd.admin());
         console.log("Current treasury admin: %s", treasury.admin());
         console.log("Current VeCeitnot admin:   %s", VeCeitnot.admin());
 
@@ -110,7 +110,7 @@ contract TransferAdminEverywhere is Script {
             engine.proposeAdmin(targetAdmin);
             registry.proposeAdmin(targetAdmin);
             psm.proposeAdmin(targetAdmin);
-            ausd.proposeAdmin(targetAdmin);
+            ceitusd.proposeAdmin(targetAdmin);
             treasury.proposeAdmin(targetAdmin);
             vm.stopBroadcast();
 
@@ -118,7 +118,7 @@ contract TransferAdminEverywhere is Script {
             console.log("1) engine.acceptAdmin()      target=%s data=%s", engineProxy, bytesToHex(acceptData));
             console.log("2) registry.acceptAdmin()    target=%s data=%s", registryAddr, bytesToHex(acceptData));
             console.log("3) psm.acceptAdmin()         target=%s data=%s", psmAddr, bytesToHex(acceptData));
-            console.log("4) aUSD.acceptAdmin()        target=%s data=%s", ausdAddr, bytesToHex(acceptData));
+            console.log("4) ceitUSD.acceptAdmin()     target=%s data=%s", ceitusdAddr, bytesToHex(acceptData));
             console.log("5) treasury.acceptAdmin()    target=%s data=%s", treasuryAddr, bytesToHex(acceptData));
             console.log("\nNext step (run as CURRENT admin signer, one-step):");
             console.log("6) VeCeitnot.setAdmin(new)      target=%s data=%s", VeCeitnotAddr, bytesToHex(setVeData));
@@ -129,7 +129,7 @@ contract TransferAdminEverywhere is Script {
                 engine.acceptAdmin();
                 registry.acceptAdmin();
                 psm.acceptAdmin();
-                ausd.acceptAdmin();
+                ceitusd.acceptAdmin();
                 treasury.acceptAdmin();
                 vm.stopBroadcast();
 

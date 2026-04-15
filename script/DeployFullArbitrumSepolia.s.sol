@@ -21,7 +21,8 @@ import { MockVault4626 }         from "../test/mocks/MockVault4626.sol";
 import { IVotes }              from "@openzeppelin/contracts/governance/utils/IVotes.sol";
 import { TimelockController }  from "@openzeppelin/contracts/governance/TimelockController.sol";
 
-/// @dev Minimal Chainlink V3 Aggregator mock (8 decimals) so OracleRelay works without a live feed on testnet.
+/// @dev Minimal Chainlink V3 Aggregator mock (8 decimals) with manual updates.
+///      Use `setAnswer()` periodically on testnet so OracleRelay does not mark feed stale.
 contract MockChainlinkV3Feed {
     int256  public answer;
     uint256 public updatedAt;
@@ -31,6 +32,11 @@ contract MockChainlinkV3Feed {
         answer    = answer_;
         dec       = decimals_;
         updatedAt = updatedAt_;
+    }
+
+    function setAnswer(int256 a, uint256 ts) external {
+        answer = a;
+        updatedAt = ts;
     }
 
     function latestRoundData()
@@ -48,7 +54,7 @@ contract MockChainlinkV3Feed {
  * @title  DeployFullArbitrumSepolia
  * @notice Full Ceitnot stack on **Arbitrum Sepolia** (chainId 421614):
  *         - Mock wstETH + mock USDC + mock Chainlink ETH/USD (OracleRelay)
- *         - CDP engine (proxy), aUSD, PSM, router, treasury
+ *         - CDP engine (proxy), ceitUSD, PSM, router, treasury
  *         - CeitnotToken + VeCeitnot + TimelockController + CeitnotGovernor
  *
  * @dev    Arbitrum Sepolia does not mirror mainnet token addresses; this script is self-contained like
@@ -64,6 +70,11 @@ contract MockChainlinkV3Feed {
  *
  * Optional env:
  *   MOCK_ETH_USD_8DEC — int256, Chainlink-style 8-decimal USD price for ETH (default: 3000e8)
+ *
+ * Important:
+ *   - This script deploys a mutable mock oracle feed on Arbitrum Sepolia.
+ *   - After deployment, periodically call `setAnswer(price, block.timestamp)` on MOCK CL FEED
+ *     (or run `UpdateArbitrumSepoliaOracle.s.sol`) to avoid OracleRelay stale-price reverts.
  */
 contract DeployFullArbitrumSepolia is Script {
     function run() external {
@@ -129,6 +140,8 @@ contract DeployFullArbitrumSepolia is Script {
         // Governor must schedule on timelock; `queue()` calls `scheduleBatch` as the governor contract.
         timelock.grantRole(timelock.PROPOSER_ROLE(), address(governor));
         timelock.grantRole(timelock.CANCELLER_ROLE(), address(governor));
+        govToken.setMinter(address(timelock));
+        veLock.setAdmin(address(timelock));
 
         wstETH.mint(deployer, 100_000 * 1e18);
         usdc.mint(deployer, 100_000 * 1e18);
@@ -146,7 +159,7 @@ contract DeployFullArbitrumSepolia is Script {
         console.log("MOCK wstETH:        %s", address(wstETH));
         console.log("");
         console.log("--- CDP ---");
-        console.log("AUSD:               %s", address(ausd));
+        console.log("CEITUSD:            %s", address(ausd));
         console.log("PSM:                %s", address(psm));
         console.log("MOCK USDC:          %s", address(usdc));
         console.log("");

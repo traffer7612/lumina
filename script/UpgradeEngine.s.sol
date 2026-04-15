@@ -15,6 +15,9 @@ interface IUpgradeable {
  *         Run with DRY_RUN=true to print Safe calldata without broadcasting.
  *         Run without DRY_RUN (or DRY_RUN=false) to broadcast the upgrade directly.
  *
+ * Deploy fresh implementation (prints address):
+ *   forge script script/DeployEngineImpl.s.sol --rpc-url $ARB_RPC --broadcast
+ *
  * Required env vars:
  *   ENGINE_PROXY        - CeitnotEngine proxy address
  *   NEW_IMPLEMENTATION  - Address of the already-deployed new CeitnotEngine implementation

@@ -23,7 +23,7 @@ import { TimelockController } from "@openzeppelin/contracts/governance/TimelockC
 
 /**
  * @title  DeployFullProduction
- * @notice Full Ceitnot stack on a live chain (e.g. Arbitrum One): CDP (aUSD), PSM, governance, router, treasury.
+ * @notice Full Ceitnot stack on a live chain (e.g. Arbitrum One): CDP (ceitUSD), PSM, governance, router, treasury.
  *
  * Required env:
  *   COLLATERAL_VAULT  — ERC-4626 collateral (e.g. Arbitrum wstETH)
@@ -39,7 +39,7 @@ import { TimelockController } from "@openzeppelin/contracts/governance/TimelockC
  *   ENGINE_TIMELOCK     — engine param timelock seconds (default: 172800 = 2 days)
  *   TIN_BPS / TOUT_BPS  — PSM fees in bps (default: 10 each = 0.1%)
  *
- * @dev PSM reads pegged-token `decimals()` at deploy and scales vs 18-decimal aUSD (prod-safe for native USDC 6).
+ * @dev PSM reads pegged-token `decimals()` at deploy and scales vs 18-decimal ceitUSD (prod-safe for native USDC 6).
  *
  * Usage (Arbitrum example):
  *   forge script script/DeployFullProduction.s.sol:DeployFullProduction \
@@ -120,6 +120,11 @@ contract DeployFullProduction is Script {
         TimelockController timelock = new TimelockController(1 days, proposers, executors, deployer);
 
         CeitnotGovernor governor = new CeitnotGovernor(IVotes(address(veLock)), timelock);
+        // Wire Governor to Timelock and hand governance controls to Timelock.
+        timelock.grantRole(timelock.PROPOSER_ROLE(), address(governor));
+        timelock.grantRole(timelock.CANCELLER_ROLE(), address(governor));
+        govToken.setMinter(address(timelock));
+        veLock.setAdmin(address(timelock));
 
         vm.stopBroadcast();
 
@@ -132,7 +137,7 @@ contract DeployFullProduction is Script {
         console.log("COLLATERAL_VAULT:  %s", collateralVault);
         console.log("");
         console.log("--- CDP ---");
-        console.log("AUSD:               %s", address(ausd));
+        console.log("CEITUSD:            %s", address(ausd));
         console.log("PSM:                %s", address(psm));
         console.log("USDC (pegged):      %s", usdc);
         console.log("");

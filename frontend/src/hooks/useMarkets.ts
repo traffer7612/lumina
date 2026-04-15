@@ -1,6 +1,8 @@
 import { useReadContract, useReadContracts } from 'wagmi';
 import { ceitnotEngineAbi, marketRegistryAbi, erc20Abi, type MarketConfig } from '../abi/ceitnotEngine';
 import { useContractAddresses, TARGET_CHAIN_ID } from '../lib/contracts';
+import { hiddenMarketIds } from '../lib/chainEnv';
+import { erc20Decimals } from '../lib/utils';
 
 export type Market = {
   id: number;
@@ -8,6 +10,8 @@ export type Market = {
   totalDebt: bigint;
   totalCollateral: bigint;
   vaultSymbol?: string;
+  /** ERC-4626 vault share decimals (= underlying for OZ ERC4626; e.g. 6 for USDC). */
+  vaultDecimals?: number;
 };
 
 export function useMarkets() {
@@ -56,6 +60,16 @@ export function useMarkets() {
     query: { enabled: vaultAddresses.length > 0 },
   });
 
+  const { data: vaultDecimalsResults } = useReadContracts({
+    contracts: vaultAddresses.map(addr => ({
+      address: addr!,
+      abi: erc20Abi,
+      functionName: 'decimals' as const,
+      chainId: TARGET_CHAIN_ID,
+    })),
+    query: { enabled: vaultAddresses.length > 0 },
+  });
+
   // Build the markets array
   const rawMarkets = Array.from({ length: count }, (_, i) => {
     const config = configResults?.[i]?.result as MarketConfig | undefined;
@@ -66,11 +80,17 @@ export function useMarkets() {
       totalDebt:       (statsResults?.[i * 2]?.result as bigint | undefined)     ?? 0n,
       totalCollateral: (statsResults?.[i * 2 + 1]?.result as bigint | undefined) ?? 0n,
       vaultSymbol:     (symbolResults?.[i]?.result as string | undefined),
+      vaultDecimals:   erc20Decimals(vaultDecimalsResults?.[i]?.result as number | bigint | undefined),
     };
   });
   const markets: Market[] = rawMarkets.filter((m): m is NonNullable<typeof m> => m !== null);
 
+  const hidden = hiddenMarketIds();
+  const browseMarkets = markets.filter(
+    m => m.config.isActive && !m.config.isFrozen && !hidden.has(m.id),
+  );
+
   const refetch = () => { refetchConfigs(); refetchStats(); };
 
-  return { markets, count, isLoading: countLoading || configLoading, refetch };
+  return { markets, browseMarkets, count, isLoading: countLoading || configLoading, refetch };
 }

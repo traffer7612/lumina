@@ -23,7 +23,7 @@ interface ICeitnotEngineRouter {
  *
  *         Prerequisites for delegated flows:
  *           1. User calls `engine.setDelegate(address(router), true)` once.
- *           2. User approves `engine` for aUSD (for repay) once:
+ *           2. User approves `engine` for ceitUSD (for repay) once:
  *              `ausd.approve(address(engine), type(uint256).max)`.
  *
  * @dev    Phase 10 — DX & Composability.
@@ -124,7 +124,7 @@ contract CeitnotRouter {
      * @param marketId     Target market.
      * @param vault        Collateral vault address.
      * @param shares       Vault shares to deposit.
-     * @param borrowAmount Amount of aUSD to borrow.
+     * @param borrowAmount Amount of ceitUSD to borrow.
      */
     function depositAndBorrow(
         uint256 marketId,
@@ -147,7 +147,7 @@ contract CeitnotRouter {
      *           - ausd.approve(engine, repayAmount) by the caller (or infinite approval).
      *           - engine.setDelegate(router, true) by the caller.
      * @param marketId      Target market.
-     * @param repayAmount   Amount of aUSD to repay (0 = skip repay).
+     * @param repayAmount   Amount of ceitUSD to repay (0 = skip repay).
      * @param withdrawShares Vault shares to withdraw (0 = skip withdrawal).
      */
     function repayAndWithdraw(
@@ -161,11 +161,11 @@ contract CeitnotRouter {
     }
 
     /**
-     * @notice Repay debt using a gasless EIP-2612 permit on aUSD instead of a prior approve.
+     * @notice Repay debt using a gasless EIP-2612 permit on ceitUSD instead of a prior approve.
      *         The permit sets ausd.allowance[user][engine], then repay burns from user.
      *         Requires: engine.setDelegate(router, true) by the caller.
      * @param marketId Target market.
-     * @param amount   Amount of aUSD to repay.
+     * @param amount   Amount of ceitUSD to repay.
      * @param deadline Permit expiry timestamp.
      * @param v,r,s    Signature from ausd.permit.
      */
@@ -178,7 +178,7 @@ contract CeitnotRouter {
         bytes32 s
     ) external {
         if (amount == 0) revert Router__ZeroAmount();
-        // Set engine's allowance on user's aUSD via permit, then repay burns from user
+        // Set engine's allowance on user's ceitUSD via permit, then repay burns from user
         ICeitnotUSD(ausd).permit(msg.sender, engine, amount, deadline, v, r, s);
         ICeitnotEngineRouter(engine).repay(msg.sender, marketId, amount);
     }
@@ -191,7 +191,7 @@ contract CeitnotRouter {
      * @param marketId     Target market.
      * @param vault        Collateral vault address.
      * @param shares       Additional vault shares to deposit.
-     * @param borrowAmount Additional aUSD to borrow.
+     * @param borrowAmount Additional ceitUSD to borrow.
      */
     function leverageUp(
         uint256 marketId,
@@ -210,7 +210,7 @@ contract CeitnotRouter {
      * @notice Leverage down: repay debt and withdraw collateral in one transaction.
      *         This is an alias for repayAndWithdraw with leverage-oriented naming.
      * @param marketId       Target market.
-     * @param repayAmount    Amount of aUSD to repay.
+     * @param repayAmount    Amount of ceitUSD to repay.
      * @param withdrawShares Vault shares to withdraw.
      */
     function leverageDown(

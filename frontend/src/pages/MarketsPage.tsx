@@ -95,7 +95,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export default function MarketsPage() {
   const { registry, engine, isLoading: addressesLoading } = useContractAddresses();
-  const { markets, count, isLoading, refetch } = useMarkets();
+  const { markets, browseMarkets, count, isLoading, refetch } = useMarkets();
   const addressesReady = !!registry;
   const configuredForMarkets = !!(registry && engine);
 
@@ -106,7 +106,12 @@ export default function MarketsPage() {
           <h1 className="page-title">
             <span className="page-title-accent">Markets</span>
           </h1>
-          <p className="page-subtitle">{count} market{count !== 1 ? 's' : ''} on the protocol</p>
+          <p className="page-subtitle">
+            {browseMarkets.length} market{browseMarkets.length !== 1 ? 's' : ''} listed
+            {browseMarkets.length < count && (
+              <span className="text-ceitnot-muted"> ({count} on-chain)</span>
+            )}
+          </p>
         </div>
         <button onClick={refetch} className="btn-ghost flex items-center gap-2 text-sm">
           <RefreshCw size={14} /> Refresh
@@ -147,9 +152,18 @@ export default function MarketsPage() {
         </div>
       )}
 
-      {!isLoading && markets.length > 0 && (
+      {!isLoading && markets.length > 0 && browseMarkets.length === 0 && (
+        <div className="card p-12 text-center">
+          <p className="text-ceitnot-muted text-sm">
+            All markets are inactive, frozen, or hidden. Adjust{' '}
+            <code className="font-mono">VITE_HIDDEN_MARKET_IDS</code> or registry state to list markets here.
+          </p>
+        </div>
+      )}
+
+      {!isLoading && browseMarkets.length > 0 && (
         <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
-          {markets.map(m => <MarketCard key={m.id} market={m} />)}
+          {browseMarkets.map(m => <MarketCard key={m.id} market={m} />)}
         </div>
       )}
     </div>

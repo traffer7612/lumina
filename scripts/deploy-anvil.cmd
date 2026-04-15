@@ -14,5 +14,5 @@ if errorlevel 1 (
     exit /b 1
 )
 echo.
-echo Copy AURA_ENGINE_ADDRESS=0x... from output above into backend\.env
+echo Copy CEITNOT_ENGINE_ADDRESS=0x... from output above into backend\.env
 pause

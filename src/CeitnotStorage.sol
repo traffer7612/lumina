@@ -25,7 +25,8 @@ library CeitnotStorage {
     /// @notice Mutable per-market state (changes every harvest / interaction).
     struct MarketState {
         uint256 globalDebtScale;          // RAY; starts at RAY, decreases as yield reduces debt
-        uint256 lastHarvestPricePerShare;  // WAD; vault price at last harvest
+        /// @dev Legacy name: stores `convertToAssets(WAD)` of raw vault shares at last harvest (see `harvestYield`).
+        uint256 lastHarvestPricePerShare;
         uint256 lastHarvestTimestamp;
         uint256 totalCollateralShares;     // WAD; sum of all user shares in this market
         uint256 totalPrincipalDebt;        // WAD; sum of all user principal debts in this market

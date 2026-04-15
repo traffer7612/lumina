@@ -11,17 +11,17 @@ import { gasFor, TARGET_CHAIN_ID, useContractAddresses } from '../lib/contracts'
 import { viteAddress, viteAddressLegacy } from '../lib/chainEnv';
 import { formatWad, formatAddress } from '../lib/utils';
 import { blockExplorerAddressUrl } from '../lib/explorer';
-
-const env = import.meta.env as Record<string, string | undefined>;
-const VE_TOKEN = viteAddressLegacy(import.meta.env.VITE_VE_TOKEN_ADDRESS, env.VITE_VE_AURA_ADDRESS);
-const GOV_TOKEN = viteAddressLegacy(import.meta.env.VITE_GOVERNANCE_TOKEN_ADDRESS, env.VITE_AURA_TOKEN_ADDRESS);
+const VE_TOKEN = viteAddress(import.meta.env.VITE_VE_TOKEN_ADDRESS as string | undefined);
+const GOV_TOKEN = viteAddress(import.meta.env.VITE_GOVERNANCE_TOKEN_ADDRESS as string | undefined);
 const GOVERNOR = viteAddress(import.meta.env.VITE_GOVERNOR_ADDRESS);
 const TIMELOCK = viteAddress(import.meta.env.VITE_TIMELOCK_ADDRESS);
-const AUSD     = viteAddress(import.meta.env.VITE_AUSD_ADDRESS);
+const CEITUSD  = viteAddressLegacy(
+  import.meta.env.VITE_CEITUSD_ADDRESS as string | undefined,
+  import.meta.env.VITE_AUSD_ADDRESS as string | undefined,
+);
 const TALLY_URL = import.meta.env.VITE_TALLY_URL as string | undefined;
-
-/** Minimal ABI for governance calldata to CeitnotUSD (aUSD) */
-const ausdGovAbi = [
+/** Minimal ABI for governance calldata to CeitnotUSD (ceitUSD) */
+const ceitusdGovAbi = [
   { type: 'function', name: 'addMinter', stateMutability: 'nonpayable', inputs: [{ name: 'minter', type: 'address' }], outputs: [] },
 ] as const;
 
@@ -85,9 +85,23 @@ const DURATIONS = [
 ];
 
 type Step = 'idle' | 'approving' | 'writing' | 'success' | 'error';
+type ProposalCreatedArgs = {
+  proposalId: bigint;
+  proposer: Address;
+  targets: Address[];
+  values: bigint[];
+  signatures: string[];
+  calldatas: `0x${string}`[];
+  voteStart: bigint;
+  voteEnd: bigint;
+  description: string;
+};
 type ProposalFeedItem = {
   proposalId: bigint;
   proposer: Address;
+  targets: Address[];
+  values: bigint[];
+  calldatas: `0x${string}`[];
   description: string;
   voteStart: bigint;
   voteEnd: bigint;
@@ -144,6 +158,17 @@ const minterUpdatedEvent = parseAbiItem(
   'event MinterUpdated(address indexed previous,address indexed next)',
 );
 
+function parseProposalIdInput(value: string): bigint | undefined {
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  if (!/^\d+$/.test(trimmed)) return undefined;
+  try {
+    return BigInt(trimmed);
+  } catch {
+    return undefined;
+  }
+}
+
 export default function GovernancePage() {
   const { address, isConnected, chainId } = useAccount();
   const explorerChainId = chainId ?? TARGET_CHAIN_ID;
@@ -188,6 +213,7 @@ export default function GovernancePage() {
   const [addMarketIsolated, setAddMarketIsolated] = useState(false);
   const [addMarketIsoBorrowCap, setAddMarketIsoBorrowCap] = useState('');
   const [proposalFeed, setProposalFeed] = useState<ProposalFeedItem[]>([]);
+  const [proposalPayloadById, setProposalPayloadById] = useState<Record<string, ProposalFeedItem>>({});
   const [activityFeed, setActivityFeed] = useState<GovernanceActivityItem[]>([]);
   const [proposalTitleMap, setProposalTitleMap] = useState<Record<string, string>>({});
   const [activityExpanded, setActivityExpanded] = useState(false);
@@ -219,8 +245,12 @@ export default function GovernancePage() {
   const pendingRev    = (readData?.[6]?.result as bigint | undefined) ?? 0n;
   const displaySymbol = 'CEITNOT';
 
-  const proposalId = proposalIdInput.trim() ? BigInt(proposalIdInput.trim()) : undefined;
-  const hasGovConfig = !!GOVERNOR && (!!registry || !!AUSD);
+  const proposalId = parseProposalIdInput(proposalIdInput);
+  const proposalIdInputInvalid = proposalIdInput.trim().length > 0 && proposalId === undefined;
+  const selectedProposalPayload = proposalId !== undefined
+    ? proposalPayloadById[proposalId.toString()]
+    : undefined;
+  const hasGovConfig = !!GOVERNOR && (!!registry || !!CEITUSD);
   const marketRiskCalldata =
     GOVERNOR && registry
       ? encodeFunctionData({
@@ -266,9 +296,9 @@ export default function GovernancePage() {
       : '0x';
   const trimmedPsm = newPsmMinterAddress.trim();
   const addMinterCalldata =
-    GOVERNOR && AUSD && trimmedPsm && isAddress(trimmedPsm as Address)
+    GOVERNOR && CEITUSD && trimmedPsm && isAddress(trimmedPsm as Address)
       ? encodeFunctionData({
-        abi: ausdGovAbi,
+        abi: ceitusdGovAbi,
         functionName: 'addMinter',
         args: [trimmedPsm as Address],
       })
@@ -277,8 +307,8 @@ export default function GovernancePage() {
   const govTargets: Address[] =
     (govProposalKind === 'marketRisk' || govProposalKind === 'addMarket') && registry
       ? [registry as Address]
-      : govProposalKind === 'addPsmMinter' && AUSD
-        ? [AUSD]
+      : govProposalKind === 'addPsmMinter' && CEITUSD
+        ? [CEITUSD]
         : [];
   const govValues: bigint[] = [0n];
   const govCalldatas: `0x${string}`[] =
@@ -289,7 +319,6 @@ export default function GovernancePage() {
         : govProposalKind === 'addPsmMinter' && addMinterCalldata !== '0x'
           ? [addMinterCalldata as `0x${string}`]
           : [];
-  const descriptionHash = keccak256(stringToHex(govDescription || ''));
   const canCreateGovProposal =
     !!GOVERNOR &&
     govCalldatas.length > 0 &&
@@ -304,7 +333,7 @@ export default function GovernancePage() {
           addLiqBps !== undefined &&
           addPenBps !== undefined &&
           addLiqBps >= addLtvBps
-        : !!AUSD && isAddress(trimmedPsm as Address));
+        : !!CEITUSD && isAddress(trimmedPsm as Address));
 
   const { data: govData, refetch: refetchGov } = useReadContracts({
     contracts: (GOVERNOR ? [
@@ -330,6 +359,8 @@ export default function GovernancePage() {
   const proposalSnapshot = (govData?.[5]?.result as bigint | undefined);
   const proposalDeadline = (govData?.[6]?.result as bigint | undefined);
   const hasVoted = (govData?.[7]?.result as boolean | undefined);
+  const canQueueSelectedProposal = proposalId !== undefined && proposalState === 4;
+  const canExecuteSelectedProposal = proposalId !== undefined && proposalState === 5;
 
   const hasLock       = lockedAmount > 0n;
   const lockExpired   = hasLock && BigInt(Math.floor(Date.now() / 1000)) >= unlockTime;
@@ -360,6 +391,7 @@ export default function GovernancePage() {
 
   // ── helpers ──
   const gas = gasFor(chainId);
+  const governanceGas = (chainId === 42161 || chainId === 421614) ? {} : gas;
   const parseAmt = (v: string) => { try { return v ? parseUnits(v, 18) : 0n; } catch { return 0n; } };
 
   async function approve() {
@@ -522,7 +554,7 @@ export default function GovernancePage() {
       const latest = await publicClient.getBlock({ blockNumber: latestBlock });
       const minTs = BigInt(Math.max(0, Number(latest.timestamp) - FEED_WINDOW_SECONDS));
       const fromBlock = governanceLogsFromBlock(latestBlock, TARGET_CHAIN_ID);
-      const adminSources = [engine, registry, AUSD, viteAddress(import.meta.env.VITE_PSM_ADDRESS)]
+      const adminSources = [engine, registry, CEITUSD, viteAddress(import.meta.env.VITE_PSM_ADDRESS)]
         .filter((x): x is Address => !!x);
       const [createdLogs, voteLogs, queuedLogs, executedLogs, timelockScheduledLogs, timelockExecutedLogs, adminProposedByAddr, adminTransferredByAddr, minterUpdatedLogs] = await Promise.all([
         publicClient.getLogs({
@@ -759,6 +791,13 @@ export default function GovernancePage() {
       }
       setProposalTitleMap(titles);
 
+      const payloadById: Record<string, ProposalFeedItem> = {};
+      for (const log of createdLogs) {
+        const args = log.args as ProposalCreatedArgs;
+        const item = buildProposalFeedItemFromLog(log, stateMap.get(args.proposalId));
+        payloadById[item.proposalId.toString()] = item;
+      }
+
       const createdRecent: typeof createdLogs = [];
       for (const log of [...createdLogs].reverse()) {
         if (!log.blockNumber) continue;
@@ -769,25 +808,13 @@ export default function GovernancePage() {
       }
       const recent = createdRecent;
       const withState = await Promise.all(recent.map(async (log) => {
-        const args = log.args as {
-          proposalId: bigint;
-          proposer: Address;
-          voteStart: bigint;
-          voteEnd: bigint;
-          description: string;
-        };
-        const s = stateMap.get(args.proposalId);
-        return {
-          proposalId: args.proposalId,
-          proposer: args.proposer,
-          voteStart: args.voteStart,
-          voteEnd: args.voteEnd,
-          description: args.description,
-          txHash: log.transactionHash,
-          state: s,
-        } satisfies ProposalFeedItem;
+        const args = log.args as ProposalCreatedArgs;
+        const cached = payloadById[args.proposalId.toString()];
+        if (cached) return cached;
+        return buildProposalFeedItemFromLog(log, stateMap.get(args.proposalId));
       }));
 
+      setProposalPayloadById(payloadById);
       setProposalFeed(withState);
     } catch (e: unknown) {
       setFeedErr(e instanceof Error ? e.message.split('\n')[0] : String(e));
@@ -844,6 +871,54 @@ export default function GovernancePage() {
     if (!h) return '—';
     return h.length > 18 ? `${h.slice(0, 10)}...${h.slice(-6)}` : h;
   };
+  const selectProposalForActions = (id: bigint) => {
+    setProposalIdInput(id.toString());
+    const payload = proposalPayloadById[id.toString()];
+    if (payload?.description) {
+      setGovDescription(payload.description);
+    }
+  };
+
+  const buildProposalFeedItemFromLog = (
+    log: { args: unknown; transactionHash?: Hash },
+    state?: number,
+  ): ProposalFeedItem => {
+    const args = log.args as ProposalCreatedArgs;
+    return {
+      proposalId: args.proposalId,
+      proposer: args.proposer,
+      targets: args.targets,
+      values: args.values,
+      calldatas: args.calldatas,
+      voteStart: args.voteStart,
+      voteEnd: args.voteEnd,
+      description: args.description,
+      txHash: log.transactionHash,
+      state,
+    };
+  };
+
+  const resolveProposalPayload = async (id: bigint): Promise<ProposalFeedItem | undefined> => {
+    const cached = proposalPayloadById[id.toString()];
+    if (cached) return cached;
+    if (!publicClient || !GOVERNOR) return undefined;
+    const latestBlock = await publicClient.getBlockNumber();
+    const deepFromBlock = governanceLogsDeepFromBlock(latestBlock, TARGET_CHAIN_ID);
+    const deepCreatedLogs = await publicClient.getLogs({
+      address: GOVERNOR,
+      event: proposalCreatedEvent,
+      fromBlock: deepFromBlock,
+      toBlock: 'latest',
+    });
+    const found = [...deepCreatedLogs].reverse().find((log) => {
+      const args = log.args as ProposalCreatedArgs;
+      return args.proposalId === id;
+    });
+    if (!found) return undefined;
+    const item = buildProposalFeedItemFromLog(found);
+    setProposalPayloadById((prev) => ({ ...prev, [item.proposalId.toString()]: item }));
+    return item;
+  };
 
   async function handleProposeRiskUpdate() {
     if (!GOVERNOR || !hasGovConfig || !canCreateGovProposal) return;
@@ -855,7 +930,7 @@ export default function GovernancePage() {
         abi: governorAbi,
         functionName: 'propose',
         args: [govTargets, govValues, govCalldatas, govDescription],
-        ...gas,
+        ...governanceGas,
       });
       setHash(h);
     } catch (e: unknown) {
@@ -874,7 +949,7 @@ export default function GovernancePage() {
         abi: governorAbi,
         functionName: 'castVote',
         args: [proposalId, Number(voteSupport)],
-        ...gas,
+        ...governanceGas,
       });
       setHash(h);
     } catch (e: unknown) {
@@ -884,16 +959,29 @@ export default function GovernancePage() {
   }
 
   async function handleQueue() {
-    if (!GOVERNOR || !hasGovConfig || govCalldatas.length === 0) return;
+    if (!GOVERNOR || proposalId === undefined || !publicClient) return;
     setActiveAction('queue');
     try {
+      const st = Number(await publicClient.readContract({
+        address: GOVERNOR,
+        abi: governorAbi,
+        functionName: 'state',
+        args: [proposalId],
+      }));
+      if (st !== 4) {
+        throw new Error(`Queue is allowed only in Succeeded state. Current: ${proposalStateLabel(st)}.`);
+      }
+      const payload = await resolveProposalPayload(proposalId);
+      if (!payload) {
+        throw new Error('Proposal payload not found. Select from Recent Proposals or refresh feed.');
+      }
       setStep('writing');
       const h = await writeContractAsync({
         address: GOVERNOR,
         abi: governorAbi,
         functionName: 'queue',
-        args: [govTargets, govValues, govCalldatas, descriptionHash],
-        ...gas,
+        args: [payload.targets, payload.values, payload.calldatas, keccak256(stringToHex(payload.description))],
+        ...governanceGas,
       });
       setHash(h);
     } catch (e: unknown) {
@@ -903,16 +991,29 @@ export default function GovernancePage() {
   }
 
   async function handleExecute() {
-    if (!GOVERNOR || !hasGovConfig || govCalldatas.length === 0) return;
+    if (!GOVERNOR || proposalId === undefined || !publicClient) return;
     setActiveAction('execute');
     try {
+      const st = Number(await publicClient.readContract({
+        address: GOVERNOR,
+        abi: governorAbi,
+        functionName: 'state',
+        args: [proposalId],
+      }));
+      if (st !== 5) {
+        throw new Error(`Execute is allowed only in Queued state. Current: ${proposalStateLabel(st)}.`);
+      }
+      const payload = await resolveProposalPayload(proposalId);
+      if (!payload) {
+        throw new Error('Proposal payload not found. Select from Recent Proposals or refresh feed.');
+      }
       setStep('writing');
       const h = await writeContractAsync({
         address: GOVERNOR,
         abi: governorAbi,
         functionName: 'execute',
-        args: [govTargets, govValues, govCalldatas, descriptionHash],
-        ...gas,
+        args: [payload.targets, payload.values, payload.calldatas, keccak256(stringToHex(payload.description))],
+        ...governanceGas,
       });
       setHash(h);
     } catch (e: unknown) {
@@ -1068,7 +1169,7 @@ export default function GovernancePage() {
                     )}
                   </div>
                   <button
-                    onClick={() => setProposalIdInput(p.proposalId.toString())}
+                    onClick={() => selectProposalForActions(p.proposalId)}
                     className="btn-secondary text-xs shrink-0"
                     disabled={isPending}
                   >
@@ -1125,7 +1226,7 @@ export default function GovernancePage() {
                   </p>
                   {a.proposalId !== undefined && (
                     <button
-                      onClick={() => setProposalIdInput(a.proposalId!.toString())}
+                      onClick={() => selectProposalForActions(a.proposalId!)}
                       className="btn-secondary text-xs shrink-0"
                       disabled={isPending}
                     >
@@ -1402,7 +1503,7 @@ export default function GovernancePage() {
               <div className="text-sm text-ceitnot-muted">
                 Set <code className="font-mono">VITE_GOVERNOR_ADDRESS</code> and at least one of{' '}
                 <code className="font-mono">VITE_REGISTRY_ADDRESS</code> (market risk) or{' '}
-                <code className="font-mono">VITE_AUSD_ADDRESS</code> (add PSM minter).
+                <code className="font-mono">VITE_CEITUSD_ADDRESS</code> (add PSM minter, legacy: VITE_AUSD_ADDRESS).
               </div>
             ) : (
               <div className="space-y-4">
@@ -1445,14 +1546,14 @@ export default function GovernancePage() {
                     type="button"
                     onClick={() => setGovProposalKind('addPsmMinter')}
                     className={`btn-secondary text-xs ${govProposalKind === 'addPsmMinter' ? 'ring-1 ring-ceitnot-gold' : ''}`}
-                    disabled={isPending || !AUSD}
-                  >aUSD add PSM minter</button>
+                    disabled={isPending || !CEITUSD}
+                  >ceitUSD add PSM minter</button>
                 </div>
                 {!registry && (govProposalKind === 'marketRisk' || govProposalKind === 'addMarket') && (
                   <p className="text-xs text-ceitnot-danger">Registry address missing — switch template or set <code className="font-mono">VITE_REGISTRY_ADDRESS</code>.</p>
                 )}
-                {!AUSD && govProposalKind === 'addPsmMinter' && (
-                  <p className="text-xs text-ceitnot-danger">Set <code className="font-mono">VITE_AUSD_ADDRESS</code> in <code className="font-mono">.env</code>.</p>
+                {!CEITUSD && govProposalKind === 'addPsmMinter' && (
+                  <p className="text-xs text-ceitnot-danger">Set <code className="font-mono">VITE_CEITUSD_ADDRESS</code> (or legacy <code className="font-mono">VITE_AUSD_ADDRESS</code>) in <code className="font-mono">.env</code>.</p>
                 )}
                 {govProposalKind === 'addMarket' && registry && (
                   <p className="text-xs text-ceitnot-muted leading-relaxed">
@@ -1464,7 +1565,7 @@ export default function GovernancePage() {
 
                 <div className="space-y-2">
                   <p className="text-xs text-ceitnot-muted uppercase tracking-wider">
-                    1) Create proposal ({govProposalKind === 'marketRisk' ? 'market risk' : govProposalKind === 'addMarket' ? 'registry addMarket' : 'aUSD addMinter'})
+                    1) Create proposal ({govProposalKind === 'marketRisk' ? 'market risk' : govProposalKind === 'addMarket' ? 'registry addMarket' : 'ceitUSD addMinter'})
                   </p>
                   {govProposalKind === 'marketRisk' ? (
                     <>
@@ -1535,7 +1636,7 @@ export default function GovernancePage() {
                   )}
                   <input type="text" value={govDescription} onChange={e => setGovDescription(e.target.value)} placeholder="Proposal description" className="input-field w-full" disabled={isPending} />
                   <p className="text-xs text-ceitnot-muted">
-                    After creating a proposal, keep the same template, fields, and description text for Queue / Execute.
+                    Queue / Execute uses payload from on-chain <code className="font-mono">ProposalCreated</code> for the selected <code className="font-mono">proposalId</code>.
                   </p>
                   <button onClick={handleProposeRiskUpdate} disabled={isPending || !govDescription.trim() || !canCreateGovProposal} className="btn-primary w-full flex items-center justify-center gap-2">
                     {isPending && activeAction === 'propose' && <Loader2 size={14} className="animate-spin" />}
@@ -1546,6 +1647,17 @@ export default function GovernancePage() {
                 <div className="space-y-2">
                   <p className="text-xs text-ceitnot-muted uppercase tracking-wider">2) Vote on proposalId</p>
                   <input type="text" value={proposalIdInput} onChange={e => setProposalIdInput(e.target.value)} placeholder="Proposal ID (uint256)" className="input-field w-full" disabled={isPending} />
+                  {proposalIdInputInvalid && (
+                    <p className="text-xs text-ceitnot-danger">Proposal ID must be a uint256 integer (digits only).</p>
+                  )}
+                  {proposalId !== undefined && (
+                    <p className="text-xs text-ceitnot-muted">
+                      Queue/Execute payload source:{' '}
+                      <span className={selectedProposalPayload ? 'text-ceitnot-success' : 'text-ceitnot-warning'}>
+                        {selectedProposalPayload ? 'loaded from ProposalCreated log' : 'will be fetched from ProposalCreated log on submit'}
+                      </span>
+                    </p>
+                  )}
                   <div className="grid grid-cols-3 gap-2">
                     <button onClick={() => setVoteSupport('0')} className={`btn-secondary text-xs ${voteSupport === '0' ? 'ring-1 ring-ceitnot-gold' : ''}`} disabled={isPending}>Against</button>
                     <button onClick={() => setVoteSupport('1')} className={`btn-secondary text-xs ${voteSupport === '1' ? 'ring-1 ring-ceitnot-gold' : ''}`} disabled={isPending}>For</button>
@@ -1559,11 +1671,16 @@ export default function GovernancePage() {
 
                 <div className="space-y-2">
                   <p className="text-xs text-ceitnot-muted uppercase tracking-wider">3) Queue and 4) Execute</p>
-                  <button onClick={handleQueue} disabled={isPending || !govDescription.trim() || govCalldatas.length === 0} className="btn-secondary w-full flex items-center justify-center gap-2">
+                  {proposalId !== undefined && proposalState !== undefined && (
+                    <p className="text-xs text-ceitnot-muted">
+                      Queue requires <span className="text-ceitnot-ink">Succeeded</span>. Execute requires <span className="text-ceitnot-ink">Queued</span>.
+                    </p>
+                  )}
+                  <button onClick={handleQueue} disabled={isPending || !canQueueSelectedProposal} className="btn-secondary w-full flex items-center justify-center gap-2">
                     {isPending && activeAction === 'queue' && <Loader2 size={14} className="animate-spin" />}
                     Queue Proposal
                   </button>
-                  <button onClick={handleExecute} disabled={isPending || !govDescription.trim() || govCalldatas.length === 0} className="btn-primary w-full flex items-center justify-center gap-2">
+                  <button onClick={handleExecute} disabled={isPending || !canExecuteSelectedProposal} className="btn-primary w-full flex items-center justify-center gap-2">
                     {isPending && activeAction === 'execute' && <Loader2 size={14} className="animate-spin" />}
                     Execute Proposal
                   </button>
@@ -1606,7 +1723,7 @@ export default function GovernancePage() {
                 For investors: who &quot;owns&quot; the protocol
               </p>
               <p className="mb-2">
-                Core administration (engine, market registry, PSM, aUSD, treasury) sits with the{' '}
+                Core administration (engine, market registry, PSM, ceitUSD, treasury) sits with the{' '}
                 <span className="text-ceitnot-ink/90 font-medium">Timelock</span> smart contract, not a personal wallet (EOA).
                 Parameter changes and privileged calls flow through the{' '}
                 <span className="text-ceitnot-ink/90 font-medium">Governor</span>: propose → vote → queue on Timelock → delay → execute.

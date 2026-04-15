@@ -3,7 +3,7 @@ import { useAccount, useWriteContract, useWaitForTransactionReceipt, useReadCont
 import { parseUnits, formatUnits, type Hash, type Address } from 'viem';
 import { X, ArrowRight, CheckCircle, AlertCircle, Loader2, Coins } from 'lucide-react';
 import { erc20Abi, erc4626Abi } from '../../abi/ceitnotEngine';
-import { gasFor, TARGET_CHAIN_ID } from '../../lib/contracts';
+import { gasFor, gasForTokenApprove, TARGET_CHAIN_ID } from '../../lib/contracts';
 
 type Props = {
   open:      boolean;
@@ -20,13 +20,11 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
   const [hash, setHash] = useState<Hash | undefined>();
   const [step, setStep] = useState<'input' | 'approving' | 'depositing' | 'success' | 'error'>('input');
   const [errMsg, setErrMsg] = useState('');
+  const [approvalHint, setApprovalHint] = useState('');
 
   const { writeContractAsync } = useWriteContract();
   const { isSuccess: confirmed } = useWaitForTransactionReceipt({ hash });
 
-  const amountRaw = (() => {
-    try { return amount ? parseUnits(amount, 18) : 0n; } catch { return 0n; }
-  })();
 
   // Read vault.asset(), user's asset balance, asset allowance → vault, user's vault share balance
   const { data: readData } = useReadContracts({
@@ -44,8 +42,10 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
       { address: assetAddress, abi: erc20Abi, functionName: 'balanceOf' as const, args: [address] as const, chainId: TARGET_CHAIN_ID },
       { address: assetAddress, abi: erc20Abi, functionName: 'allowance' as const, args: [address, vaultAddress] as const, chainId: TARGET_CHAIN_ID },
       { address: assetAddress, abi: erc20Abi, functionName: 'symbol' as const, chainId: TARGET_CHAIN_ID },
+      { address: assetAddress, abi: erc20Abi, functionName: 'decimals' as const, chainId: TARGET_CHAIN_ID },
       { address: vaultAddress, abi: erc20Abi, functionName: 'balanceOf' as const, args: [address] as const, chainId: TARGET_CHAIN_ID },
       { address: vaultAddress, abi: erc20Abi, functionName: 'symbol' as const, chainId: TARGET_CHAIN_ID },
+      { address: vaultAddress, abi: erc20Abi, functionName: 'decimals' as const, chainId: TARGET_CHAIN_ID },
     ] : [],
     query: { enabled: !!assetAddress && !!address },
   });
@@ -53,8 +53,15 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
   const assetBalance = (tokenData?.[0]?.result as bigint | undefined) ?? 0n;
   const allowance    = (tokenData?.[1]?.result as bigint | undefined) ?? 0n;
   const assetSymbol  = (tokenData?.[2]?.result as string | undefined) ?? 'ASSET';
-  const shareBalance = (tokenData?.[3]?.result as bigint | undefined) ?? 0n;
-  const vaultSymbol  = (tokenData?.[4]?.result as string | undefined) ?? 'VAULT';
+  const assetDecimalsRaw = tokenData?.[3]?.result as number | bigint | undefined;
+  const assetDecimals = typeof assetDecimalsRaw === 'bigint' ? Number(assetDecimalsRaw) : (assetDecimalsRaw ?? 18);
+  const shareBalance = (tokenData?.[4]?.result as bigint | undefined) ?? 0n;
+  const vaultSymbol  = (tokenData?.[5]?.result as string | undefined) ?? 'VAULT';
+  const vaultDecimalsRaw = tokenData?.[6]?.result as number | bigint | undefined;
+  const vaultDecimals = typeof vaultDecimalsRaw === 'bigint' ? Number(vaultDecimalsRaw) : (vaultDecimalsRaw ?? 18);
+  const amountRaw = (() => {
+    try { return amount ? parseUnits(amount, assetDecimals) : 0n; } catch { return 0n; }
+  })();
   const needsApproval = amountRaw > 0n && allowance < amountRaw;
 
   /**
@@ -106,11 +113,11 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
     }
   }, [confirmed, hash, step, refetchTokenData, onSuccess]);
 
-  const reset = () => { setAmount(''); setHash(undefined); setStep('input'); setErrMsg(''); };
+  const reset = () => { setAmount(''); setHash(undefined); setStep('input'); setErrMsg(''); setApprovalHint(''); };
   const close = () => { reset(); onClose(); };
 
   const setMax = () => {
-    if (assetBalance > 0n) setAmount(formatUnits(assetBalance, 18));
+    if (assetBalance > 0n) setAmount(formatUnits(assetBalance, assetDecimals));
   };
 
   async function submit() {
@@ -129,16 +136,37 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
       // Step 1: approve if needed
       if (needsApproval) {
         setStep('approving');
-        const h = await writeContractAsync({
-          address: assetAddress,
-          abi: erc20Abi,
-          functionName: 'approve',
-          args: [vaultAddress, 2n ** 256n - 1n],
-          chainId: TARGET_CHAIN_ID,
-          ...gas,
-        });
-        setHash(h);
-        return;
+        setApprovalHint('');
+        const approveGas = gasForTokenApprove(chainId);
+        try {
+          const h = await writeContractAsync({
+            address: assetAddress,
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [vaultAddress, amountRaw],
+            chainId: TARGET_CHAIN_ID,
+            ...approveGas,
+          });
+          setHash(h);
+          return;
+        } catch (primaryApproveError: unknown) {
+          const msg = primaryApproveError instanceof Error ? primaryApproveError.message : String(primaryApproveError);
+          const looksLikeTokenRevert = /revert|execution reverted|allowance|approve/i.test(msg);
+          if (!looksLikeTokenRevert || allowance === 0n) throw primaryApproveError;
+
+          // Fallback for non-standard ERC-20 (e.g. tokens that require allowance reset to 0 first).
+          const resetHash = await writeContractAsync({
+            address: assetAddress,
+            abi: erc20Abi,
+            functionName: 'approve',
+            args: [vaultAddress, 0n],
+            chainId: TARGET_CHAIN_ID,
+            ...approveGas,
+          });
+          setApprovalHint('Allowance reset to 0 submitted. After confirmation, press Approve again.');
+          setHash(resetHash);
+          return;
+        }
       }
 
       // Step 2: deposit into vault
@@ -236,6 +264,11 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
                 </p>
               </div>
             )}
+            {approvalHint && (
+              <p className="text-xs text-ceitnot-warning mb-4">
+                {approvalHint}
+              </p>
+            )}
 
             {/* Amount */}
             <div className="mb-4">
@@ -267,11 +300,11 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
             <div className="grid grid-cols-2 gap-3 mb-5 text-xs">
               <div className="p-3 bg-ceitnot-surface-2/80 rounded-xl">
                 <p className="text-ceitnot-muted">{assetSymbol} balance</p>
-                <p className="text-ceitnot-ink font-mono mt-1">{formatUnits(assetBalance, 18)}</p>
+                <p className="text-ceitnot-ink font-mono mt-1">{formatUnits(assetBalance, assetDecimals)}</p>
               </div>
               <div className="p-3 bg-ceitnot-surface-2/80 rounded-xl">
                 <p className="text-ceitnot-muted">{vaultSymbol} shares</p>
-                <p className="text-ceitnot-ink font-mono mt-1">{formatUnits(shareBalance, 18)}</p>
+                <p className="text-ceitnot-ink font-mono mt-1">{formatUnits(shareBalance, vaultDecimals)}</p>
               </div>
             </div>
 
@@ -293,7 +326,7 @@ export default function MintSharesModal({ open, onClose, onSuccess, vaultAddress
                         address: assetAddress,
                         abi: erc20Abi,
                         functionName: 'mint',
-                        args: [address, parseUnits('100', 18)],
+                        args: [address, parseUnits('100', assetDecimals)],
                         chainId: TARGET_CHAIN_ID,
                         ...gasFor(chainId),
                       });

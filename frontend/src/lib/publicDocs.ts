@@ -1,6 +1,6 @@
 /** Public documentation on GitHub (same repo as the app). Must match `git remote` / published repo. */
-const REPO = 'traffer7612/lumina';
-const BRANCH = 'master';
+const REPO = ((import.meta.env.VITE_PUBLIC_GITHUB_REPO as string | undefined)?.trim() || 'traffer7612/ceitnot');
+const BRANCH = ((import.meta.env.VITE_PUBLIC_GITHUB_BRANCH as string | undefined)?.trim() || 'master');
 
 export const DOCS_TREE_URL = `https://github.com/${REPO}/tree/${BRANCH}/docs`;
 

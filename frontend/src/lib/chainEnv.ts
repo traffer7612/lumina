@@ -13,7 +13,22 @@ export function viteAddress(raw: string | undefined): Address | undefined {
   return v as Address;
 }
 
-/** Prefer `primary` env; fall back to `legacy` (e.g. old VITE_AURA_* names after Ceitnot rename). */
+/** Prefer `primary` env; fall back to a secondary alias during address migrations. */
 export function viteAddressLegacy(primary: string | undefined, legacy: string | undefined): Address | undefined {
   return viteAddress(primary) ?? viteAddress(legacy);
+}
+
+/**
+ * Comma-separated market IDs to hide from dashboard / markets list / market picker (e.g. legacy broken oracle on testnet).
+ * Users who still have collateral in a hidden market will still see that market in the picker and position cards.
+ */
+export function hiddenMarketIds(): Set<number> {
+  const raw = import.meta.env.VITE_HIDDEN_MARKET_IDS;
+  if (typeof raw !== 'string' || !raw.trim()) return new Set();
+  return new Set(
+    raw
+      .split(',')
+      .map(s => parseInt(s.trim(), 10))
+      .filter(n => Number.isFinite(n) && n >= 0),
+  );
 }

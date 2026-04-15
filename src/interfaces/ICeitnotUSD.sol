@@ -6,14 +6,14 @@ pragma solidity ^0.8.20;
 interface ICeitnotUSD {
     // ------------------------------- Mint / Burn
 
-    /// @notice Mint `amount` aUSD to `to`. Only callable by registered minters.
+    /// @notice Mint `amount` ceitUSD to `to`. Only callable by registered minters.
     function mint(address to, uint256 amount) external;
 
-    /// @notice Burn `amount` aUSD from `from`. Only callable by registered minters.
+    /// @notice Burn `amount` ceitUSD from `from`. Only callable by registered minters.
     ///         Does NOT require allowance — minter is trusted to manage protocol debt.
     function burn(address from, uint256 amount) external;
 
-    /// @notice Burn `amount` aUSD from `from` using the caller's allowance.
+    /// @notice Burn `amount` ceitUSD from `from` using the caller's allowance.
     ///         Callable by anyone who has been approved by `from`.
     function burnFrom(address from, uint256 amount) external;
 

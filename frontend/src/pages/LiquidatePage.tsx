@@ -6,7 +6,7 @@ import { ceitnotEngineAbi, erc20Abi } from '../abi/ceitnotEngine';
 import { useContractAddresses, gasFor } from '../lib/contracts';
 import { useAdmin } from '../hooks/useAdmin';
 import { useMarkets } from '../hooks/useMarkets';
-import { formatWad, formatHf, parseHf, hfColor } from '../lib/utils';
+import { formatWad, formatToken, formatHf, parseHf, hfColor } from '../lib/utils';
 
 export default function LiquidatePage() {
   const { address: liquidator, chainId } = useAccount();
@@ -211,7 +211,9 @@ export default function LiquidatePage() {
                   </div>
                   <div>
                     <p className="stat-label">Collateral Shares</p>
-                    <p className="font-mono text-ceitnot-ink mt-1">{formatWad(shares, 4)}</p>
+                    <p className="font-mono text-ceitnot-ink mt-1">
+                      {formatToken(shares, market?.vaultDecimals ?? 18, 4)}
+                    </p>
                   </div>
                   <div>
                     <p className="stat-label">Collateral Value</p>

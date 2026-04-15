@@ -14,7 +14,7 @@ import { CeitnotUSD } from "../src/CeitnotUSD.sol";
  * @notice Deploy a fresh `CeitnotPSM` (decimals-aware) on Arbitrum; optionally `addMinter` and seed USDC.
  *
  * Env (required unless noted):
- *   AUSD_ADDRESS       - CeitnotUSD
+ *   CEITUSD_ADDRESS    - CeitnotUSD (or legacy `AUSD_ADDRESS`)
  *   PSM_ADMIN_ADDRESS  - usually Timelock (who controls fees / liquidity withdrawal)
  *
  * Optional:
@@ -22,7 +22,7 @@ import { CeitnotUSD } from "../src/CeitnotUSD.sol";
  *   PSM_TIN_BPS        - default 10
  *   PSM_TOUT_BPS       - default 10
  *   PSM_USDC_SEED      - raw pegged units to transfer from deployer into PSM (6 for USDC); 0 = skip
- *   PSM_TRY_ADD_MINTER - "true"/"false" (default true). If deployer is not aUSD admin, set false and
+ *   PSM_TRY_ADD_MINTER - "true"/"false" (default true). If deployer is not ceitUSD admin, set false and
  *                        add minter via governance separately.
  *
  * Usage:
@@ -33,7 +33,8 @@ contract DeployPSMOnlyArbitrum is Script {
     address internal constant ARBITRUM_NATIVE_USDC = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
 
     function run() external {
-        address ausdAddr = vm.envAddress("AUSD_ADDRESS");
+        address ceitusdAddr = vm.envOr("CEITUSD_ADDRESS", vm.envOr("AUSD_ADDRESS", address(0)));
+        require(ceitusdAddr != address(0), "DeployPSMOnlyArbitrum: CEITUSD_ADDRESS (or AUSD_ADDRESS) required");
         address pegged = vm.envOr("PSM_PEGGED_TOKEN", ARBITRUM_NATIVE_USDC);
         address psmAdmin = vm.envAddress("PSM_ADMIN_ADDRESS");
         uint16 tinBps = uint16(vm.envOr("PSM_TIN_BPS", uint256(10)));
@@ -42,17 +43,16 @@ contract DeployPSMOnlyArbitrum is Script {
         bool tryAddMinter = _envBool("PSM_TRY_ADD_MINTER", true);
 
         vm.startBroadcast();
-
-        CeitnotPSM psm = new CeitnotPSM(ausdAddr, pegged, psmAdmin, tinBps, toutBps);
+        CeitnotPSM psm = new CeitnotPSM(ceitusdAddr, pegged, psmAdmin, tinBps, toutBps);
         console.log("CeitnotPSM:", address(psm));
         console.log("peggedToken:", pegged);
         console.log("admin:", psmAdmin);
 
         if (tryAddMinter) {
-            try CeitnotUSD(ausdAddr).addMinter(address(psm)) {
-                console.log("ausd.addMinter(psm) OK");
+            try CeitnotUSD(ceitusdAddr).addMinter(address(psm)) {
+                console.log("ceitUSD.addMinter(psm) OK");
             } catch {
-                console.log("ausd.addMinter(psm) FAILED - run as aUSD admin or via Timelock proposal");
+                console.log("ceitUSD.addMinter(psm) FAILED - run as ceitUSD admin or via Timelock proposal");
             }
         }
 

@@ -23,12 +23,12 @@ function StatCard({ label, value, sub, icon: Icon }: { label: string; value: str
 
 export default function DashboardPage() {
   const { engine, registry } = useContractAddresses();
-  const { markets, count, isLoading } = useMarkets();
+  const { markets, browseMarkets, count, isLoading } = useMarkets();
   const { paused, emergencyShutdown, debtToken } = useAdmin();
 
-  const totalDebt       = markets.reduce((s, m) => s + m.totalDebt, 0n);
-  const totalCollateral = markets.reduce((s, m) => s + m.totalCollateral, 0n);
-  const activeMarkets   = markets.filter(m => m.config.isActive).length;
+  const totalDebt       = browseMarkets.reduce((s, m) => s + m.totalDebt, 0n);
+  const totalCollateral = browseMarkets.reduce((s, m) => s + m.totalCollateral, 0n);
+  const activeMarkets   = browseMarkets.length;
 
   const configured = !!engine;
 
@@ -75,7 +75,7 @@ export default function DashboardPage() {
 
       {/* Stats row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        <StatCard label="Active Markets"   value={isLoading ? '…' : String(activeMarkets)}        sub={`${count} total`}                          icon={Layers} />
+        <StatCard label="Active Markets"   value={isLoading ? '…' : String(activeMarkets)}        sub={browseMarkets.length < count ? `${browseMarkets.length} shown · ${count} on-chain` : `${count} total`} icon={Layers} />
         <StatCard label="Total Collateral" value={isLoading ? '…' : formatWad(totalCollateral, 2)} sub="WAD (vault shares)"                         icon={TrendingUp} />
         <StatCard label="Total Borrows"    value={isLoading ? '…' : formatWad(totalDebt, 2)}       sub="WAD (debt tokens)"                         icon={DollarSign} />
         <StatCard label="Protocol"         value={paused ? 'Paused' : 'Active'}                    sub={emergencyShutdown ? 'Emergency shutdown' : 'All systems go'} icon={Activity} />
@@ -102,7 +102,16 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {markets.length > 0 && (
+        {!isLoading && browseMarkets.length === 0 && markets.length > 0 && (
+          <div className="p-8 text-center">
+            <p className="text-ceitnot-muted text-sm">
+              No markets match the current filters (inactive, frozen, or hidden via{' '}
+              <code className="font-mono text-ceitnot-warning/80">VITE_HIDDEN_MARKET_IDS</code>).
+            </p>
+          </div>
+        )}
+
+        {browseMarkets.length > 0 && (
           <table className="w-full">
             <thead>
               <tr>
@@ -114,7 +123,7 @@ export default function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {markets.slice(0, 5).map(m => (
+              {browseMarkets.slice(0, 5).map(m => (
                 <tr key={m.id} className="table-row">
                   <td className="table-td">
                     <div>

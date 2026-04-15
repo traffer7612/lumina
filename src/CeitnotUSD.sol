@@ -6,7 +6,7 @@ import { ICeitnotUSD } from "./interfaces/ICeitnotUSD.sol";
 /**
  * @title  CeitnotUSD
  * @author Sanzhik(traffer7612)
- * @notice Mintable/burnable ERC-20 stablecoin (aUSD) for the Ceitnot CDP protocol.
+ * @notice Mintable/burnable ERC-20 stablecoin (ceitUSD) for the Ceitnot CDP protocol.
  *         Converting the protocol from a lending-market (pre-funded debtToken) to a
  *         Collateralised Debt Position (CDP) model (à la MakerDAO DAI).
  *
@@ -49,7 +49,7 @@ contract CeitnotUSD is ICeitnotUSD {
 
     // ------------------------------- ERC-20 metadata
     string public constant name     = "Ceitnot USD";
-    string public constant symbol   = "aUSD";
+    string public constant symbol   = "ceitUSD";
     uint8  public constant decimals = 18;
 
     // ------------------------------- ERC-20 state
@@ -63,7 +63,7 @@ contract CeitnotUSD is ICeitnotUSD {
     mapping(address => bool) public minters;
 
     // ------------------------------- Debt ceiling
-    /// @notice Maximum aUSD total supply. 0 = unlimited.
+    /// @notice Maximum ceitUSD total supply. 0 = unlimited.
     uint256 public globalDebtCeiling;
 
     // ------------------------------- Constructor

@@ -4,6 +4,8 @@ import { parseUnits, formatUnits, type Hash, type Address } from 'viem';
 import { X, ArrowRight, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { ceitnotEngineAbi, erc20Abi, erc4626Abi } from '../../abi/ceitnotEngine';
 import { useContractAddresses, gasFor, TARGET_CHAIN_ID } from '../../lib/contracts';
+import { erc20Decimals, formatToken } from '../../lib/utils';
+import { formatWriteContractError, hintForEngineError } from '../../lib/formatWriteError';
 
 export type ActionType = 'deposit' | 'withdraw' | 'borrow' | 'repay';
 
@@ -54,9 +56,33 @@ export default function ActionModal({
   const { writeContractAsync } = useWriteContract();
   const { isSuccess: confirmed } = useWaitForTransactionReceipt({ hash });
 
-  // Build the amount in raw bigint (18 decimals for shares/debt)
+  // Vault share decimals follow the ERC-4626 vault (OZ: same as underlying, e.g. USDC → 6). Debt uses debt token decimals (ceitUSD → 18).
+  const { data: vaultDecimalsRead } = useReadContracts({
+    contracts: vaultAddress
+      ? [{ address: vaultAddress, abi: erc20Abi, functionName: 'decimals' as const, chainId: readChainId }]
+      : [],
+    query: { enabled: !!vaultAddress },
+  });
+  const { data: debtDecimalsRead } = useReadContracts({
+    contracts: debtTokenAddress
+      ? [{ address: debtTokenAddress, abi: erc20Abi, functionName: 'decimals' as const, chainId: readChainId }]
+      : [],
+    query: { enabled: !!debtTokenAddress },
+  });
+  const { data: debtSymbolRead } = useReadContracts({
+    contracts: debtTokenAddress
+      ? [{ address: debtTokenAddress, abi: erc20Abi, functionName: 'symbol' as const, chainId: readChainId }]
+      : [],
+    query: { enabled: !!debtTokenAddress },
+  });
+  const shareDecimals = erc20Decimals(vaultDecimalsRead?.[0]?.result as number | bigint | undefined);
+  const debtDecimals  = erc20Decimals(debtDecimalsRead?.[0]?.result as number | bigint | undefined);
+  const debtSymbol = (debtSymbolRead?.[0]?.result as string | undefined) ?? 'Debt Token';
+  const amountDecimals =
+    action === 'deposit' || action === 'withdraw' ? shareDecimals : debtDecimals;
+
   const amountRaw = (() => {
-    try { return amount ? parseUnits(amount, 18) : 0n; } catch { return 0n; }
+    try { return amount ? parseUnits(amount, amountDecimals) : 0n; } catch { return 0n; }
   })();
 
   // Read wallet balances: vault shares (for deposit) and debt token (for repay/borrow info)
@@ -97,6 +123,17 @@ export default function ActionModal({
     query: { enabled: !!engine && !!address && action === 'borrow' },
   });
   const collateralValue = (posValueData?.[0]?.result as bigint | undefined) ?? 0n;
+  const borrowMaxRaw = (collateralValue * 8000n) / 10000n > (debtBalance ?? 0n)
+    ? (collateralValue * 8000n) / 10000n - (debtBalance ?? 0n)
+    : 0n;
+  const minMeaningfulBorrowRaw = debtDecimals > 6 ? 10n ** BigInt(debtDecimals - 6) : 1n;
+  const borrowValueLooksScaledWrong =
+    action === 'borrow'
+    && collateralValue > 0n
+    && borrowMaxRaw > 0n
+    && borrowMaxRaw < minMeaningfulBorrowRaw
+    && shareDecimals < debtDecimals;
+  const borrowDisplayDp = borrowValueLooksScaledWrong ? Math.min(18, debtDecimals) : 6;
 
   // Check allowance for deposit (vault → engine) or repay (debtToken → engine)
   const approvalToken = action === 'deposit' ? vaultAddress : action === 'repay' ? debtTokenAddress : undefined;
@@ -138,13 +175,15 @@ export default function ActionModal({
   const close = () => { reset(); onClose(); };
 
   const setMax = () => {
-    if (action === 'deposit'  && walletShares > 0n) setAmount(formatUnits(walletShares, 18));
-    if (action === 'withdraw' && sharesBalance)     setAmount(formatUnits(sharesBalance, 18));
-    if (action === 'repay'    && debtBalance)       setAmount(formatUnits(debtBalance, 18));
+    if (action === 'deposit'  && walletShares > 0n) setAmount(formatUnits(walletShares, shareDecimals));
+    if (action === 'withdraw' && sharesBalance)     setAmount(formatUnits(sharesBalance, shareDecimals));
+    if (action === 'repay'    && debtBalance)       setAmount(formatUnits(debtBalance, debtDecimals));
     if (action === 'borrow'   && collateralValue > 0n) {
-      // Max borrow ≈ 80% of collateral value (LTV), minus existing debt
-      const maxRaw = (collateralValue * 8000n) / 10000n - (debtBalance ?? 0n);
-      if (maxRaw > 0n) setAmount(formatUnits(maxRaw, 18));
+      if (borrowValueLooksScaledWrong) {
+        setAmount('');
+        return;
+      }
+      if (borrowMaxRaw > 0n) setAmount(formatUnits(borrowMaxRaw, debtDecimals));
     }
   };
 
@@ -190,8 +229,9 @@ export default function ActionModal({
       setHash(h);
     } catch (e: unknown) {
       setStep('error');
-      const msg = e instanceof Error ? e.message : String(e);
-      setErrMsg(msg.split('\n')[0].slice(0, 120));
+      const line = formatWriteContractError(e, ceitnotEngineAbi);
+      const hint = hintForEngineError(line);
+      setErrMsg(hint ? `${line}\n\n${hint}` : line);
     }
   }
 
@@ -213,8 +253,9 @@ export default function ActionModal({
       setHash(h);
     } catch (e: unknown) {
       setStep('error');
-      const msg = e instanceof Error ? e.message : String(e);
-      setErrMsg(msg.split('\n')[0].slice(0, 120));
+      const line = formatWriteContractError(e, ceitnotEngineAbi);
+      const hint = hintForEngineError(line);
+      setErrMsg(hint ? `${line}\n\n${hint}` : line);
     }
   }
 
@@ -235,7 +276,7 @@ export default function ActionModal({
     : step === 'redeeming'
     ? 'Redeeming…'
     : needsApproval
-    ? `Approve ${action === 'deposit' ? 'Vault' : 'Debt Token'}`
+    ? `Approve ${action === 'deposit' ? vaultSymbol : debtSymbol}`
     : ACTION_LABEL[action];
 
   return (
@@ -271,7 +312,7 @@ export default function ActionModal({
           <div className="text-center py-4">
             <AlertCircle size={40} className="text-ceitnot-danger mx-auto mb-3" />
             <p className="font-semibold text-ceitnot-danger">Transaction failed</p>
-            <p className="text-ceitnot-muted text-xs mt-2 break-words">{errMsg}</p>
+            <p className="text-ceitnot-muted text-xs mt-2 break-words whitespace-pre-wrap text-left max-h-48 overflow-y-auto">{errMsg}</p>
             <button className="btn-secondary mt-5 w-full" onClick={() => { setStep('input'); setErrMsg(''); }}>Try again</button>
           </div>
         )}
@@ -314,7 +355,12 @@ export default function ActionModal({
             {/* Amount input */}
             <div className="mb-5">
               <label className="block text-sm text-ceitnot-muted mb-2">
-                Amount <span className="text-ceitnot-muted-2">(shares / tokens, 18 dec)</span>
+                Amount{' '}
+                <span className="text-ceitnot-muted-2">
+                  {action === 'deposit' || action === 'withdraw'
+                    ? `(vault shares, ${shareDecimals} decimals)`
+                    : `(${debtSymbol}, ${debtDecimals} decimals)`}
+                </span>
               </label>
               <div className="flex gap-2">
                 <input
@@ -344,7 +390,7 @@ export default function ActionModal({
               )}
             {action === 'deposit' && (
                 <p className="text-xs text-ceitnot-muted mt-1">
-                  Wallet shares: <span className="text-ceitnot-ink font-mono">{formatUnits(walletShares, 18)}</span>
+                  Wallet shares: <span className="text-ceitnot-ink font-mono">{formatUnits(walletShares, shareDecimals)}</span>
                   {depositExceedsWallet && (
                     <span className="block text-ceitnot-danger mt-1">
                       Not enough vault shares — use “Get vault shares” first (mint wstETH → deposit into vault).
@@ -354,24 +400,38 @@ export default function ActionModal({
               )}
               {action === 'withdraw' && sharesBalance !== undefined && (
                 <p className="text-xs text-ceitnot-muted mt-1">
-                  Deposited shares: <span className="text-ceitnot-ink font-mono">{formatUnits(sharesBalance, 18)}</span>
+                  Deposited shares: <span className="text-ceitnot-ink font-mono">{formatUnits(sharesBalance, shareDecimals)}</span>
                 </p>
               )}
               {action === 'borrow' && (
                 <p className="text-xs text-ceitnot-muted mt-1">
-                  Collateral value: <span className="text-ceitnot-ink font-mono">{formatUnits(collateralValue, 18)}</span>
-                  {' · '}Max borrow (80% LTV): <span className="text-ceitnot-ink font-mono">
-                    {formatUnits((collateralValue * 8000n / 10000n) - (debtBalance ?? 0n) > 0n ? (collateralValue * 8000n / 10000n) - (debtBalance ?? 0n) : 0n, 18)}
+                  Collateral value:{' '}
+                  <span className="text-ceitnot-ink font-mono">
+                    {formatToken(collateralValue, debtDecimals, borrowDisplayDp, 'en-US')}
+                  </span>
+                  {' · '}Max borrow (80% LTV):{' '}
+                  <span className="text-ceitnot-ink font-mono">
+                    {formatToken(borrowMaxRaw, debtDecimals, borrowDisplayDp, 'en-US')}
                   </span>
                   {!!debtBalance && debtBalance > 0n && (
-                    <>{' · '}Current debt: <span className="text-ceitnot-warning font-mono">{formatUnits(debtBalance, 18)}</span></>
+                    <>
+                      {' · '}Current debt:{' '}
+                      <span className="text-ceitnot-warning font-mono">
+                        {formatToken(debtBalance, debtDecimals, 6, 'en-US')}
+                      </span>
+                    </>
                   )}
+                </p>
+              )}
+              {borrowValueLooksScaledWrong && (
+                <p className="text-xs text-ceitnot-warning mt-1">
+                  Borrow power is effectively dust for this market. Current max: {formatUnits(borrowMaxRaw, debtDecimals)} {debtSymbol}. This usually indicates market collateral value is returned in a lower decimal scale on-chain; engine upgrade is required to unlock normal borrow size.
                 </p>
               )}
               {action === 'repay' && debtBalance !== undefined && debtBalance > 0n && (
                 <p className="text-xs text-ceitnot-muted mt-1">
-                  Outstanding debt: <span className="text-ceitnot-ink font-mono">{formatUnits(debtBalance, 18)}</span>
-                  {' · '}Wallet USDC: <span className="text-ceitnot-ink font-mono">{formatUnits(walletDebtToken, 18)}</span>
+                  Outstanding debt: <span className="text-ceitnot-ink font-mono">{formatUnits(debtBalance, debtDecimals)}</span>
+                  {' · '}Wallet {debtSymbol}: <span className="text-ceitnot-ink font-mono">{formatUnits(walletDebtToken, debtDecimals)}</span>
                 </p>
               )}
             </div>
@@ -388,6 +448,7 @@ export default function ActionModal({
                 || depositExceedsWallet
                 || withdrawExceedsDeposited
                 || repayExceedsDebt
+                || (action === 'borrow' && borrowValueLooksScaledWrong)
               }
               className={`w-full ${ACTION_COLOR[action]} flex items-center justify-center gap-2`}
             >

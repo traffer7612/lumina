@@ -4,7 +4,7 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { usePosition } from '../hooks/usePosition';
 import { useMarkets } from '../hooks/useMarkets';
 import { useAdmin } from '../hooks/useAdmin';
-import { formatWad, formatHf, parseHf, hfColor, hfBarColor, hfBarPct, formatAddress } from '../lib/utils';
+import { formatWad, formatToken, formatHf, parseHf, hfColor, hfBarColor, hfBarPct, formatAddress } from '../lib/utils';
 import ActionModal, { type ActionType } from '../components/position/ActionModal';
 import MintSharesModal from '../components/position/MintSharesModal';
 import { Wallet, RefreshCw, PlusCircle, MinusCircle, ArrowUpCircle, ArrowDownCircle, Coins, ChevronDown } from 'lucide-react';
@@ -15,7 +15,11 @@ type MintState  = { open: true; marketId: number; vaultAddress: `0x${string}` } 
 export default function PositionPage() {
   const { address, isConnected } = useAccount();
   const { positions, healthFactor, refetch } = usePosition();
-  const { markets } = useMarkets();
+  const { markets, browseMarkets } = useMarkets();
+  const positionIds = new Set(positions.map(p => p.marketId));
+  const selectableMarkets = markets.filter(
+    m => browseMarkets.some(b => b.id === m.id) || positionIds.has(m.id),
+  );
   const { debtToken } = useAdmin();
   const [modal, setModal] = useState<ModalState>({ open: false });
   const [mintModal, setMintModal] = useState<MintState>({ open: false });
@@ -63,7 +67,7 @@ export default function PositionPage() {
       </div>
 
       {/* Market Selector */}
-      {markets.length > 1 && (
+      {selectableMarkets.length > 1 && (
         <div className="relative mb-6">
           <button
             onClick={() => setSelectorOpen(!selectorOpen)}
@@ -79,10 +83,10 @@ export default function PositionPage() {
                     {selectedMarketId}
                   </div>
                   <span className="font-medium">
-                    {markets.find(m => m.id === selectedMarketId)?.vaultSymbol ?? `Market #${selectedMarketId}`}
+                    {selectableMarkets.find(m => m.id === selectedMarketId)?.vaultSymbol ?? `Market #${selectedMarketId}`}
                   </span>
                   <span className="text-xs text-ceitnot-muted font-mono">
-                    {formatAddress(markets.find(m => m.id === selectedMarketId)?.config.vault ?? '')}
+                    {formatAddress(selectableMarkets.find(m => m.id === selectedMarketId)?.config.vault ?? '')}
                   </span>
                 </div>
               )}
@@ -100,7 +104,7 @@ export default function PositionPage() {
               >
                 All Markets
               </button>
-              {markets.map(m => {
+              {selectableMarkets.map(m => {
                 const hasPos = positions.some(p => p.marketId === m.id);
                 return (
                   <button
@@ -154,7 +158,7 @@ export default function PositionPage() {
 
       {/* Selected market with no position — show open position prompt */}
       {selectedMarketId !== null && !positions.some(p => p.marketId === selectedMarketId) && (() => {
-        const m = markets.find(mk => mk.id === selectedMarketId);
+        const m = selectableMarkets.find(mk => mk.id === selectedMarketId);
         if (!m) return null;
         return (
           <div className="card p-8 text-center mb-4">
@@ -181,7 +185,7 @@ export default function PositionPage() {
           <p className="text-ceitnot-muted">No active positions found.</p>
           <p className="text-xs text-ceitnot-muted mt-1">Select a market above or deposit collateral to open a position.</p>
           <div className="flex justify-center gap-3 mt-5 flex-wrap">
-            {markets.slice(0, 3).map(m => (
+            {browseMarkets.slice(0, 3).map(m => (
               <div key={m.id} className="flex gap-2">
                 <button
                   onClick={() => openMint(m.id, m.config.vault)}
@@ -216,7 +220,7 @@ export default function PositionPage() {
             const ltvBps = market?.config.ltvBps;
             const ltv = ltvBps ? Number(ltvBps) / 100 : null;
 
-            // Utilization: debt / (value * LTV)
+            // Utilization: debt / (max borrow capacity in debt units; engine returns value in debt decimals)
             const maxBorrow = (pos.value > 0n && ltvBps)
               ? (pos.value * ltvBps) / 10000n
               : null;
@@ -265,7 +269,9 @@ export default function PositionPage() {
                 <div className="px-5 py-4 grid grid-cols-3 gap-4 text-sm border-b border-ceitnot-border">
                   <div>
                     <p className="stat-label">Collateral Shares</p>
-                    <p className="font-mono text-ceitnot-ink mt-1">{formatWad(pos.shares, 4)}</p>
+                    <p className="font-mono text-ceitnot-ink mt-1">
+                      {formatToken(pos.shares, market?.vaultDecimals ?? 18, 4)}
+                    </p>
                   </div>
                   <div>
                     <p className="stat-label">Collateral Value</p>

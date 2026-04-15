@@ -5,12 +5,10 @@ import { formatUnits, parseUnits, type Hash } from 'viem';
 import { Gift, Lock, Clock, Plus, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { erc20Abi, veLockAbi } from '../abi/ceitnotEngine';
 import { gasFor, TARGET_CHAIN_ID } from '../lib/contracts';
-import { viteAddressLegacy } from '../lib/chainEnv';
+import { viteAddress } from '../lib/chainEnv';
 import { formatWad } from '../lib/utils';
-
-const env = import.meta.env as Record<string, string | undefined>;
-const VE_TOKEN = viteAddressLegacy(import.meta.env.VITE_VE_TOKEN_ADDRESS, env.VITE_VE_AURA_ADDRESS);
-const GOV_TOKEN = viteAddressLegacy(import.meta.env.VITE_GOVERNANCE_TOKEN_ADDRESS, env.VITE_AURA_TOKEN_ADDRESS);
+const VE_TOKEN = viteAddress(import.meta.env.VITE_VE_TOKEN_ADDRESS as string | undefined);
+const GOV_TOKEN = viteAddress(import.meta.env.VITE_GOVERNANCE_TOKEN_ADDRESS as string | undefined);
 const WEEK = 7 * 24 * 3600;
 
 type Step = 'idle' | 'approving' | 'writing' | 'success' | 'error';
@@ -315,7 +313,7 @@ export default function RewardsPage() {
               <button className="btn-primary w-full" onClick={handleClaim} disabled={step !== 'idle' || claimable === 0n}>
                 Claim revenue
               </button>
-              <p className="text-xs text-ceitnot-muted">Claimable: {formatUnits(claimable, 18)} aUSD</p>
+              <p className="text-xs text-ceitnot-muted">Claimable: {formatUnits(claimable, 18)} ceitUSD</p>
             </div>
           </div>
 

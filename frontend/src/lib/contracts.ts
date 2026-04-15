@@ -64,8 +64,8 @@ export function gasFor(chainId: number | undefined) {
   if (chainId === 31337 || chainId === 1337) return { gas: 8_000_000n };
   if (chainId === 42161 || chainId === 421614) {
     return {
-      // `depositCollateral` + accrue + first-market setup can exceed 300k on Arb (seen ~340k+ on Sepolia).
-      gas: 600_000n,
+      // No fixed `gas`: wallets reserve ETH as gasLimit × maxFeePerGas; 600k × 5 gwei ≈ 0.003 ETH
+      // even for a ~50k approve — users with only USDC then see "insufficient funds for gas".
       maxFeePerGas: 5_000_000_000n, // 5 gwei — above typical Arb base fee spikes
       maxPriorityFeePerGas: 100_000_000n, // 0.1 gwei
     };
@@ -73,6 +73,26 @@ export function gasFor(chainId: number | undefined) {
   if (chainId === 11155111) {
     return {
       gas: 500_000n,
+      maxFeePerGas: 50_000_000_000n,
+      maxPriorityFeePerGas: 2_000_000_000n,
+    };
+  }
+  return {};
+}
+
+/**
+ * EIP-1559 hints for simple ERC-20 `approve` (no explicit gas limit).
+ * A fixed `gas: 600_000` on top of approve can confuse some wallets’ simulation / submission paths.
+ */
+export function gasForTokenApprove(chainId: number | undefined) {
+  if (chainId === 42161 || chainId === 421614) {
+    return {
+      maxFeePerGas: 5_000_000_000n,
+      maxPriorityFeePerGas: 100_000_000n,
+    };
+  }
+  if (chainId === 11155111) {
+    return {
       maxFeePerGas: 50_000_000_000n,
       maxPriorityFeePerGas: 2_000_000_000n,
     };

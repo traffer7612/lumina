@@ -3,6 +3,12 @@ import { formatUnits } from 'viem';
 export const WAD         = 10n ** 18n;
 export const MAX_UINT256 = 2n ** 256n - 1n;
 
+/** ERC-20 `decimals()` as number (OZ returns uint8; viem may surface bigint). */
+export function erc20Decimals(d: number | bigint | undefined, fallback = 18): number {
+  if (d === undefined) return fallback;
+  return typeof d === 'bigint' ? Number(d) : d;
+}
+
 /** Format a WAD (1e18) bigint as a human number string */
 export function formatWad(v: bigint | undefined, dp = 4): string {
   if (v === undefined) return '—';
@@ -12,10 +18,15 @@ export function formatWad(v: bigint | undefined, dp = 4): string {
   });
 }
 
-/** Format any token with its decimals */
-export function formatToken(v: bigint | undefined, decimals = 18, dp = 4): string {
+/** Format any token with its decimals (`locale` e.g. `'en-US'` avoids comma decimals in RU locale). */
+export function formatToken(
+  v: bigint | undefined,
+  decimals = 18,
+  dp = 4,
+  locale?: string | string[],
+): string {
   if (v === undefined) return '—';
-  return Number(formatUnits(v, decimals)).toLocaleString(undefined, {
+  return Number(formatUnits(v, decimals)).toLocaleString(locale, {
     minimumFractionDigits: 0,
     maximumFractionDigits: dp,
   });

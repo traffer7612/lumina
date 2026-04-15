@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Lock, Shield, Wallet, TrendingUp, Vote, Coins, ExternalLink } from 'lucide-react';
-import { TARGET_CHAIN_ID, viteAddressLegacy } from '../lib/chainEnv';
+import { TARGET_CHAIN_ID, viteAddress, viteAddressLegacy } from '../lib/chainEnv';
 import { blockExplorerAddressUrl } from '../lib/explorer';
 import {
   DOCS_TREE_URL,
@@ -10,14 +10,13 @@ import {
 } from '../lib/publicDocs';
 
 const TIMELOCK_ENV = import.meta.env.VITE_TIMELOCK_ADDRESS as string | undefined;
-const GOVERNANCE_TOKEN_ADDRESS = viteAddressLegacy(
-  import.meta.env.VITE_GOVERNANCE_TOKEN_ADDRESS as string | undefined,
-  import.meta.env.VITE_AURA_TOKEN_ADDRESS as string | undefined,
-);
-const AUSD_TOKEN_ADDRESS = viteAddressLegacy(
-  import.meta.env.VITE_AUSD_ADDRESS as string | undefined,
-  import.meta.env.VITE_DEBT_TOKEN_ADDRESS as string | undefined,
-);
+const GOVERNANCE_TOKEN_ADDRESS = viteAddress(import.meta.env.VITE_GOVERNANCE_TOKEN_ADDRESS as string | undefined);
+const CEITUSD_TOKEN_ADDRESS =
+  viteAddress(import.meta.env.VITE_CEITUSD_ADDRESS as string | undefined)
+  ?? viteAddressLegacy(
+    import.meta.env.VITE_AUSD_ADDRESS as string | undefined,
+    import.meta.env.VITE_DEBT_TOKEN_ADDRESS as string | undefined,
+  );
 
 const CHART_BARS = [38, 62, 48, 78, 55, 88, 68, 82, 58, 92, 72, 85];
 
@@ -139,8 +138,8 @@ export default function LandingPage() {
   const govTokenExplorer = GOVERNANCE_TOKEN_ADDRESS
     ? blockExplorerAddressUrl(TARGET_CHAIN_ID, GOVERNANCE_TOKEN_ADDRESS)
     : null;
-  const ausdExplorer = AUSD_TOKEN_ADDRESS
-    ? blockExplorerAddressUrl(TARGET_CHAIN_ID, AUSD_TOKEN_ADDRESS)
+  const ceitusdExplorer = CEITUSD_TOKEN_ADDRESS
+    ? blockExplorerAddressUrl(TARGET_CHAIN_ID, CEITUSD_TOKEN_ADDRESS)
     : null;
 
   return (
@@ -321,17 +320,17 @@ export default function LandingPage() {
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-ceitnot-ink font-medium">Stable token symbol:</span>
-                <code className="px-2 py-0.5 rounded bg-ceitnot-surface-2 border border-ceitnot-border">aUSD</code>
-                {AUSD_TOKEN_ADDRESS && (
+                <code className="px-2 py-0.5 rounded bg-ceitnot-surface-2 border border-ceitnot-border">ceitUSD</code>
+                {CEITUSD_TOKEN_ADDRESS && (
                   <>
                     <span className="text-ceitnot-ink font-medium">address:</span>
-                    {ausdExplorer ? (
-                      <a href={ausdExplorer} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-ceitnot-gold hover:underline font-medium">
-                        {AUSD_TOKEN_ADDRESS}
+                    {ceitusdExplorer ? (
+                      <a href={ceitusdExplorer} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-ceitnot-gold hover:underline font-medium">
+                        {CEITUSD_TOKEN_ADDRESS}
                         <ExternalLink size={12} className="opacity-80 shrink-0" aria-hidden />
                       </a>
                     ) : (
-                      <code className="px-2 py-0.5 rounded bg-ceitnot-surface-2 border border-ceitnot-border">{AUSD_TOKEN_ADDRESS}</code>
+                      <code className="px-2 py-0.5 rounded bg-ceitnot-surface-2 border border-ceitnot-border">{CEITUSD_TOKEN_ADDRESS}</code>
                     )}
                   </>
                 )}

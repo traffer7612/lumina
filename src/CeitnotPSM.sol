@@ -8,26 +8,26 @@ import { ICeitnotUSD } from "./interfaces/ICeitnotUSD.sol";
 /**
  * @title  CeitnotPSM
  * @author Sanzhik(traffer7612)
- * @notice Peg Stability Module — allows 1:1 swaps between aUSD and a pegged stable
+ * @notice Peg Stability Module — allows 1:1 swaps between ceitUSD and a pegged stable
  *         (e.g. USDC or DAI) with independent buy/sell fees (tin / tout).
  *
- *         swapIn:  user sends `peggedToken` → receives `aUSD`  (PSM mints aUSD)
- *         swapOut: user sends `aUSD`         → receives `peggedToken` (PSM burns aUSD)
+ *         swapIn:  user sends `peggedToken` → receives `ceitUSD`  (PSM mints ceitUSD)
+ *         swapOut: user sends `ceitUSD`     → receives `peggedToken` (PSM burns ceitUSD)
  *
  *         Fee is deducted from the OUTPUT amount (like MakerDAO PSM).
  *         Accumulated fees are kept as `peggedToken` in `feeReserves` and
  *         withdrawable by admin. Main swap liquidity (balance minus feeReserves)
  *         can be withdrawn by admin via `withdrawLiquidity` (e.g. PSM migration).
  *
- *         A `ceiling` caps how much aUSD the PSM is permitted to mint cumulatively
+ *         A `ceiling` caps how much ceitUSD the PSM is permitted to mint cumulatively
  *         (net of burns through the PSM). 0 = unlimited.
  *
  * @dev Phase 9 implementation.
  *      PSM must be registered as a minter in `CeitnotUSD`.
  *
  *      Pegged token decimals are read at deploy time (e.g. USDC = 6 on Arbitrum).
- *      aUSD is always 18 decimals; amounts are scaled so 1 unit of pegged nominal
- *      matches 1e18 wei aUSD (1:1 dollar peg before fees).
+ *      ceitUSD is always 18 decimals; amounts are scaled so 1 unit of pegged nominal
+ *      matches 1e18 wei ceitUSD (1:1 dollar peg before fees).
  */
 contract CeitnotPSM {
     // ------------------------------- Errors
@@ -64,14 +64,14 @@ contract CeitnotPSM {
     address public admin;
     address public pendingAdmin;
 
-    /// @notice Fee on swapIn (user buys aUSD), in basis points. Default 10 = 0.1%.
+    /// @notice Fee on swapIn (user buys ceitUSD), in basis points. Default 10 = 0.1%.
     uint16  public tinBps;
-    /// @notice Fee on swapOut (user sells aUSD), in basis points. Default 10 = 0.1%.
+    /// @notice Fee on swapOut (user sells ceitUSD), in basis points. Default 10 = 0.1%.
     uint16  public toutBps;
 
-    /// @notice Max aUSD the PSM may mint net of burns. 0 = unlimited.
+    /// @notice Max ceitUSD the PSM may mint net of burns. 0 = unlimited.
     uint256 public ceiling;
-    /// @notice Net aUSD minted by the PSM (increases on swapIn, decreases on swapOut).
+    /// @notice Net ceitUSD minted by the PSM (increases on swapIn, decreases on swapOut).
     uint256 public mintedViaPsm;
 
     /// @notice Accumulated fees expressed in `peggedToken`. Excludes main reserves.
@@ -105,11 +105,11 @@ contract CeitnotPSM {
         _;
     }
 
-    // ------------------------------- Core: swapIn (peggedToken → aUSD)
+    // ------------------------------- Core: swapIn (peggedToken → ceitUSD)
     /**
-     * @notice Swap `amount` of `peggedToken` for aUSD at 1:1 nominal minus `tinBps` fee.
+     * @notice Swap `amount` of `peggedToken` for ceitUSD at 1:1 nominal minus `tinBps` fee.
      * @param  amount Amount of peggedToken in native peg decimals (e.g. 1e6 = 1 USDC).
-     * @return ausdOut Amount of aUSD minted (18 decimals).
+     * @return ausdOut Amount of ceitUSD minted (18 decimals).
      */
     function swapIn(uint256 amount) external returns (uint256 ausdOut) {
         if (amount == 0) revert PSM__ZeroAmount();
@@ -134,11 +134,11 @@ contract CeitnotPSM {
         emit SwapIn(msg.sender, amount, ausdOut, feePeg);
     }
 
-    // ------------------------------- Core: swapOut (aUSD → peggedToken)
+    // ------------------------------- Core: swapOut (ceitUSD → peggedToken)
     /**
-     * @notice Swap `amount` of aUSD for `peggedToken` at 1:1 nominal minus `toutBps` fee.
-     *         Caller must have approved this contract for `amount` aUSD beforehand.
-     * @param  amount Amount of aUSD to burn (18 decimals).
+     * @notice Swap `amount` of ceitUSD for `peggedToken` at 1:1 nominal minus `toutBps` fee.
+     *         Caller must have approved this contract for `amount` ceitUSD beforehand.
+     * @param  amount Amount of ceitUSD to burn (18 decimals).
      * @return stableOut Amount of peggedToken sent (native peg decimals).
      */
     function swapOut(uint256 amount) external returns (uint256 stableOut) {
@@ -227,13 +227,13 @@ contract CeitnotPSM {
 
     // ------------------------------- Internal helpers
 
-    /// @dev 1 unit of pegged (10**peggedDecimals) → 1e18 wei aUSD.
+    /// @dev 1 unit of pegged (10**peggedDecimals) → 1e18 wei ceitUSD.
     function _peggedToAusd(uint256 peggedAmt) internal view returns (uint256) {
         if (peggedDecimals == AUSD_DECIMALS) return peggedAmt;
         return peggedAmt * (10 ** uint256(AUSD_DECIMALS - peggedDecimals));
     }
 
-    /// @dev Rounds down: aUSD wei → pegged raw (conservative for protocol).
+    /// @dev Rounds down: ceitUSD wei → pegged raw (conservative for protocol).
     function _ausdToPegged(uint256 ausdAmt) internal view returns (uint256) {
         if (peggedDecimals == AUSD_DECIMALS) return ausdAmt;
         return ausdAmt / (10 ** uint256(AUSD_DECIMALS - peggedDecimals));
