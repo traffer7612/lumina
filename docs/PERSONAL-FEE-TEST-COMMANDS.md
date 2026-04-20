@@ -149,3 +149,89 @@ cast send 0xa4d0f26cabec345034c2687467b6157cae581216 "propose(address[],uint256[
 - `--rpc-url ... none was supplied`: задайте `$env:ARBITRUM_RPC_URL` в этом терминале.
 - `GovernorInsufficientProposerVotes`: у вашего кошелька недостаточно `VeCEITNOT` голосов.
 - Proposal в неожиданном состоянии: сначала проверьте `votingDelay`, `votingPeriod` и `timelock delay`.
+
+---
+
+## 6) Сценарий C: изменить liquidation-параметры рынка через Governor + Timelock
+
+Этот сценарий нужен, когда `admin` у `MarketRegistry` = `Timelock`, и прямой вызов из EOA/обычной админки невозможен.
+
+Ниже пример на один market:
+- `liquidationPenaltyBps = 500` (5%)
+- `closeFactorBps = 5000` (50%)
+- `fullLiquidationThresholdBps = 5000` (HF < 0.5 -> можно 100% ликвидировать)
+- `protocolLiquidationFeeBps = 300` (3%)
+- `dutchAuctionEnabled = true`
+- `auctionDuration = 3600` (1 час)
+
+### 6.1 Подготовка переменных
+
+```powershell
+$GOV="0xa4d0f26cabec345034c2687467b6157cae581216"
+$REGISTRY="0xPUT_REGISTRY_HERE"
+$marketId="1"
+
+# risk params (обновляются отдельной функцией)
+$ltvBps="8000"            # пример; подставьте актуальное значение
+$liqThresholdBps="8500"   # пример; подставьте актуальное значение
+$liqPenaltyBps="500"
+
+# advanced liquidation params
+$closeFactorBps="5000"
+$fullLiqThresholdBps="5000"
+$protocolLiqFeeBps="300"
+$dutchEnabled="true"
+$auctionDuration="3600"
+
+$desc="AIP: enable dutch auction and set liquidation params for market $marketId"
+```
+
+### 6.2 Propose
+
+```powershell
+$calldataRisk = cast calldata "updateMarketRiskParams(uint256,uint16,uint16,uint16)" $marketId $ltvBps $liqThresholdBps $liqPenaltyBps
+$calldataLiq  = cast calldata "updateMarketLiquidationParams(uint256,uint16,uint16,uint16,bool,uint256)" $marketId $closeFactorBps $fullLiqThresholdBps $protocolLiqFeeBps $dutchEnabled $auctionDuration
+
+cast send $GOV "propose(address[],uint256[],bytes[],string)" "[${REGISTRY},${REGISTRY}]" "[0,0]" "[$calldataRisk,$calldataLiq]" $desc --rpc-url $env:ARBITRUM_RPC_URL --private-key $env:PRIVATE_KEY
+```
+
+Сохраните из логов `proposalId` (decimal).
+
+### 6.3 Vote (когда proposal станет Active)
+
+```powershell
+$proposalId="PUT_DECIMAL_PROPOSAL_ID_HERE"
+cast send $GOV "castVote(uint256,uint8)" $proposalId 1 --rpc-url $env:ARBITRUM_RPC_URL --private-key $env:PRIVATE_KEY
+```
+
+Проверка состояния:
+
+```powershell
+cast call $GOV "state(uint256)(uint8)" $proposalId --rpc-url $env:ARBITRUM_RPC_URL
+```
+
+### 6.4 Queue (когда state = 4, Succeeded)
+
+```powershell
+$descriptionHash = cast keccak $desc
+
+cast send $GOV "queue(address[],uint256[],bytes[],bytes32)" "[${REGISTRY},${REGISTRY}]" "[0,0]" "[$calldataRisk,$calldataLiq]" $descriptionHash --rpc-url $env:ARBITRUM_RPC_URL --private-key $env:PRIVATE_KEY
+```
+
+### 6.5 Execute (после задержки Timelock)
+
+```powershell
+cast send $GOV "execute(address[],uint256[],bytes[],bytes32)" "[${REGISTRY},${REGISTRY}]" "[0,0]" "[$calldataRisk,$calldataLiq]" $descriptionHash --rpc-url $env:ARBITRUM_RPC_URL --private-key $env:PRIVATE_KEY
+```
+
+### 6.6 Проверка после execute
+
+Проверить, что параметры применились:
+
+```powershell
+cast call $REGISTRY "getMarket(uint256)(address,address,uint16,uint16,uint16,uint256,uint256,bool,bool,bool,uint256,uint256,uint256,uint256,uint256,uint16,uint16,uint16,bool,uint256,uint16,uint16,uint256)" $marketId --rpc-url $env:ARBITRUM_RPC_URL
+```
+
+Подсказка:
+- `liquidationPenaltyBps` приходит из `updateMarketRiskParams`.
+- `dutchAuctionEnabled` и `auctionDuration` приходят из `updateMarketLiquidationParams`.
