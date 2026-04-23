@@ -102,7 +102,12 @@ contract OracleRelay is IOracleRelay {
         ) {
             if (answer <= 0) return (true, 0, updatedAt);
             // Normalize Chainlink 8-decimal price to WAD (1e18)
-            uint8 feedDecimals = IChainlinkAggregator(feed).decimals();
+            uint8 feedDecimals;
+            try IChainlinkAggregator(feed).decimals() returns (uint8 d) {
+                feedDecimals = d;
+            } catch {
+                return (false, 0, 0);
+            }
             uint256 price = uint256(answer);
             if (feedDecimals < 18) {
                 price = price * (10 ** (18 - feedDecimals));

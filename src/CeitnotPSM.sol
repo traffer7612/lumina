@@ -37,6 +37,7 @@ contract CeitnotPSM {
     error PSM__InvalidParams();
     error PSM__CeilingExceeded();
     error PSM__InsufficientReserves();
+    error PSM__InsufficientMinted();
     error PSM__TransferFailed();
 
     // ------------------------------- Events
@@ -156,7 +157,8 @@ contract CeitnotPSM {
 
         // Effects first (CEI pattern)
         unchecked {
-            mintedViaPsm  = mintedViaPsm >= amount ? mintedViaPsm - amount : 0;
+            if (mintedViaPsm < amount) revert PSM__InsufficientMinted();
+            mintedViaPsm  -= amount;
             feeReserves  += feePeg;
         }
 

@@ -118,7 +118,7 @@ contract CeitnotMarketRegistry is IMarketRegistry {
             liquidationPenaltyBps:   liquidationPenaltyBps,
             supplyCap:               supplyCap,
             borrowCap:               borrowCap,
-            isActive:                true,
+            isActive:                false,
             isFrozen:                false,
             isIsolated:              isIsolated,
             isolatedBorrowCap:       isolatedBorrowCap,
@@ -267,7 +267,10 @@ contract CeitnotMarketRegistry is IMarketRegistry {
     /// @notice Re-activate a previously deactivated market.
     function activateMarket(uint256 marketId) external onlyAdmin {
         if (!_exists[marketId]) revert Registry__MarketNotFound();
-        _markets[marketId].isActive = true;
+        MarketConfig storage cfg = _markets[marketId];
+        if (cfg.closeFactorBps == 0 || cfg.fullLiquidationThresholdBps == 0)
+            revert Registry__InvalidParams();
+        cfg.isActive = true;
         emit MarketActivated(marketId, true);
     }
 

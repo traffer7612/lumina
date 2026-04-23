@@ -133,8 +133,7 @@ contract CeitnotUSD is ICeitnotUSD {
     /// @dev Minter-only; does NOT consume allowance — the minter (engine) is trusted to
     ///      correctly attribute debt repayment. Used by CeitnotEngine on behalf of users.
     function burn(address from, uint256 amount) external onlyMinter {
-        _deductBalance(from, amount);
-        emit Transfer(from, address(0), amount);
+        _burn(from, amount);
     }
 
     /// @inheritdoc ICeitnotUSD
@@ -146,15 +145,12 @@ contract CeitnotUSD is ICeitnotUSD {
             if (allowed < amount) revert CeitnotUSD__InsufficientAllowance();
             unchecked { allowance[from][msg.sender] = allowed - amount; }
         }
-        _deductBalance(from, amount);
-        emit Transfer(from, address(0), amount);
+        _burn(from, amount);
     }
 
     // ------------------------------- ERC-20
     function transfer(address to, uint256 amount) external returns (bool) {
-        _deductBalance(msg.sender, amount);
-        unchecked { balanceOf[to] += amount; }
-        emit Transfer(msg.sender, to, amount);
+        _transfer(msg.sender, to, amount);
         return true;
     }
 
@@ -170,9 +166,7 @@ contract CeitnotUSD is ICeitnotUSD {
             if (allowed < amount) revert CeitnotUSD__InsufficientAllowance();
             unchecked { allowance[from][msg.sender] = allowed - amount; }
         }
-        _deductBalance(from, amount);
-        unchecked { balanceOf[to] += amount; }
-        emit Transfer(from, to, amount);
+        _transfer(from, to, amount);
         return true;
     }
 
@@ -214,8 +208,9 @@ contract CeitnotUSD is ICeitnotUSD {
     ) external {
         if (block.timestamp > deadline) revert CeitnotUSD__PermitExpired();
 
+        uint256 currentNonce = nonces[owner];
         bytes32 structHash = keccak256(
-            abi.encode(PERMIT_TYPEHASH, owner, spender, value, nonces[owner]++, deadline)
+            abi.encode(PERMIT_TYPEHASH, owner, spender, value, currentNonce, deadline)
         );
         bytes32 digest = keccak256(
             abi.encodePacked("\x19\x01", DOMAIN_SEPARATOR(), structHash)
@@ -224,16 +219,27 @@ contract CeitnotUSD is ICeitnotUSD {
         address recovered = ecrecover(digest, v, r, s);
         if (recovered == address(0) || recovered != owner) revert CeitnotUSD__InvalidSignature();
 
+        unchecked { nonces[owner] = currentNonce + 1; }
         allowance[owner][spender] = value;
         emit Approval(owner, spender, value);
     }
 
     // ------------------------------- Internal
-    function _deductBalance(address from, uint256 amount) internal {
+    function _transfer(address from, address to, uint256 amount) internal {
+        if (balanceOf[from] < amount) revert CeitnotUSD__InsufficientBalance();
+        unchecked {
+            balanceOf[from] -= amount;
+            balanceOf[to] += amount;
+        }
+        emit Transfer(from, to, amount);
+    }
+
+    function _burn(address from, uint256 amount) internal {
         if (balanceOf[from] < amount) revert CeitnotUSD__InsufficientBalance();
         unchecked {
             balanceOf[from] -= amount;
             totalSupply     -= amount;
         }
+        emit Transfer(from, address(0), amount);
     }
 }
